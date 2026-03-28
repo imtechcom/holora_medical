@@ -4,6 +4,7 @@ import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import AppointmentPage from "../pages/AppointmentPage";
 import ProtectedRoute from "./ProtectedRoute";
+import RegisterPage from "../pages/RegisterPage";
 
 const AppRoutes = () => {
   return (
@@ -35,6 +36,15 @@ const AppRoutes = () => {
                 <AppointmentPage />
               </MainLayout>
             </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/register"
+          element={
+            <MainLayout>
+              <RegisterPage />
+            </MainLayout>
           }
         />
       </Routes>

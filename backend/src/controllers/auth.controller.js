@@ -170,7 +170,20 @@ const login = (req, res) => {
 
   const sql = `
     SELECT 
-      u.*,
+      u.id,
+      u.full_name,
+      u.username,
+      u.email,
+      u.phone,
+      u.avatar_url,
+      u.gender,
+      u.date_of_birth,
+      u.password_hash,
+      u.status,
+      u.email_verified_at,
+      u.last_login_at,
+      u.created_at,
+      u.updated_at,
       r.code AS role
     FROM users u
     JOIN user_role ur ON u.id = ur.user_id

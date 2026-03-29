@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql
--- Generation Time: Mar 28, 2026 at 03:08 PM
+-- Generation Time: Mar 29, 2026 at 02:59 AM
 -- Server version: 8.0.45
 -- PHP Version: 8.3.26
 
@@ -173,8 +173,8 @@ CREATE TABLE `consultation_response` (
 
 CREATE TABLE `doctor` (
   `id` bigint UNSIGNED NOT NULL,
-  `user_id` bigint UNSIGNED NOT NULL,
-  `specialty_id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED DEFAULT NULL,
+  `specialty_id` bigint UNSIGNED DEFAULT NULL,
   `doctor_code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `full_name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
   `phone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -185,10 +185,17 @@ CREATE TABLE `doctor` (
   `consultation_fee` decimal(12,2) NOT NULL DEFAULT '0.00',
   `bio` text COLLATE utf8mb4_unicode_ci,
   `avatar_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status` enum('active','inactive','on_leave') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `status` enum('active','inactive','on_leave','deleted') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `doctor`
+--
+
+INSERT INTO `doctor` (`id`, `user_id`, `specialty_id`, `doctor_code`, `full_name`, `phone`, `email`, `license_number`, `qualification`, `experience_years`, `consultation_fee`, `bio`, `avatar_url`, `status`, `created_at`, `updated_at`) VALUES
+(1, NULL, NULL, 'DOCTOR000001', 'Hoàng Văn Linh', '+84981819143', 'it@holora.com', '2022', '', 0, 0.00, NULL, NULL, 'active', '2026-03-29 02:42:28', '2026-03-29 02:42:56');
 
 -- --------------------------------------------------------
 
@@ -586,11 +593,13 @@ ALTER TABLE `consultation_response`
 ALTER TABLE `doctor`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `doctor_code` (`doctor_code`),
+  ADD UNIQUE KEY `uk_license_number` (`license_number`),
   ADD KEY `fk_doctor_user` (`user_id`),
   ADD KEY `idx_doctor_specialty_id` (`specialty_id`),
   ADD KEY `idx_doctor_full_name` (`full_name`),
   ADD KEY `idx_doctor_status` (`status`),
-  ADD KEY `idx_doctor_license_number` (`license_number`);
+  ADD KEY `idx_doctor_license_number` (`license_number`),
+  ADD KEY `idx_doctor_code` (`doctor_code`);
 
 --
 -- Indexes for table `notification`
@@ -740,7 +749,7 @@ ALTER TABLE `consultation_response`
 -- AUTO_INCREMENT for table `doctor`
 --
 ALTER TABLE `doctor`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `notification`

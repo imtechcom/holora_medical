@@ -12,16 +12,9 @@ const RolesPage = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [selectedRoleForPermissions, setSelectedRoleForPermissions] = useState(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    code: "",
-    description: "",
-  });
 
   // Fetch roles on mount
   useEffect(() => {
@@ -32,8 +25,8 @@ const RolesPage = () => {
     try {
       setLoading(true);
       setError("");
-      const response = await roleService.getAllRolesApi();
-      setRoles(response.data || []);
+      const res = await roleService.getAllRolesApi();
+      setRoles(res.data || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch roles");
       console.error("Error fetching roles:", err);
@@ -43,10 +36,7 @@ const RolesPage = () => {
   };
 
   const handleAddRole = () => {
-    setEditingId(null);
-    setFormData({ name: "", code: "", description: "" });
-    setShowModal(true);
-    setError("");
+    navigate("/admin/roles/new");
   };
 
   const handleManagePermissions = (role) => {
@@ -55,65 +45,7 @@ const RolesPage = () => {
   };
 
   const handleEditRole = (role) => {
-    setEditingId(role.id);
-    setFormData({
-      name: role.name,
-      code: role.code,
-      description: role.description,
-    });
-    setShowModal(true);
-    setError("");
-  };
-
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    // Validation
-    if (!formData.name.trim()) {
-      setError(t("admin.nameRequired"));
-      return;
-    }
-    if (!formData.code.trim()) {
-      setError(t("admin.codeRequired"));
-      return;
-    }
-
-    try {
-      if (editingId) {
-        // Update
-        const response = await roleService.updateRoleApi(editingId, {
-          name: formData.name,
-          description: formData.description,
-        });
-        if (response) {
-          setSuccess(t("admin.updateRoleSuccess"));
-          setShowModal(false);
-          fetchRoles();
-        }
-      } else {
-        // Create
-        const response = await roleService.createRoleApi({
-          name: formData.name,
-          code: formData.code,
-          description: formData.description,
-        });
-        if (response) {
-          setSuccess(t("admin.createRoleSuccess"));
-          setShowModal(false);
-          setFormData({ name: "", code: "", description: "" });
-          fetchRoles();
-        }
-      }
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || "Operation failed";
-      if (errorMsg.includes("already exists")) {
-        setError(t("admin.codeAlreadyExists"));
-      } else {
-        setError(errorMsg);
-      }
-    }
+    navigate(`/admin/roles/${role.id}/edit`);
   };
 
   const handleDeleteRole = async (id, isSystemRole, userCount) => {
@@ -327,78 +259,7 @@ const RolesPage = () => {
       </div>
 
       {/* Modal Form */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900">
-              {editingId ? t("admin.editRole") : t("admin.addNewRole")}
-            </h2>
-            <form onSubmit={handleFormSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("admin.name")} *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., Manager"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("admin.code")} * {editingId && "(Disabled for editing)"}
-                </label>
-                <input
-                  type="text"
-                  value={formData.code}
-                  onChange={(e) =>
-                    setFormData({ ...formData, code: e.target.value })
-                  }
-                  disabled={!!editingId}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                  placeholder="e.g., manager"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("admin.description")}
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  placeholder="Optional description"
-                  rows="3"
-                />
-              </div>
-
-              <div className="flex gap-3 justify-end mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  {t("common.cancel")}
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  {editingId ? t("common.update") : t("common.create")}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Removed - Now uses dedicated RoleFormPage for create/edit */}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (

@@ -10,14 +10,20 @@ const getAllUsers = (req, res) => {
       u.username,
       u.email,
       u.phone,
+      u.avatar_url,
+      u.gender,
+      u.date_of_birth,
       u.status,
+      u.email_verified_at,
+      u.last_login_at,
       u.created_at,
+      u.updated_at,
       GROUP_CONCAT(r.name SEPARATOR ', ') as roles
     FROM users u
     LEFT JOIN user_role ur ON u.id = ur.user_id
     LEFT JOIN role r ON ur.role_id = r.id
     WHERE u.deleted_at IS NULL
-    GROUP BY u.id
+    GROUP BY u.id, u.full_name, u.username, u.email, u.phone, u.avatar_url, u.gender, u.date_of_birth, u.status, u.email_verified_at, u.last_login_at, u.created_at, u.updated_at
     ORDER BY u.created_at DESC
   `;
 
@@ -43,14 +49,26 @@ const getUserById = (req, res) => {
 
   const sql = `
     SELECT 
-      u.*,
+      u.id,
+      u.full_name,
+      u.username,
+      u.email,
+      u.phone,
+      u.avatar_url,
+      u.gender,
+      u.date_of_birth,
+      u.status,
+      u.email_verified_at,
+      u.last_login_at,
+      u.created_at,
+      u.updated_at,
       GROUP_CONCAT(r.code SEPARATOR ', ') as roles
     FROM users u
     LEFT JOIN user_role ur ON u.id = ur.user_id
     LEFT JOIN role r ON ur.role_id = r.id
     WHERE u.id = ?
       AND u.deleted_at IS NULL
-    GROUP BY u.id
+    GROUP BY u.id, u.full_name, u.username, u.email, u.phone, u.avatar_url, u.gender, u.date_of_birth, u.status, u.email_verified_at, u.last_login_at, u.created_at, u.updated_at
   `;
 
   db.query(sql, [id], (err, results) => {

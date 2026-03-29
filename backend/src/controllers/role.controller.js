@@ -4,12 +4,19 @@ const db = require("../config/db");
 const getAllRoles = (req, res) => {
   const sql = `
     SELECT 
-      r.*,
+      r.id,
+      r.name,
+      r.code,
+      r.description,
+      r.is_system_role,
+      r.status,
+      r.created_at,
+      r.updated_at,
       COUNT(ur.id) as user_count
     FROM role r
     LEFT JOIN user_role ur ON r.id = ur.role_id
     WHERE r.status = 'active'
-    GROUP BY r.id
+    GROUP BY r.id, r.name, r.code, r.description, r.is_system_role, r.status, r.created_at, r.updated_at
     ORDER BY r.created_at DESC
   `;
 
@@ -35,12 +42,19 @@ const getRoleById = (req, res) => {
 
   const sql = `
     SELECT 
-      r.*,
+      r.id,
+      r.name,
+      r.code,
+      r.description,
+      r.is_system_role,
+      r.status,
+      r.created_at,
+      r.updated_at,
       COUNT(ur.id) as user_count
     FROM role r
     LEFT JOIN user_role ur ON r.id = ur.role_id
     WHERE r.id = ? AND r.status = 'active'
-    GROUP BY r.id
+    GROUP BY r.id, r.name, r.code, r.description, r.is_system_role, r.status, r.created_at, r.updated_at
   `;
 
   db.query(sql, [id], (err, results) => {

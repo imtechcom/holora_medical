@@ -23,6 +23,7 @@ const AdminLayout = ({ children }) => {
   const canViewUsers = role === "super_admin" || role === "admin";
   const canViewRoles = role === "super_admin" || role === "admin";
   const canViewPermissions = role === "super_admin" || role === "admin";
+  const canViewSpecialties = role === "super_admin" || role === "admin";
   const canViewDoctors = role === "super_admin" || role === "admin";
   const canViewPatients = role === "super_admin" || role === "admin" || role === "doctor";
   const canViewAppointments = role === "super_admin" || role === "admin" || role === "doctor";
@@ -60,6 +61,12 @@ const AdminLayout = ({ children }) => {
             {canViewPermissions && (
               <NavLink to="/admin/permissions" className={navClass}>
                 {t("admin.permissionsManagement")}
+              </NavLink>
+            )}
+
+            {canViewSpecialties && (
+              <NavLink to="/admin/specialties" className={navClass}>
+                {t("specialty.managementTitle")}
               </NavLink>
             )}
 

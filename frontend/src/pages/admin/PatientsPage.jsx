@@ -1,42 +1,25 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   getAllPatientsApi,
-  createPatientApi,
-  updatePatientApi,
   deletePatientApi,
 } from "../../services/patientService";
 
 const PatientsPage = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [formData, setFormData] = useState({
-    user_id: "",
-    full_name: "",
-    phone: "",
-    email: "",
-    gender: "",
-    date_of_birth: "",
-    address: "",
-    blood_group: "",
-    allergies: "",
-    medical_history: "",
-    emergency_contact_name: "",
-    emergency_contact_phone: "",
-    status: "active",
-  });
 
   const fetchPatients = async () => {
     try {
       setLoading(true);
-      const data = await getAllPatientsApi();
-      setPatients(data);
+      const res = await getAllPatientsApi();
+      setPatients(res.data || []);
     } catch (error) {
       console.error("Error fetching patients:", error);
     } finally {
@@ -49,43 +32,11 @@ const PatientsPage = () => {
   }, []);
 
   const handleAddClick = () => {
-    setEditingId(null);
-    setFormData({
-      user_id: "",
-      full_name: "",
-      phone: "",
-      email: "",
-      gender: "",
-      date_of_birth: "",
-      address: "",
-      blood_group: "",
-      allergies: "",
-      medical_history: "",
-      emergency_contact_name: "",
-      emergency_contact_phone: "",
-      status: "active",
-    });
-    setShowModal(true);
+    navigate("/admin/patients/new");
   };
 
   const handleEditClick = (patient) => {
-    setEditingId(patient.id);
-    setFormData({
-      user_id: patient.user_id || "",
-      full_name: patient.full_name || "",
-      phone: patient.phone || "",
-      email: patient.email || "",
-      gender: patient.gender || "",
-      date_of_birth: patient.date_of_birth || "",
-      address: patient.address || "",
-      blood_group: patient.blood_group || "",
-      allergies: patient.allergies || "",
-      medical_history: patient.medical_history || "",
-      emergency_contact_name: patient.emergency_contact_name || "",
-      emergency_contact_phone: patient.emergency_contact_phone || "",
-      status: patient.status || "active",
-    });
-    setShowModal(true);
+    navigate(`/admin/patients/${patient.id}/edit`);
   };
 
   const handleDeleteClick = (id) => {
@@ -101,23 +52,6 @@ const PatientsPage = () => {
       setDeleteId(null);
     } catch (error) {
       console.error("Error deleting patient:", error);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      if (editingId) {
-        await updatePatientApi(editingId, formData);
-        setPatients(
-          patients.map((p) => (p.id === editingId ? { ...p, ...formData } : p))
-        );
-      } else {
-        const newPatient = await createPatientApi(formData);
-        setPatients([newPatient, ...patients]);
-      }
-      setShowModal(false);
-    } catch (error) {
-      console.error("Error saving patient:", error);
     }
   };
 
@@ -284,204 +218,27 @@ const PatientsPage = () => {
         </table>
       </div>
 
-      {showModal && (
+      {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 w-full max-w-2xl max-h-96 overflow-y-auto">
-            <h3 className="text-xl font-bold text-[#E06666] mb-4">
-              {editingId ? t("admin.editPatient") : t("admin.addNewPatient")}
+          <div className="bg-white rounded-lg p-6 w-80">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">
+              {t("admin.confirmDelete")}
             </h3>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  {t("admin.fullName")}
-                </label>
-                <input
-                  type="text"
-                  value={formData.full_name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, full_name: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  {t("admin.phone")}
-                </label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  {t("admin.email")}
-                </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  {t("admin.gender")}
-                </label>
-                <select
-                  value={formData.gender}
-                  onChange={(e) =>
-                    setFormData({ ...formData, gender: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
-                >
-                  <option value="">{t("common.select")}</option>
-                  <option value="male">{t("admin.genderMale")}</option>
-                  <option value="female">{t("admin.genderFemale")}</option>
-                  <option value="other">{t("admin.genderOther")}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  {t("admin.dateOfBirth")}
-                </label>
-                <input
-                  type="date"
-                  value={formData.date_of_birth}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date_of_birth: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  {t("admin.bloodGroup")}
-                </label>
-                <select
-                  value={formData.blood_group}
-                  onChange={(e) =>
-                    setFormData({ ...formData, blood_group: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
-                >
-                  <option value="">{t("common.select")}</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                </select>
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-semibold mb-2">
-                  {t("admin.address")}
-                </label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) =>
-                    setFormData({ ...formData, address: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-semibold mb-2">
-                  {t("admin.allergies")}
-                </label>
-                <textarea
-                  value={formData.allergies}
-                  onChange={(e) =>
-                    setFormData({ ...formData, allergies: e.target.value })
-                  }
-                  rows="2"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-semibold mb-2">
-                  {t("admin.medicalHistory")}
-                </label>
-                <textarea
-                  value={formData.medical_history}
-                  onChange={(e) =>
-                    setFormData({ ...formData, medical_history: e.target.value })
-                  }
-                  rows="2"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  {t("admin.emergencyContactName")}
-                </label>
-                <input
-                  type="text"
-                  value={formData.emergency_contact_name}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      emergency_contact_name: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  {t("admin.emergencyContactPhone")}
-                </label>
-                <input
-                  type="text"
-                  value={formData.emergency_contact_phone}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      emergency_contact_phone: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  {t("admin.status")}
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData({ ...formData, status: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
-                >
-                  <option value="active">{t("admin.statusActive")}</option>
-                  <option value="inactive">{t("admin.statusInactive")}</option>
-                  <option value="blocked">Blocked</option>
-                </select>
-              </div>
-            </div>
+            <p className="text-gray-600 mb-6">
+              {t("admin.deletePatientConfirmation")}
+            </p>
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => setShowDeleteConfirm(false)}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
               >
                 {t("common.cancel")}
               </button>
               <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-[#E06666] text-white rounded-lg hover:bg-red-600 transition"
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
               >
-                {t("common.save")}
+                {t("common.delete")}
               </button>
             </div>
           </div>

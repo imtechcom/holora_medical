@@ -86,8 +86,11 @@ const createDoctor = (req, res) => {
     status,
   } = req.body;
 
+  console.log("Create doctor request:", req.body);
+
   // Validate required fields
   if (!full_name || !phone || !license_number) {
+    console.log("Validation failed:", { full_name, phone, license_number });
     return res.status(400).json({
       message: "Full name, phone, and license number are required",
     });
@@ -123,63 +126,67 @@ const createDoctor = (req, res) => {
 
       const nextId = (codeResults[0]?.maxId || 0) + 1;
       const doctor_code = `DOCTOR${String(nextId).padStart(6, "0")}`;
+      console.log("Generated doctor code:", doctor_code);
 
       const insertSql = `
-        INSERT INTO doctor (user_id, specialty_id, doctor_code, full_name, phone, email, license_number, qualification, experience_years, consultation_fee, bio, avatar_url, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        INSERT INTO doctor (specialty_id, doctor_code, full_name, phone, email, license_number, qualification, experience_years, consultation_fee, bio, avatar_url, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
       `;
 
-      db.query(
-        insertSql,
-        [
-          user_id || null,
-          specialty_id || null,
+      const insertValues = [
+        specialty_id || null,
+        doctor_code,
+        full_name,
+        phone,
+        email,
+        license_number,
+        qualification,
+        experience_years || 0,
+        consultation_fee || 0,
+        bio || null,
+        avatar_url || null,
+        status || "active",
+      ];
+      
+      console.log("Insert values:", insertValues);
+
+      db.query(insertSql, insertValues, (err, result) => {
+        if (err) {
+          console.error("Create doctor SQL error:", err.message);
+          console.error("Error code:", err.code);
+          console.error("Error errno:", err.errno);
+          return res.status(500).json({
+            message: "Database error",
+            error: err.message,
+          });
+        }
+
+        console.log("Doctor inserted successfully, ID:", result.insertId);
+
+        const newDoctor = {
+          id: result.insertId,
+          user_id,
+          specialty_id,
           doctor_code,
           full_name,
           phone,
           email,
           license_number,
           qualification,
-          experience_years || 0,
-          consultation_fee || 0,
-          bio || null,
-          avatar_url || null,
-          status || "active",
-        ],
-        (err, result) => {
-          if (err) {
-            console.error("Create doctor error:", err);
-            return res.status(500).json({
-              message: "Database error",
-              error: err.message,
-            });
-          }
+          experience_years: experience_years || 0,
+          consultation_fee: consultation_fee || 0,
+          bio,
+          avatar_url,
+          status: status || "active",
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
 
-          const newDoctor = {
-            id: result.insertId,
-            user_id,
-            specialty_id,
-            doctor_code,
-            full_name,
-            phone,
-            email,
-            license_number,
-            qualification,
-            experience_years: experience_years || 0,
-            consultation_fee: consultation_fee || 0,
-            bio,
-            avatar_url,
-            status: status || "active",
-            created_at: new Date(),
-            updated_at: new Date(),
-          };
-
-          return res.status(201).json({
-            message: "Doctor created successfully",
-            data: newDoctor,
-          });
-        }
-      );
+        return res.status(201).json({
+          message: "Doctor created successfully",
+          data: newDoctor,
+        });
+      });
     });
   });
 };

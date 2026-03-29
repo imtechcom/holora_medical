@@ -10,10 +10,17 @@ const roleRoutes = require("./routes/role.routes");
 const permissionRoutes = require("./routes/permission.routes");
 const patientRoutes = require("./routes/patient.routes");
 const doctorRoutes = require("./routes/doctor.routes");
+const specialtyRoutes = require("./routes/specialty.routes");
+const { errorHandler } = require("./middleware/error.middleware");
 
 const app = express();
 
-app.use(cors());
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -26,5 +33,9 @@ app.use("/roles", roleRoutes);
 app.use("/permissions", permissionRoutes);
 app.use("/patients", patientRoutes);
 app.use("/doctors", doctorRoutes);
+app.use("/specialties", specialtyRoutes);
+
+// Global error handler (must be last)
+app.use(errorHandler);
 
 module.exports = app;

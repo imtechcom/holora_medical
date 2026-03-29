@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { registerApi } from "../services/authService";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -31,27 +33,27 @@ const RegisterPage = () => {
   // Client-side validation function
   const validateForm = () => {
     if (!formData.full_name.trim()) {
-      return "Full name is required.";
+      return t("auth.fullNameRequired");
     }
 
     if (!formData.username.trim()) {
-      return "Username is required.";
+      return t("auth.usernameRequired");
     }
 
     if (!formData.email.trim()) {
-      return "Email is required.";
+      return t("auth.emailRequired");
     }
 
     if (!formData.password) {
-      return "Password is required.";
+      return t("auth.passwordRequired");
     }
 
     if (formData.password.length < 6) {
-      return "Password must be at least 6 characters.";
+      return t("auth.passwordMin");
     }
 
     if (formData.password !== formData.confirmPassword) {
-      return "Confirm password does not match.";
+      return t("auth.passwordNotMatch");
     }
 
     return "";
@@ -82,14 +84,14 @@ const RegisterPage = () => {
 
       const data = await registerApi(payload);
 
-      setSuccessMessage(data.message || "Register successful.");
+      setSuccessMessage(data.message || t("auth.registerSuccess"));
 
       setTimeout(() => {
         navigate("/login");
       }, 1000);
     } catch (error) {
       setErrorMessage(
-        error?.response?.data?.message || "Register failed. Please try again."
+        error?.response?.data?.message || t("auth.registerFailed")
       );
     } finally {
       setLoading(false);
@@ -101,7 +103,7 @@ const RegisterPage = () => {
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-[#E06666]">Holora Medical</h1>
-          <p className="text-gray-500 mt-2">Create your account</p>
+          <p className="text-gray-500 mt-2">{t("auth.createAccount")}</p>
         </div>
 
         {errorMessage && (
@@ -118,11 +120,11 @@ const RegisterPage = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium mb-2">Full Name</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.fullName")}</label>
             <input
               type="text"
               name="full_name"
-              placeholder="Enter your full name"
+              placeholder={t("auth.fullNamePlaceholder")}
               value={formData.full_name}
               onChange={handleChange}
               className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-[#E06666] focus:ring-2 focus:ring-[#F7CACA]"
@@ -131,11 +133,11 @@ const RegisterPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Username</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.username")}</label>
             <input
               type="text"
               name="username"
-              placeholder="Enter your username"
+              placeholder={t("auth.usernamePlaceholder")}
               value={formData.username}
               onChange={handleChange}
               className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-[#E06666] focus:ring-2 focus:ring-[#F7CACA]"
@@ -144,11 +146,11 @@ const RegisterPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.email")}</label>
             <input
               type="email"
               name="email"
-              placeholder="Enter your email"
+              placeholder={t("auth.emailPlaceholder")}
               value={formData.email}
               onChange={handleChange}
               className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-[#E06666] focus:ring-2 focus:ring-[#F7CACA]"
@@ -157,11 +159,11 @@ const RegisterPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Phone</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.phone")}</label>
             <input
               type="text"
               name="phone"
-              placeholder="Enter your phone number"
+              placeholder={t("auth.phonePlaceholder")}
               value={formData.phone}
               onChange={handleChange}
               className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-[#E06666] focus:ring-2 focus:ring-[#F7CACA]"
@@ -169,11 +171,11 @@ const RegisterPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Password</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.password")}</label>
             <input
               type="password"
               name="password"
-              placeholder="Enter your password"
+              placeholder={t("auth.passwordPlaceholder")}
               value={formData.password}
               onChange={handleChange}
               className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-[#E06666] focus:ring-2 focus:ring-[#F7CACA]"
@@ -182,11 +184,11 @@ const RegisterPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Confirm Password</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.confirmPassword")}</label>
             <input
               type="password"
               name="confirmPassword"
-              placeholder="Confirm your password"
+              placeholder={t("auth.confirmPasswordPlaceholder")}
               value={formData.confirmPassword}
               onChange={handleChange}
               className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-[#E06666] focus:ring-2 focus:ring-[#F7CACA]"
@@ -199,14 +201,14 @@ const RegisterPage = () => {
             disabled={loading}
             className="w-full rounded-xl bg-[#E06666] py-3 font-semibold text-white transition hover:bg-[#d85a5a] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {loading ? "Creating account..." : "Register"}
+            {loading ? "..." : t("auth.submitRegister")}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-500">
-          Already have an account?{" "}
+          {t("auth.haveAccount")}{" "}
           <Link to="/login" className="font-semibold text-[#E06666] hover:underline">
-            Login
+            {t("auth.signIn")}
           </Link>
         </p>
       </div>

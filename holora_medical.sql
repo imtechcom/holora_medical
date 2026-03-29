@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql
--- Generation Time: Mar 28, 2026 at 09:53 AM
+-- Generation Time: Mar 28, 2026 at 03:08 PM
 -- Server version: 8.0.45
 -- PHP Version: 8.3.26
 
@@ -235,6 +235,13 @@ CREATE TABLE `patient` (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `patient`
+--
+
+-- Operational rows removed from public history.
+
+
 -- --------------------------------------------------------
 
 --
@@ -268,7 +275,20 @@ INSERT INTO `permission` (`id`, `name`, `code`, `module_name`, `description`, `s
 (9, 'Manage Video Sessions', 'video.manage', 'video', 'Quản lý phiên tư vấn video', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
 (10, 'Manage Reviews', 'review.manage', 'review', 'Quản lý đánh giá', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
 (11, 'Manage Notifications', 'notification.manage', 'notification', 'Quản lý thông báo', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
-(12, 'View Audit Logs', 'audit.view', 'audit', 'Xem nhật ký hệ thống', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25');
+(12, 'View Audit Logs', 'audit.view', 'audit', 'Xem nhật ký hệ thống', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
+(13, 'Access Dashboard', 'dashboard.access', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
+(14, 'View Users', 'user.view', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
+(15, 'Create User', 'user.create', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
+(16, 'Update User', 'user.update', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
+(17, 'Delete User', 'user.delete', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
+(18, 'View Patients', 'patient.view', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
+(19, 'Create Patient', 'patient.create', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
+(20, 'Update Patient', 'patient.update', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
+(21, 'View Appointments', 'appointment.view', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
+(22, 'Create Appointment', 'appointment.create', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
+(23, 'Update Appointment', 'appointment.update', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
+(24, 'View Consultations', 'consultation.view', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
+(25, 'Respond Consultation', 'consultation.respond', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40');
 
 -- --------------------------------------------------------
 
@@ -331,6 +351,56 @@ CREATE TABLE `role_permission` (
   `granted_by` bigint UNSIGNED DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `role_permission`
+--
+
+INSERT INTO `role_permission` (`id`, `role_id`, `permission_id`, `granted_at`, `granted_by`) VALUES
+(1, 1, 1, '2026-03-28 14:55:55', NULL),
+(2, 1, 2, '2026-03-28 14:55:55', NULL),
+(3, 1, 3, '2026-03-28 14:55:55', NULL),
+(4, 1, 4, '2026-03-28 14:55:55', NULL),
+(5, 1, 5, '2026-03-28 14:55:55', NULL),
+(6, 1, 6, '2026-03-28 14:55:55', NULL),
+(7, 1, 7, '2026-03-28 14:55:55', NULL),
+(8, 1, 8, '2026-03-28 14:55:55', NULL),
+(9, 1, 9, '2026-03-28 14:55:55', NULL),
+(10, 1, 10, '2026-03-28 14:55:55', NULL),
+(11, 1, 11, '2026-03-28 14:55:55', NULL),
+(12, 1, 12, '2026-03-28 14:55:55', NULL),
+(13, 1, 13, '2026-03-28 14:55:55', NULL),
+(14, 1, 14, '2026-03-28 14:55:55', NULL),
+(15, 1, 15, '2026-03-28 14:55:55', NULL),
+(16, 1, 16, '2026-03-28 14:55:55', NULL),
+(17, 1, 17, '2026-03-28 14:55:55', NULL),
+(18, 1, 18, '2026-03-28 14:55:55', NULL),
+(19, 1, 19, '2026-03-28 14:55:55', NULL),
+(20, 1, 20, '2026-03-28 14:55:55', NULL),
+(21, 1, 21, '2026-03-28 14:55:55', NULL),
+(22, 1, 22, '2026-03-28 14:55:55', NULL),
+(23, 1, 23, '2026-03-28 14:55:55', NULL),
+(24, 1, 24, '2026-03-28 14:55:55', NULL),
+(25, 1, 25, '2026-03-28 14:55:55', NULL),
+(32, 2, 22, '2026-03-28 14:56:13', NULL),
+(33, 2, 23, '2026-03-28 14:56:13', NULL),
+(34, 2, 21, '2026-03-28 14:56:13', NULL),
+(35, 2, 24, '2026-03-28 14:56:13', NULL),
+(36, 2, 13, '2026-03-28 14:56:13', NULL),
+(37, 2, 19, '2026-03-28 14:56:13', NULL),
+(38, 2, 20, '2026-03-28 14:56:13', NULL),
+(39, 2, 18, '2026-03-28 14:56:13', NULL),
+(40, 2, 15, '2026-03-28 14:56:13', NULL),
+(41, 2, 16, '2026-03-28 14:56:13', NULL),
+(42, 2, 14, '2026-03-28 14:56:13', NULL),
+(47, 3, 23, '2026-03-28 14:56:28', NULL),
+(48, 3, 21, '2026-03-28 14:56:28', NULL),
+(49, 3, 25, '2026-03-28 14:56:28', NULL),
+(50, 3, 24, '2026-03-28 14:56:28', NULL),
+(51, 3, 13, '2026-03-28 14:56:28', NULL),
+(52, 3, 18, '2026-03-28 14:56:28', NULL),
+(54, 4, 22, '2026-03-28 14:56:46', NULL),
+(55, 4, 21, '2026-03-28 14:56:46', NULL);
+
 -- --------------------------------------------------------
 
 --
@@ -350,10 +420,10 @@ CREATE TABLE `specialty` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `user`
+-- Table structure for table `users`
 --
 
-CREATE TABLE `user` (
+CREATE TABLE `users` (
   `id` bigint UNSIGNED NOT NULL,
   `full_name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
   `username` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -372,6 +442,13 @@ CREATE TABLE `user` (
   `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `users`
+--
+
+-- Operational rows removed from public history.
+
+
 -- --------------------------------------------------------
 
 --
@@ -385,6 +462,13 @@ CREATE TABLE `user_role` (
   `assigned_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `assigned_by` bigint UNSIGNED DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `user_role`
+--
+
+-- Operational rows removed from public history.
+
 
 -- --------------------------------------------------------
 
@@ -569,9 +653,9 @@ ALTER TABLE `specialty`
   ADD UNIQUE KEY `code` (`code`);
 
 --
--- Indexes for table `user`
+-- Indexes for table `users`
 --
-ALTER TABLE `user`
+ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `username` (`username`),
   ADD UNIQUE KEY `email` (`email`),
@@ -660,13 +744,13 @@ ALTER TABLE `notification`
 -- AUTO_INCREMENT for table `patient`
 --
 ALTER TABLE `patient`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `permission`
 --
 ALTER TABLE `permission`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `review`
@@ -684,7 +768,7 @@ ALTER TABLE `role`
 -- AUTO_INCREMENT for table `role_permission`
 --
 ALTER TABLE `role_permission`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
 
 --
 -- AUTO_INCREMENT for table `specialty`
@@ -693,16 +777,16 @@ ALTER TABLE `specialty`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `user`
+-- AUTO_INCREMENT for table `users`
 --
-ALTER TABLE `user`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+ALTER TABLE `users`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `user_role`
 --
 ALTER TABLE `user_role`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `video_consultation_session`
@@ -720,7 +804,7 @@ ALTER TABLE `video_consultation_session`
 ALTER TABLE `ai_analysis_request`
   ADD CONSTRAINT `fk_ai_analysis_request_consultation` FOREIGN KEY (`consultation_id`) REFERENCES `consultation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_ai_analysis_request_consultation_image` FOREIGN KEY (`consultation_image_id`) REFERENCES `consultation_image` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_ai_analysis_request_requested_by` FOREIGN KEY (`requested_by`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_ai_analysis_request_requested_by` FOREIGN KEY (`requested_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `ai_analysis_result`
@@ -733,7 +817,7 @@ ALTER TABLE `ai_analysis_result`
 -- Constraints for table `appointment`
 --
 ALTER TABLE `appointment`
-  ADD CONSTRAINT `fk_appointment_created_by` FOREIGN KEY (`created_by`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_appointment_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_appointment_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_appointment_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_appointment_specialty` FOREIGN KEY (`specialty_id`) REFERENCES `specialty` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
@@ -742,7 +826,7 @@ ALTER TABLE `appointment`
 -- Constraints for table `audit_log`
 --
 ALTER TABLE `audit_log`
-  ADD CONSTRAINT `fk_audit_log_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_audit_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `consultation`
@@ -757,33 +841,33 @@ ALTER TABLE `consultation`
 --
 ALTER TABLE `consultation_image`
   ADD CONSTRAINT `fk_consultation_image_consultation` FOREIGN KEY (`consultation_id`) REFERENCES `consultation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_consultation_image_uploaded_by` FOREIGN KEY (`uploaded_by`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_consultation_image_uploaded_by` FOREIGN KEY (`uploaded_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `consultation_response`
 --
 ALTER TABLE `consultation_response`
   ADD CONSTRAINT `fk_consultation_response_consultation` FOREIGN KEY (`consultation_id`) REFERENCES `consultation` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_consultation_response_responder` FOREIGN KEY (`responder_user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_consultation_response_responder` FOREIGN KEY (`responder_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `doctor`
 --
 ALTER TABLE `doctor`
   ADD CONSTRAINT `fk_doctor_specialty` FOREIGN KEY (`specialty_id`) REFERENCES `specialty` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_doctor_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_doctor_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `notification`
 --
 ALTER TABLE `notification`
-  ADD CONSTRAINT `fk_notification_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_notification_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `patient`
 --
 ALTER TABLE `patient`
-  ADD CONSTRAINT `fk_patient_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_patient_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `review`
@@ -797,7 +881,7 @@ ALTER TABLE `review`
 -- Constraints for table `role_permission`
 --
 ALTER TABLE `role_permission`
-  ADD CONSTRAINT `fk_role_permission_granted_by` FOREIGN KEY (`granted_by`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_role_permission_granted_by` FOREIGN KEY (`granted_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_role_permission_permission` FOREIGN KEY (`permission_id`) REFERENCES `permission` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_role_permission_role` FOREIGN KEY (`role_id`) REFERENCES `role` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -805,9 +889,9 @@ ALTER TABLE `role_permission`
 -- Constraints for table `user_role`
 --
 ALTER TABLE `user_role`
-  ADD CONSTRAINT `fk_user_role_assigned_by` FOREIGN KEY (`assigned_by`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_user_role_assigned_by` FOREIGN KEY (`assigned_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_user_role_role` FOREIGN KEY (`role_id`) REFERENCES `role` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_user_role_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_user_role_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `video_consultation_session`

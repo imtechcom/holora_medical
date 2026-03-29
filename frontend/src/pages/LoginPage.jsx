@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { loginApi } from "../services/authService";
 import { useAuth } from "../context/AuthContext";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t } = useTranslation();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -39,7 +41,7 @@ const LoginPage = () => {
       navigate("/");
     } catch (error) {
       setErrorMessage(
-        error?.response?.data?.message || "Login failed. Please try again."
+        error?.response?.data?.message || t("auth.loginFailed")
       );
     } finally {
       setLoading(false);
@@ -51,7 +53,7 @@ const LoginPage = () => {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-[#E06666]">Holora Medical</h1>
-          <p className="text-gray-500 mt-2">Sign in to your account</p>
+          <p className="text-gray-500 mt-2">{t("auth.signIn")}</p>
         </div>
 
         {errorMessage && (
@@ -62,11 +64,11 @@ const LoginPage = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.email")}</label>
             <input
               type="email"
               name="email"
-              placeholder="Enter your email"
+              placeholder={t("auth.emailPlaceholder")}
               value={formData.email}
               onChange={handleChange}
               required
@@ -75,11 +77,11 @@ const LoginPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Password</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.password")}</label>
             <input
               type="password"
               name="password"
-              placeholder="Enter your password"
+              placeholder={t("auth.passwordPlaceholder")}
               value={formData.password}
               onChange={handleChange}
               required
@@ -92,14 +94,14 @@ const LoginPage = () => {
             disabled={loading}
             className="w-full rounded-xl bg-[#E06666] py-3 font-semibold text-white transition hover:bg-[#d85a5a] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {loading ? "Signing in..." : "Login"}
+            {loading ? "..." : t("auth.submitLogin")}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-500">
-          Don&apos;t have an account?{" "}
+          {t("auth.noAccount")}{" "}
           <Link to="/register" className="font-semibold text-[#E06666] hover:underline">
-            Register
+            {t("auth.signUp")}
           </Link>
         </p>
       </div>

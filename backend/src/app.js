@@ -5,6 +5,11 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const authRoutes = require("./routes/auth.routes");
+const userRoutes = require("./routes/user.routes");
+const roleRoutes = require("./routes/role.routes");
+const permissionRoutes = require("./routes/permission.routes");
+const patientRoutes = require("./routes/patient.routes");
+const doctorRoutes = require("./routes/doctor.routes");
 
 const app = express();
 
@@ -16,5 +21,10 @@ app.get("/", (req, res) => {
 });
 
 app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
+app.use("/roles", roleRoutes);
+app.use("/permissions", permissionRoutes);
+app.use("/patients", patientRoutes);
+app.use("/doctors", doctorRoutes);
 
 module.exports = app;

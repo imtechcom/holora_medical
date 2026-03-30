@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  getAllDoctorsApi,
+  getDoctorByIdApi,
   createDoctorApi,
   updateDoctorApi,
 } from "../../services/doctorService";
+import { createUserApi } from "../../services/userService";
+import specialtyService from "../../services/specialtyService";
+import branchService from "../../services/branchService";
 
 const DoctorFormPage = () => {
   const { t } = useTranslation();
@@ -17,10 +20,13 @@ const DoctorFormPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [specialties, setSpecialties] = useState([]);
+  const [branches, setBranches] = useState([]);
 
   const [formData, setFormData] = useState({
     user_id: "",
     specialty_id: "",
+    branch_ids: [],
     full_name: "",
     phone: "",
     email: "",
@@ -31,41 +37,66 @@ const DoctorFormPage = () => {
     bio: "",
     avatar_url: "",
     status: "active",
+    // New fields for user creation (create mode only)
+    username: "",
+    password: "",
   });
 
   // Fetch doctor data if editing
+  const fetchSpecialties = useCallback(async () => {
+    try {
+      const res = await specialtyService.getAllSpecialties();
+      setSpecialties(res.data || []);
+    } catch (err) {
+      console.error("Error fetching specialties:", err);
+    }
+  }, []);
+
+  const fetchBranches = useCallback(async () => {
+    try {
+      const res = await branchService.getAllBranches();
+      setBranches(res.data || []);
+    } catch (err) {
+      console.error("Error fetching branches:", err);
+    }
+  }, []);
+
+  const fetchDoctor = useCallback(async () => {
+    try {
+      const res = await getDoctorByIdApi(doctorId);
+      const doctor = res.data;
+      setFormData({
+        user_id: doctor.user_id || "",
+        specialty_id: doctor.specialty_id || "",
+        branch_ids: doctor.branch_ids || [],
+        full_name: doctor.full_name || "",
+        phone: doctor.phone || "",
+        email: doctor.email || "",
+        license_number: doctor.license_number || "",
+        qualification: doctor.qualification || "",
+        experience_years: doctor.experience_years || "",
+        consultation_fee: doctor.consultation_fee || "",
+        bio: doctor.bio || "",
+        avatar_url: doctor.avatar_url || "",
+        status: doctor.status || "active",
+        username: "",
+        password: "",
+      });
+    } catch (err) {
+      console.error("Error fetching doctor:", err);
+      setError(t("admin.errorLoadingDoctor"));
+    } finally {
+      setLoading(false);
+    }
+  }, [doctorId, t]);
+
   useEffect(() => {
+    fetchSpecialties();
+    fetchBranches();
     if (isEdit) {
-      const fetchDoctor = async () => {
-        try {
-          const res = await getAllDoctorsApi();
-          const doctor = res.data.find((d) => d.id === parseInt(doctorId));
-          if (doctor) {
-            setFormData({
-              user_id: doctor.user_id || "",
-              specialty_id: doctor.specialty_id || "",
-              full_name: doctor.full_name || "",
-              phone: doctor.phone || "",
-              email: doctor.email || "",
-              license_number: doctor.license_number || "",
-              qualification: doctor.qualification || "",
-              experience_years: doctor.experience_years || "",
-              consultation_fee: doctor.consultation_fee || "",
-              bio: doctor.bio || "",
-              avatar_url: doctor.avatar_url || "",
-              status: doctor.status || "active",
-            });
-          }
-        } catch (err) {
-          console.error("Error fetching doctor:", err);
-          setError(t("admin.errorLoadingDoctor"));
-        } finally {
-          setLoading(false);
-        }
-      };
       fetchDoctor();
     }
-  }, [doctorId, isEdit, t]);
+  }, [fetchSpecialties, fetchBranches, fetchDoctor, isEdit]);
 
   const validateForm = () => {
     if (!formData.full_name?.trim()) {
@@ -79,6 +110,28 @@ const DoctorFormPage = () => {
     if (!formData.license_number?.trim()) {
       setError(t("admin.licenseNumberRequired"));
       return false;
+    }
+    if (!formData.specialty_id) {
+      setError(t("admin.specialtyRequired"));
+      return false;
+    }
+    if (!formData.branch_ids.length) {
+      setError(t("admin.branchRequired"));
+      return false;
+    }
+    if (!isEdit) {
+      if (!formData.username?.trim()) {
+        setError(t("admin.usernameRequired"));
+        return false;
+      }
+      if (!formData.password?.trim()) {
+        setError(t("admin.passwordRequired"));
+        return false;
+      }
+      if (formData.password.length < 6) {
+        setError(t("admin.passwordMinLength"));
+        return false;
+      }
     }
     return true;
   };
@@ -95,13 +148,45 @@ const DoctorFormPage = () => {
     try {
       setSubmitting(true);
       if (isEdit) {
+        // Update existing doctor
         await updateDoctorApi(doctorId, formData);
         setSuccessMessage(t("admin.doctorUpdatedSuccess"));
         setTimeout(() => navigate("/admin/doctors"), 1500);
       } else {
-        await createDoctorApi(formData);
-        setSuccessMessage(t("admin.doctorCreatedSuccess"));
-        setTimeout(() => navigate("/admin/doctors"), 1500);
+        // Create new doctor with auto user creation
+        const doctorData = { ...formData };
+        let userId = null;
+
+        try {
+          // Step 1: Create user account with doctor role
+          const userPayload = {
+            username: formData.username,
+            password: formData.password,
+            email: formData.email || formData.username + "@hospital.local",
+            full_name: formData.full_name,
+            role_code: "doctor",
+          };
+          const userRes = await createUserApi(userPayload);
+          userId = userRes.data.id || userRes.data.user_id;
+
+          // Step 2: Link user to doctor record
+          doctorData.user_id = userId;
+          delete doctorData.username;
+          delete doctorData.password;
+
+          // Step 3: Create doctor record
+          await createDoctorApi(doctorData);
+          setSuccessMessage(t("admin.doctorCreatedSuccess"));
+          setTimeout(() => navigate("/admin/doctors"), 1500);
+        } catch (userErr) {
+          const errorMsg =
+            userErr?.response?.data?.message ||
+            t("admin.errorCreatingUserAccount");
+          setError(errorMsg);
+          console.error("Error creating user account:", userErr);
+          setSubmitting(false);
+          return;
+        }
       }
     } catch (err) {
       const errorMsg =
@@ -119,6 +204,19 @@ const DoctorFormPage = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleBranchToggle = (branchId) => {
+    const numericBranchId = Number(branchId);
+    setFormData((prev) => {
+      const exists = prev.branch_ids.includes(numericBranchId);
+      return {
+        ...prev,
+        branch_ids: exists
+          ? prev.branch_ids.filter((id) => id !== numericBranchId)
+          : [...prev.branch_ids, numericBranchId],
+      };
+    });
   };
 
   if (loading) {
@@ -234,6 +332,93 @@ const DoctorFormPage = () => {
                 {t("admin.licenseNumberHelp")}
               </p>
             </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {t("admin.specialty")} <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="specialty_id"
+                value={formData.specialty_id}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition bg-white"
+              >
+                <option value="">{t("admin.selectSpecialty")}</option>
+                {specialties.map((spec) => (
+                  <option key={spec.id} value={spec.id}>
+                    {spec.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {t("admin.branches")} <span className="text-red-500">*</span>
+              </label>
+              {branches.length === 0 ? (
+                <p className="text-sm text-gray-500">{t("admin.noBranchesAvailable")}</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 border border-gray-300 rounded-lg">
+                  {branches.map((branch) => {
+                    const checked = formData.branch_ids.includes(branch.id);
+                    return (
+                      <label key={branch.id} className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => handleBranchToggle(branch.id)}
+                          className="w-4 h-4 text-[#E06666] border-gray-300 rounded focus:ring-[#E06666]"
+                        />
+                        <span>
+                          {branch.name}
+                          {branch.code ? ` (${branch.code})` : ""}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-1">{t("admin.selectBranchesHelp")}</p>
+            </div>
+
+            {!isEdit && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    {t("admin.username")} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleInputChange}
+                    placeholder="doctor_username"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t("admin.usernameHelp")}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    {t("admin.password")} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t("admin.passwordHelp")}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

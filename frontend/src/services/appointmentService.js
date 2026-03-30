@@ -1,0 +1,59 @@
+import api from "./api";
+
+// --- DỊCH VỤ QUẢN LÝ CA CHI TẾT CỦA BÁC SĨ (SCHEDULE) ---
+export const scheduleService = {
+  getDoctorSchedules: async (doctorId, startDate, endDate) => {
+    let url = `/schedules?`;
+    if (doctorId) url += `doctor_id=${doctorId}&`;
+    if (startDate) url += `start_date=${startDate}&`;
+    if (endDate) url += `end_date=${endDate}`;
+    const response = await api.get(url);
+    return response.data;
+  },
+
+  createSchedule: async (payload) => {
+    // payload: { doctor_id, schedules: [{work_date, start_time, end_time, slot_duration}] }
+    const response = await api.post("/schedules", payload);
+    return response.data;
+  },
+
+  updateSchedule: async (id, payload) => {
+    // payload: { work_date, start_time, end_time, slot_duration, status }
+    const response = await api.put(`/schedules/${id}`, payload);
+    return response.data;
+  },
+
+  deleteSchedule: async (id) => {
+    const response = await api.delete(`/schedules/${id}`);
+    return response.data;
+  }
+};
+
+// --- DỊCH VỤ ĐẶT LỊCH HẸN (APPOINTMENT) ---
+export const appointmentService = {
+  // Lấy các mốc T/g 30 phút rảnh rỗi tuyệt đối (Patient)
+  getAvailableSlots: async (doctorId, date, durationMinutes, branchId) => {
+    const branchQuery = branchId ? `&branch_id=${branchId}` : "";
+    const response = await api.get(`/appointments/available-slots?doctor_id=${doctorId}&date=${date}&duration_minutes=${durationMinutes}${branchQuery}`);
+    return response.data;
+  },
+
+  // Tiến hành xuất lệnh đặt chỗ (Patient)
+  bookAppointment: async (payload) => {
+    // payload: { doctor_id, specialty_id, branch_id, appointment_date, start_time, duration_minutes, reason, appointment_type }
+    const response = await api.post("/appointments", payload);
+    return response.data;
+  },
+
+  // Giúp Dashboard tải lịch về (Tự auto check Role của Token)
+  getMyAppointments: async () => {
+    const response = await api.get("/appointments");
+    return response.data;
+  },
+
+  // Đổi trạng thái lịch khám (Bác sĩ/Admin)
+  updateStatus: async (appointmentId, status, cancellation_reason = "") => {
+    const response = await api.put(`/appointments/${appointmentId}/status`, { status, cancellation_reason });
+    return response.data;
+  }
+};

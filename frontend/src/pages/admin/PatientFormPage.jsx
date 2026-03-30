@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  getAllPatientsApi,
+  getPatientByIdApi,
   createPatientApi,
   updatePatientApi,
 } from "../../services/patientService";
+import branchService from "../../services/branchService";
 
 const PatientFormPage = () => {
   const { t } = useTranslation();
@@ -17,9 +18,12 @@ const PatientFormPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [branches, setBranches] = useState([]);
 
   const [formData, setFormData] = useState({
     user_id: "",
+    patient_code: "",
+    branch_ids: [],
     full_name: "",
     phone: "",
     email: "",
@@ -36,14 +40,27 @@ const PatientFormPage = () => {
 
   // Fetch patient data if editing
   useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const branchRes = await branchService.getAllBranches();
+        setBranches(branchRes.data || []);
+      } catch (err) {
+        console.error("Error fetching branches:", err);
+      }
+    };
+
+    fetchBranches();
+
     if (isEdit) {
       const fetchPatient = async () => {
         try {
-          const res = await getAllPatientsApi();
-          const patient = res.data.find((p) => p.id === parseInt(patientId));
+          const res = await getPatientByIdApi(patientId);
+          const patient = res.data;
           if (patient) {
             setFormData({
               user_id: patient.user_id || "",
+              patient_code: patient.patient_code || "",
+              branch_ids: patient.branch_ids || [],
               full_name: patient.full_name || "",
               phone: patient.phone || "",
               email: patient.email || "",
@@ -78,6 +95,14 @@ const PatientFormPage = () => {
     }
     if (!formData.phone?.trim()) {
       setError(t("admin.phoneRequired"));
+      return false;
+    }
+    if (!isEdit && !formData.patient_code?.trim()) {
+      setError(t("admin.patientCodeRequired"));
+      return false;
+    }
+    if (!formData.branch_ids.length) {
+      setError(t("admin.branchRequired"));
       return false;
     }
     return true;
@@ -119,6 +144,19 @@ const PatientFormPage = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleBranchToggle = (branchId) => {
+    const numericBranchId = Number(branchId);
+    setFormData((prev) => {
+      const exists = prev.branch_ids.includes(numericBranchId);
+      return {
+        ...prev,
+        branch_ids: exists
+          ? prev.branch_ids.filter((id) => id !== numericBranchId)
+          : [...prev.branch_ids, numericBranchId],
+      };
+    });
   };
 
   if (loading) {
@@ -192,6 +230,23 @@ const PatientFormPage = () => {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {t("admin.patientCode")} {!isEdit && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                type="text"
+                name="patient_code"
+                value={formData.patient_code}
+                onChange={handleInputChange}
+                disabled={isEdit}
+                placeholder="PAT000001"
+                className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition ${
+                  isEdit ? "bg-gray-100 cursor-not-allowed" : ""
+                }`}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 {t("admin.email")}
               </label>
               <input
@@ -260,6 +315,36 @@ const PatientFormPage = () => {
                 placeholder="123 Main Street"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
               />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {t("admin.branches")} <span className="text-red-500">*</span>
+              </label>
+              {branches.length === 0 ? (
+                <p className="text-sm text-gray-500">{t("admin.noBranchesAvailable")}</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 border border-gray-300 rounded-lg">
+                  {branches.map((branch) => {
+                    const checked = formData.branch_ids.includes(branch.id);
+                    return (
+                      <label key={branch.id} className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => handleBranchToggle(branch.id)}
+                          className="w-4 h-4 text-[#E06666] border-gray-300 rounded focus:ring-[#E06666]"
+                        />
+                        <span>
+                          {branch.name}
+                          {branch.code ? ` (${branch.code})` : ""}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-1">{t("admin.selectPatientBranchesHelp")}</p>
             </div>
           </div>
         </div>

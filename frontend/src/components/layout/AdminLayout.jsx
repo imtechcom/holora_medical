@@ -24,10 +24,13 @@ const AdminLayout = ({ children }) => {
   const canViewRoles = role === "super_admin" || role === "admin";
   const canViewPermissions = role === "super_admin" || role === "admin";
   const canViewSpecialties = role === "super_admin" || role === "admin";
+  const canViewBranches = role === "super_admin" || role === "admin";
   const canViewDoctors = role === "super_admin" || role === "admin";
   const canViewPatients = role === "super_admin" || role === "admin" || role === "doctor";
   const canViewAppointments = role === "super_admin" || role === "admin" || role === "doctor";
+  const canViewSchedules = role === "super_admin" || role === "admin" || role === "doctor";
   const canViewConsultations = role === "super_admin" || role === "admin" || role === "doctor";
+  const canViewDoctorRequests = role === "doctor" || role === "admin" || role === "super_admin"; // Custom view for the UC12-14 flow
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -70,6 +73,12 @@ const AdminLayout = ({ children }) => {
               </NavLink>
             )}
 
+            {canViewBranches && (
+              <NavLink to="/admin/branches" className={navClass}>
+                {t("branch.managementTitle")}
+              </NavLink>
+            )}
+
             {canViewDoctors && (
               <NavLink to="/admin/doctors" className={navClass}>
                 {t("admin.doctorsManagement")}
@@ -88,9 +97,21 @@ const AdminLayout = ({ children }) => {
               </NavLink>
             )}
 
+            {canViewSchedules && (
+              <NavLink to="/admin/schedules" className={navClass}>
+                🗓️ Phân Ca Làm Việc
+              </NavLink>
+            )}
+
             {canViewConsultations && (
               <NavLink to="/admin/consultations" className={navClass}>
                 {t("admin.consultations")}
+              </NavLink>
+            )}
+
+            {canViewDoctorRequests && (
+              <NavLink to="/doctor/consultations" className={navClass}>
+                🩺 Ca Tư vấn Bệnh nhân
               </NavLink>
             )}
           </nav>

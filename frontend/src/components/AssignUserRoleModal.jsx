@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   getAvailableRolesApi,
@@ -15,11 +15,7 @@ const AssignUserRoleModal = ({ user_id, user_name, onClose, onSuccess }) => {
   const [selectedRole, setSelectedRole] = useState("");
   const [assigning, setAssigning] = useState(false);
 
-  useEffect(() => {
-    fetchRoles();
-  }, [user_id]);
-
-  const fetchRoles = async () => {
+  const fetchRoles = useCallback(async () => {
     try {
       setLoading(true);
       const [available, current] = await Promise.all([
@@ -33,7 +29,11 @@ const AssignUserRoleModal = ({ user_id, user_name, onClose, onSuccess }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user_id]);
+
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
 
   const handleAssignRole = async () => {
     if (!selectedRole) {

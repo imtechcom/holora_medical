@@ -1,0 +1,218 @@
+const db = require('../config/db');
+
+// --- HÀM HỖ TRỢ XỬ LÝ THỜI GIAN NHANH ---
+const timeToMinutes = (timeStr) => {
+  const [h, m] = timeStr.split(':');
+  return parseInt(h) * 60 + parseInt(m);
+};
+
+const minutesToTime = (mins) => {
+  const h = Math.floor(mins / 60).toString().padStart(2, '0');
+  const m = (mins % 60).toString().padStart(2, '0');
+  return `${h}:${m}`;
+};
+
+// [Thuật toán]: Tính toán Block rảnh rỗi cho Bệnh nhân
+exports.getAvailableSlots = (req, res) => {
+  const { doctor_id, date, duration_minutes = 30, branch_id } = req.query;
+
+  if (!doctor_id || !date) {
+    return res.status(400).json({ message: 'Missing doctor_id or date' });
+  }
+
+  const duration = parseInt(duration_minutes);
+
+  const checkBranchCompatibility = (callback) => {
+    if (!branch_id) {
+      return callback();
+    }
+
+    db.query(
+      `SELECT id FROM doctor_branch WHERE doctor_id = ? AND branch_id = ? AND deleted_at IS NULL LIMIT 1`,
+      [doctor_id, branch_id],
+      (branchErr, rows) => {
+        if (branchErr) {
+          return res.status(500).json({ message: 'Error checking doctor branch', error: branchErr.message });
+        }
+
+        if (!rows.length) {
+          return res.status(400).json({ message: 'Doctor does not work at selected branch' });
+        }
+
+        return callback();
+      }
+    );
+  };
+
+  checkBranchCompatibility(() => {
+
+  // 1. Lấy tất cả các ca (shifts) làm việc của bác sĩ trong ngày
+  db.query(
+    'SELECT start_time, end_time, slot_duration FROM doctor_schedule WHERE doctor_id = ? AND work_date = ? AND status = "active"',
+    [doctor_id, date],
+    (err, schedules) => {
+      if (err) return res.status(500).json({ message: 'Error fetching schedule', error: err.message });
+      if (!schedules.length) return res.json([]); // Bác sĩ không có ca làm việc hôm nay
+
+      // 2. Lấy tất cả các ca đã được Đặt (Bao Nuôi) trong ngày đó
+      db.query(
+        `SELECT start_time, end_time FROM appointment 
+         WHERE doctor_id = ? 
+         AND DATE(start_time) = ? 
+         AND status NOT IN ('cancelled', 'completed', 'no_show')`,
+        [doctor_id, date],
+        (err2, bookedAppointments) => {
+          if (err2) return res.status(500).json({ message: 'Error fetching booked appointments', error: err2.message });
+
+          // Mã hoá danh sách các thời điểm đã bị khoá
+          const bookedIntervals = bookedAppointments.map(app => {
+            // Lấy riêng phần giờ HH:mm để so sánh
+            const startStr = new Date(app.start_time).toTimeString().substring(0, 5);
+            const endStr = new Date(app.end_time).toTimeString().substring(0, 5);
+            return {
+              start: timeToMinutes(startStr),
+              end: timeToMinutes(endStr)
+            };
+          });
+
+          let availableStartTimes = [];
+
+          // 3. Phân cắt Block Giờ Làm Việc
+          schedules.forEach(shift => {
+            const shiftStart = timeToMinutes(shift.start_time);
+            const shiftEnd = timeToMinutes(shift.end_time);
+            const slotDuration = shift.slot_duration || 30; // Block cơ sở: 30 phút
+
+            // Chia ca từ start đến end thành các rãnh slot_duration
+            for (let t = shiftStart; t + duration <= shiftEnd; t += slotDuration) {
+              const proposedStart = t;
+              const proposedEnd = t + duration; // Giả sử khách chọn dịch vụ dài `duration`
+
+              // 4. Kiểm tra xem vùng [proposedStart, proposedEnd] có dẫm lên bookedIntervals không?
+              let isConflict = false;
+              for (let overlap of bookedIntervals) {
+                // Công thức Trùng: (start_A < end_B) AND (end_A > start_B)
+                if (proposedStart < overlap.end && proposedEnd > overlap.start) {
+                  isConflict = true;
+                  break;
+                }
+              }
+
+              // Nếu không đụng chạm ai, đẩy vào danh sách trống!
+              if (!isConflict) {
+                availableStartTimes.push(minutesToTime(proposedStart));
+              }
+            }
+          });
+
+          res.json([...new Set(availableStartTimes)].sort()); // Loại bỏ trùng lặp và sắp xếp
+        }
+      );
+    }
+  );
+  });
+};
+
+// Đặt Lịch (POST /appointments)
+exports.bookAppointment = (req, res) => {
+  const patient_id = req.user.patient_id; 
+  if (!patient_id) return res.status(403).json({ message: 'Only patients can book appointments. Profile not found.' });
+
+  const { doctor_id, specialty_id, branch_id, appointment_date, start_time, duration_minutes, reason, appointment_type } = req.body;
+
+  if (!doctor_id || !branch_id || !appointment_date || !start_time || !duration_minutes) {
+    return res.status(400).json({ message: 'Điền thiếu thông tin đặt lịch, bao gồm chi nhánh!' });
+  }
+
+  db.query(
+    `SELECT id FROM doctor_branch WHERE doctor_id = ? AND branch_id = ? AND deleted_at IS NULL LIMIT 1`,
+    [doctor_id, branch_id],
+    (branchErr, branchRows) => {
+      if (branchErr) {
+        return res.status(500).json({ error: branchErr.message });
+      }
+
+      if (!branchRows.length) {
+        return res.status(400).json({ message: 'Bác sĩ không làm việc tại chi nhánh đã chọn.' });
+      }
+
+      // Chuyển đối Start Time String ('08:00') sang Datetime thực tế
+      const startDateTime = `${appointment_date} ${start_time}:00`;
+      const endDateTimeMins = timeToMinutes(start_time) + parseInt(duration_minutes);
+      const endDateTime = `${appointment_date} ${minutesToTime(endDateTimeMins)}:00`;
+
+      // Kiểm tra chống Race-Condition (Lỡ 1s trước có ông đặt rồi)
+      db.query(
+        `SELECT id FROM appointment 
+         WHERE doctor_id = ? AND status NOT IN ('cancelled', 'completed', 'no_show')
+         AND (start_time < ? AND end_time > ?)`,
+        [doctor_id, endDateTime, startDateTime],
+        (err, overlaps) => {
+          if (err) return res.status(500).json({ error: err.message });
+          if (overlaps.length > 0) {
+            return res.status(409).json({ message: 'Rất tiếc, khung giờ NÀY VỪA BỊ ĐẶT. Vui lòng chọn khung giờ khác.' });
+          }
+
+          // Khớp Slot thành công, tạo Order
+          const appointment_code = 'APP' + Date.now().toString().substring(5);
+          const query = `
+            INSERT INTO appointment (patient_id, doctor_id, specialty_id, branch_id, appointment_code, appointment_date, start_time, end_time, appointment_type, reason, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'scheduled')
+          `;
+          const params = [patient_id, doctor_id, specialty_id || null, branch_id, appointment_code, appointment_date, startDateTime, endDateTime, appointment_type || 'online', reason];
+
+          db.query(query, params, (err2, result) => {
+            if (err2) return res.status(500).json({ error: err2.message });
+            res.status(201).json({ message: 'Đặt lịch thành công!', appointment_id: result.insertId });
+          });
+        }
+      );
+    }
+  );
+};
+
+// Lấy lịch của Tôi
+exports.getMyAppointments = (req, res) => {
+  const { role, id: user_id, patient_id, doctor_id } = req.user;
+
+  let query = `
+    SELECT a.*, 
+           d.full_name as doctor_name, d.avatar_url as doctor_avatar, s.name as specialty_name,
+           p.full_name as patient_name, p.phone as patient_phone,
+           b.name as branch_name, b.code as branch_code
+    FROM appointment a
+    LEFT JOIN doctor d ON a.doctor_id = d.id
+    LEFT JOIN specialty s ON d.specialty_id = s.id
+    LEFT JOIN patient p ON a.patient_id = p.id
+    LEFT JOIN branch b ON a.branch_id = b.id
+    WHERE 1=1
+  `;
+  const params = [];
+
+  if (role === 'patient') {
+    query += ' AND a.patient_id = ?';
+    params.push(patient_id);
+  } else if (role === 'doctor') {
+    query += ' AND a.doctor_id = ?';
+    params.push(doctor_id);
+  } // Admin lấy tất.
+
+  query += ' ORDER BY a.appointment_date DESC, a.start_time DESC';
+
+  db.query(query, params, (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+};
+
+// Cập nhật trạng thái
+exports.updateAppointmentStatus = (req, res) => {
+  const { id } = req.params;
+  const { status, cancellation_reason } = req.body;
+  
+  db.query('UPDATE appointment SET status = ?, cancellation_reason = ? WHERE id = ?', 
+  [status, cancellation_reason || null, id], (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Đã cập nhật trạng thái ca khám!' });
+  });
+};

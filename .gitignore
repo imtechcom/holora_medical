@@ -1,0 +1,11 @@
+# Local dependencies
+backend/node_modules/
+
+# VS Code local workspace settings
+backend/.vscode/
+
+# Generated uploads
+backend/public/uploads/
+
+# Local planning notes
+planing.txt

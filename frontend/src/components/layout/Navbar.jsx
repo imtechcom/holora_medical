@@ -57,9 +57,20 @@ const Navbar = () => {
           </>
         ) : (
           <>
-            <span className="text-sm font-medium">
-              {t("common.hello")}, {user?.full_name || t("common.user")}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">
+                {t("common.hello")}, {user?.full_name || t("common.user")}
+              </span>
+              
+              {role === "patient" && (
+                <Link
+                  to="/profile"
+                  className="text-sm px-3 py-2 rounded-lg hover:bg-gray-100 text-[#E06666] font-medium"
+                >
+                  👤 {t("patient.profile")}
+                </Link>
+              )}
+            </div>
 
             <button
               onClick={handleLogout}

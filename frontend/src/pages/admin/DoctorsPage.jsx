@@ -127,6 +127,9 @@ const DoctorsPage = () => {
                 {t("admin.specialty")}
               </th>
               <th className="text-left p-3 font-semibold text-gray-700">
+                {t("admin.branches")}
+              </th>
+              <th className="text-left p-3 font-semibold text-gray-700">
                 {t("admin.phone")}
               </th>
               <th className="text-left p-3 font-semibold text-gray-700">
@@ -152,7 +155,7 @@ const DoctorsPage = () => {
           <tbody>
             {filteredDoctors.length === 0 ? (
               <tr>
-                <td colSpan="10" className="text-center p-6 text-gray-500">
+                <td colSpan="11" className="text-center p-6 text-gray-500">
                   {t("admin.noDoctorsFound")}
                 </td>
               </tr>
@@ -166,6 +169,13 @@ const DoctorsPage = () => {
                       <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
                         {doctor.specialty_name}
                       </span>
+                    )}
+                  </td>
+                  <td className="p-3 text-sm">
+                    {doctor.branch_names ? (
+                      <span className="text-gray-700">{doctor.branch_names}</span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
                     )}
                   </td>
                   <td className="p-3 text-sm">{doctor.phone}</td>

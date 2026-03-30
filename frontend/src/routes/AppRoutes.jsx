@@ -6,8 +6,13 @@ import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import AppointmentPage from "../pages/AppointmentPage";
+import PatientProfilePage from "../pages/PatientProfilePage";
 
 import DashboardPage from "../pages/admin/DashboardPage";
+import PatientConsultationRequestPage from "../pages/PatientConsultationRequestPage";
+import DoctorRequestsListPage from "../pages/DoctorRequestsListPage";
+import DoctorConsultationDetailPage from "../pages/DoctorConsultationDetailPage";
+
 import UsersPage from "../pages/admin/UsersPage";
 import UserFormPage from "../pages/admin/UserFormPage";
 import RolesPage from "../pages/admin/RolesPage";
@@ -21,7 +26,10 @@ import DoctorsPage from "../pages/admin/DoctorsPage";
 import DoctorFormPage from "../pages/admin/DoctorFormPage";
 import SpecialtiesPage from "../pages/admin/SpecialtiesPage";
 import SpecialtyFormPage from "../pages/admin/SpecialtyFormPage";
+import BranchesPage from "../pages/admin/BranchesPage";
+import BranchFormPage from "../pages/admin/BranchFormPage";
 import AppointmentsAdminPage from "../pages/admin/AppointmentsAdminPage";
+import DoctorSchedulePage from "../pages/admin/DoctorSchedulePage";
 import ConsultationsPage from "../pages/admin/ConsultationsPage";
 
 import ProtectedRoute from "./ProtectedRoute";
@@ -67,6 +75,50 @@ const AppRoutes = () => {
                 <AppointmentPage />
               </MainLayout>
             </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <PatientProfilePage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/patient/consultations/new"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <PatientConsultationRequestPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/doctor/consultations/:id"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <DoctorConsultationDetailPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/doctor/consultations"
+          element={
+            <AdminRoute allowedRoles={["doctor", "admin", "super_admin"]}>
+              <AdminLayout>
+                <DoctorRequestsListPage />
+              </AdminLayout>
+            </AdminRoute>
           }
         />
 
@@ -292,11 +344,55 @@ const AppRoutes = () => {
         />
 
         <Route
+          path="/admin/branches"
+          element={
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
+              <AdminLayout>
+                <BranchesPage />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/branches/new"
+          element={
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
+              <AdminLayout>
+                <BranchFormPage />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/branches/:branchId/edit"
+          element={
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
+              <AdminLayout>
+                <BranchFormPage />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+
+        <Route
           path="/admin/appointments"
           element={
             <AdminRoute allowedRoles={["super_admin", "admin", "doctor"]}>
               <AdminLayout>
                 <AppointmentsAdminPage />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/schedules"
+          element={
+            <AdminRoute allowedRoles={["super_admin", "admin", "doctor"]}>
+              <AdminLayout>
+                <DoctorSchedulePage />
               </AdminLayout>
             </AdminRoute>
           }

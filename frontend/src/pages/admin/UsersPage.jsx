@@ -5,6 +5,7 @@ import {
   getAllUsersApi,
   deleteUserApi,
 } from "../../services/userService";
+import AssignUserRoleModal from "../../components/AssignUserRoleModal";
 
 const UsersPage = () => {
   const { t } = useTranslation();
@@ -19,6 +20,8 @@ const UsersPage = () => {
     userId: null,
     userName: "",
   });
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [selectedUserForRole, setSelectedUserForRole] = useState(null);
 
   // Fetch users
   useEffect(() => {
@@ -53,6 +56,17 @@ const UsersPage = () => {
       userId: user.id,
       userName: user.full_name,
     });
+  };
+
+  const handleManageRoles = (user) => {
+    setSelectedUserForRole(user);
+    setShowRoleModal(true);
+  };
+
+  const handleRoleModalClose = () => {
+    setShowRoleModal(false);
+    setSelectedUserForRole(null);
+    fetchUsers(); // Refresh to get updated roles
   };
 
   const confirmDelete = async () => {
@@ -178,6 +192,13 @@ const UsersPage = () => {
                   <td className="px-6 py-3 text-sm">
                     <div className="flex gap-2">
                       <button
+                        onClick={() => handleManageRoles(user)}
+                        className="text-purple-600 hover:underline font-semibold"
+                        title="Assign or manage roles for this user"
+                      >
+                        🔐 {t("admin.roles")}
+                      </button>
+                      <button
                         onClick={() => handleEditClick(user)}
                         className="text-[#E06666] hover:underline font-semibold"
                       >
@@ -226,6 +247,15 @@ const UsersPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Role Assignment Modal */}
+      {showRoleModal && selectedUserForRole && (
+        <AssignUserRoleModal
+          userId={selectedUserForRole.id}
+          userName={selectedUserForRole.full_name}
+          onClose={handleRoleModalClose}
+        />
       )}
     </div>
   );

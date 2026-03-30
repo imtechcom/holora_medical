@@ -11,7 +11,14 @@ const permissionRoutes = require("./routes/permission.routes");
 const patientRoutes = require("./routes/patient.routes");
 const doctorRoutes = require("./routes/doctor.routes");
 const specialtyRoutes = require("./routes/specialty.routes");
+const branchRoutes = require("./routes/branch.routes");
+const consultationRoutes = require("./routes/consultation.routes");
+const uploadRoutes = require("./routes/upload.routes");
+const aiRoutes = require("./routes/ai.routes");
+const scheduleRoutes = require("./routes/schedule.routes");
+const appointmentRoutes = require("./routes/appointment.routes");
 const { errorHandler } = require("./middleware/error.middleware");
+const path = require("path");
 
 const app = express();
 
@@ -34,6 +41,15 @@ app.use("/permissions", permissionRoutes);
 app.use("/patients", patientRoutes);
 app.use("/doctors", doctorRoutes);
 app.use("/specialties", specialtyRoutes);
+app.use("/branches", branchRoutes);
+app.use("/consultations", consultationRoutes);
+app.use("/upload", uploadRoutes);
+app.use("/ai", aiRoutes);
+app.use("/schedules", scheduleRoutes);
+app.use("/appointments", appointmentRoutes);
+
+// Phục vụ thư mục hình ảnh tĩnh (Upload)
+app.use('/public', express.static(path.join(__dirname, '../public')));
 
 // Global error handler (must be last)
 app.use(errorHandler);

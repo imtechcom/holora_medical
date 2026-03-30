@@ -29,3 +29,15 @@ export const deletePatientApi = async (id) => {
   const response = await api.delete(`/patients/${id}`);
   return response.data;
 };
+
+// Get current authenticated user's patient profile
+export const getMyProfileApi = async () => {
+  const response = await api.get("/patients/me");
+  return response.data;
+};
+
+// Update current authenticated user's patient profile
+export const updateMyProfileApi = async (payload) => {
+  const response = await api.put("/patients/me", payload);
+  return response.data;
+};

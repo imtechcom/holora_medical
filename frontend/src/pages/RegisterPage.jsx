@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { registerApi } from "../services/authService";
+import { googleAuthApi, registerApi } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -19,6 +21,56 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const googleBtnRef = useRef(null);
+
+  const handleGoogleCredential = useCallback(
+    async (response) => {
+      try {
+        setErrorMessage("");
+        setLoading(true);
+
+        const data = await googleAuthApi({
+          credential: response.credential,
+        });
+
+        login({
+          token: data.token,
+          user: data.user,
+        });
+
+        navigate("/");
+      } catch (error) {
+        setErrorMessage(
+          error?.response?.data?.message || t("auth.googleAuthFailed")
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [login, navigate, t]
+  );
+
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+    if (!clientId || !googleBtnRef.current || !window.google?.accounts?.id) {
+      return;
+    }
+
+    googleBtnRef.current.innerHTML = "";
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleCredential,
+    });
+
+    window.google.accounts.id.renderButton(googleBtnRef.current, {
+      theme: "outline",
+      size: "large",
+      text: "continue_with",
+      shape: "pill",
+      width: 420,
+    });
+  }, [handleGoogleCredential]);
 
   // Handle input changes for all form fields
   const handleChange = (e) => {
@@ -203,6 +255,16 @@ const RegisterPage = () => {
           >
             {loading ? "..." : t("auth.submitRegister")}
           </button>
+
+          <div className="flex items-center gap-3 text-sm text-gray-400">
+            <div className="h-px flex-1 bg-gray-200"></div>
+            <span>{t("auth.orContinueWith")}</span>
+            <div className="h-px flex-1 bg-gray-200"></div>
+          </div>
+
+          <div className="flex justify-center">
+            <div ref={googleBtnRef}></div>
+          </div>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-500">

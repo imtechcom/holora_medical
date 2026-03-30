@@ -11,3 +11,9 @@ export const registerApi = async (payload) => {
   const response = await api.post("/auth/register", payload);
   return response.data;
 };
+
+// Google sign-in / sign-up
+export const googleAuthApi = async (payload) => {
+  const response = await api.post("/auth/google", payload);
+  return response.data;
+};

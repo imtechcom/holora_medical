@@ -139,6 +139,9 @@ const PatientsPage = () => {
                 {t("admin.email")}
               </th>
               <th className="text-left p-3 font-semibold text-gray-700">
+                {t("admin.branches")}
+              </th>
+              <th className="text-left p-3 font-semibold text-gray-700">
                 {t("admin.gender")}
               </th>
               <th className="text-left p-3 font-semibold text-gray-700">
@@ -155,7 +158,7 @@ const PatientsPage = () => {
           <tbody>
             {filteredPatients.length === 0 ? (
               <tr>
-                <td colSpan="8" className="text-center p-6 text-gray-500">
+                <td colSpan="9" className="text-center p-6 text-gray-500">
                   {t("admin.noPatientsFound")}
                 </td>
               </tr>
@@ -166,6 +169,13 @@ const PatientsPage = () => {
                   <td className="p-3 text-sm font-medium">{patient.full_name}</td>
                   <td className="p-3 text-sm">{patient.phone}</td>
                   <td className="p-3 text-sm">{patient.email}</td>
+                  <td className="p-3 text-sm">
+                    {patient.branch_names ? (
+                      <span className="text-gray-700">{patient.branch_names}</span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
                   <td className="p-3 text-sm">
                     {patient.gender && (
                       <span

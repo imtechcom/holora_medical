@@ -32,7 +32,21 @@ export const AuthProvider = ({ children }) => {
       token,
       user,
       role: user?.role || null,
+      roles: user?.roles || [], // Add all roles array
       isAuthenticated: !!token,
+      hasRole: (requiredRole) => {
+        // Check if user has a specific role (primary or in roles array)
+        if (!user) return false;
+        if (user.role === requiredRole) return true;
+        return user.roles && user.roles.includes(requiredRole);
+      },
+      hasAnyRole: (requiredRoles) => {
+        // Check if user has any of the required roles
+        if (!user) return false;
+        return requiredRoles.some(role => 
+          user.role === role || (user.roles && user.roles.includes(role))
+        );
+      },
       login,
       logout,
     }),

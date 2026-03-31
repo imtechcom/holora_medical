@@ -1,6 +1,11 @@
 const db = require("../config/db");
 
-const authorizeRole = (allowedRoles = []) => {
+const authorizeRole = (...allowedRolesInput) => {
+  const allowedRoles =
+    allowedRolesInput.length === 1 && Array.isArray(allowedRolesInput[0])
+      ? allowedRolesInput[0]
+      : allowedRolesInput;
+
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({

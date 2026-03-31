@@ -216,3 +216,83 @@ exports.updateAppointmentStatus = (req, res) => {
     res.json({ message: 'Đã cập nhật trạng thái ca khám!' });
   });
 };
+
+// Admin: Lấy TẤT CẢ lịch khám với filter (status, date range, search)
+exports.getAllAppointmentsAdmin = (req, res) => {
+  const { status, start_date, end_date, search } = req.query;
+
+  let query = `
+    SELECT a.*,
+           d.full_name AS doctor_name, d.avatar_url AS doctor_avatar,
+           s.name AS specialty_name,
+           p.full_name AS patient_name, p.phone AS patient_phone,
+           b.name AS branch_name, b.code AS branch_code
+    FROM appointment a
+    LEFT JOIN doctor d ON a.doctor_id = d.id
+    LEFT JOIN specialty s ON d.specialty_id = s.id
+    LEFT JOIN patient p ON a.patient_id = p.id
+    LEFT JOIN branch b ON a.branch_id = b.id
+    WHERE 1=1
+  `;
+  const params = [];
+
+  if (status) {
+    query += ' AND a.status = ?';
+    params.push(status);
+  }
+  if (start_date) {
+    query += ' AND a.appointment_date >= ?';
+    params.push(start_date);
+  }
+  if (end_date) {
+    query += ' AND a.appointment_date <= ?';
+    params.push(end_date);
+  }
+  if (search) {
+    query += ' AND (p.full_name LIKE ? OR a.appointment_code LIKE ? OR d.full_name LIKE ?)';
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+
+  query += ' ORDER BY a.appointment_date DESC, a.start_time DESC';
+
+  db.query(query, params, (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+};
+
+// Lấy chi tiết lịch khám theo ID (Kèm verify quyền truy cập)
+exports.getAppointmentById = (req, res) => {
+  const { id } = req.params;
+  const { role, patient_id, doctor_id } = req.user;
+
+  const query = `
+    SELECT a.*, 
+           d.full_name as doctor_name, d.avatar_url as doctor_avatar, s.name as specialty_name,
+           p.full_name as patient_name, p.phone as patient_phone,
+           b.name as branch_name, b.code as branch_code
+    FROM appointment a
+    LEFT JOIN doctor d ON a.doctor_id = d.id
+    LEFT JOIN specialty s ON d.specialty_id = s.id
+    LEFT JOIN patient p ON a.patient_id = p.id
+    LEFT JOIN branch b ON a.branch_id = b.id
+    WHERE a.id = ?
+  `;
+
+  db.query(query, [id], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!results.length) return res.status(404).json({ message: 'Không tìm thấy lịch khám!' });
+
+    const appointment = results[0];
+
+    // Verify quyền: Chỉ Admin, Bác sĩ nhận ca, hoặc Bệnh nhân đặt ca mới được lấy thông tin.
+    if (role === 'patient' && appointment.patient_id !== patient_id) {
+      return res.status(403).json({ message: 'Bạn không có quyền truy cập Video Call của lịch hẹn này!' });
+    }
+    if (role === 'doctor' && appointment.doctor_id !== doctor_id) {
+      return res.status(403).json({ message: 'Bạn không có quyền truy cập Video Call của lịch hẹn này!' });
+    }
+
+    res.json(appointment);
+  });
+};

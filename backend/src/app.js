@@ -1,8 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const path = require("path");
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
@@ -17,8 +18,10 @@ const uploadRoutes = require("./routes/upload.routes");
 const aiRoutes = require("./routes/ai.routes");
 const scheduleRoutes = require("./routes/schedule.routes");
 const appointmentRoutes = require("./routes/appointment.routes");
+const subscriptionRoutes = require("./routes/subscription.routes");
+const dashboardRoutes = require("./routes/dashboard.routes");
+const holoraMindRoutes = require("./routes/holoraMind.routes");
 const { errorHandler } = require("./middleware/error.middleware");
-const path = require("path");
 
 const app = express();
 
@@ -47,6 +50,9 @@ app.use("/upload", uploadRoutes);
 app.use("/ai", aiRoutes);
 app.use("/schedules", scheduleRoutes);
 app.use("/appointments", appointmentRoutes);
+app.use("/subscriptions", subscriptionRoutes);
+app.use("/dashboard", dashboardRoutes);
+app.use("/holoramind", holoraMindRoutes);
 
 // Phục vụ thư mục hình ảnh tĩnh (Upload)
 app.use('/public', express.static(path.join(__dirname, '../public')));

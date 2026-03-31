@@ -29,3 +29,9 @@ export const deleteDoctorApi = async (id) => {
   const response = await api.delete(`/doctors/${id}`);
   return response.data;
 };
+
+// Get doctors in branches owned by the authenticated clinic_owner
+export const getDoctorsByOwnerBranchesApi = async () => {
+  const response = await api.get("/doctors/my-branches");
+  return response.data;
+};

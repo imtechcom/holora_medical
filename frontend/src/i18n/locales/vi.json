@@ -23,7 +23,8 @@
     "save": "Lưu",
     "saving": "Đang Lưu",
     "error": "Lỗi",
-    "success": "Thành công"
+    "success": "Thành công",
+    "pricing": "Bảng giá"
   },
   "navbar": {
     "holora": "Holora Y Tế",
@@ -33,7 +34,9 @@
     "adminPanel": "Bảng điều khiển",
     "login": "Đăng nhập",
     "register": "Đăng ký",
-    "logout": "Đăng xuất"
+    "logout": "Đăng xuất",
+    "pricing": "Bảng giá",
+    "providerPortal": "Cổng nhà cung cấp"
   },
   "auth": {
     "createAccount": "Tạo tài khoản của bạn",

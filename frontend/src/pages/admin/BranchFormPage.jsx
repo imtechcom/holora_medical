@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import branchService from "../../services/branchService";
 
-const BranchFormPage = () => {
+const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { branchId } = useParams();
@@ -115,7 +115,7 @@ const BranchFormPage = () => {
       }
 
       setTimeout(() => {
-        navigate("/admin/branches");
+        navigate(returnPath);
       }, 1000);
     } catch (err) {
       setMessage(err?.response?.data?.message || t("branch.saveError"));

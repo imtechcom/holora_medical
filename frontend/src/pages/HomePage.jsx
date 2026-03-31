@@ -1,105 +1,90 @@
 import React from "react";
 import { Link } from "react-router-dom";
-
-const features = [
-  {
-    title: "Dat lich theo chi nhanh",
-    desc: "Chon dung co so kham phu hop va dat lich ngay trong vai buoc.",
-    icon: "🏥",
-  },
-  {
-    title: "Bac si da khoa, da co so",
-    desc: "Mot bac si co the phu trach nhieu chi nhanh, de dang linh hoat lich kham.",
-    icon: "👨‍⚕️",
-  },
-  {
-    title: "Tu van nhanh",
-    desc: "Gui yeu cau tu van online va theo doi ket qua ngay tren he thong.",
-    icon: "💬",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 const HomePage = () => {
+  const { i18n } = useTranslation();
+  const isVi = i18n.language === "vi";
+
   return (
-    <div className="bg-[#F8FAFC] text-gray-800">
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,#99F6E4_0%,transparent_35%),radial-gradient(circle_at_90%_20%,#BFDBFE_0%,transparent_35%),linear-gradient(120deg,#0F172A_0%,#0F766E_45%,#1D4ED8_100%)]" />
-        <div className="relative mx-auto max-w-7xl px-6 py-20 text-white">
-          <div className="max-w-3xl">
-            <p className="mb-4 inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
-              Holora Medical Platform
-            </p>
-            <h1 className="text-4xl font-black leading-tight md:text-6xl">
-              Dat lich kham nhanh,
-              <br />
-              dung bac si, dung chi nhanh.
-            </h1>
-            <p className="mt-6 max-w-2xl text-base text-blue-50 md:text-lg">
-              Nen tang cham soc suc khoe thong minh: dat lich theo khung gio trong, theo doi lich cua toi,
-              ket hop tu van truc tuyen va ho so y te tren cung mot he thong.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                to="/appointments"
-                className="rounded-xl bg-white px-6 py-3 text-sm font-bold text-blue-700 shadow-lg transition hover:bg-blue-50"
-              >
-                Dat lich hen ngay
-              </Link>
-              <Link
-                to="/patient/consultations/new"
-                className="rounded-xl border border-white/60 bg-transparent px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10"
-              >
-                Gui yeu cau tu van
-              </Link>
-            </div>
-          </div>
+    <div className="relative min-h-[calc(100vh-140px)] overflow-hidden bg-white text-gray-900 dark:bg-[#0F141F] dark:text-slate-100">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-[-180px] h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-[#E06666]/10 blur-3xl dark:bg-[#E06666]/12" />
+        <div className="absolute bottom-[-120px] left-[-120px] h-[260px] w-[260px] rounded-full bg-[#F6B4B4]/25 blur-3xl dark:bg-[#4B2A34]/35" />
+        <div className="absolute bottom-[-100px] right-[-110px] h-[250px] w-[250px] rounded-full bg-[#FFDAD4]/30 blur-3xl dark:bg-[#2E3C55]/30" />
+      </div>
 
-          <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur">
-              <div className="text-xs uppercase tracking-wide text-blue-100">Co so</div>
-              <div className="mt-1 text-2xl font-black">Nhieu chi nhanh</div>
-            </div>
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur">
-              <div className="text-xs uppercase tracking-wide text-blue-100">Dat lich</div>
-              <div className="mt-1 text-2xl font-black">Theo slot trong</div>
-            </div>
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur">
-              <div className="text-xs uppercase tracking-wide text-blue-100">Theo doi</div>
-              <div className="mt-1 text-2xl font-black">Lich cua toi</div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <div className="relative mx-auto flex min-h-[calc(100vh-140px)] max-w-5xl flex-col items-center justify-center px-6 py-14">
+        <p className="inline-flex items-center rounded-full border border-[#E06666]/25 bg-[#FFF5F5] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#C14D4D] dark:border-[#E06666]/35 dark:bg-[#2B1F28] dark:text-[#F3A3A3]">
+          {isVi ? "Holora AI Native" : "Holora AI Native"}
+        </p>
 
-      <section className="mx-auto max-w-7xl px-6 py-16">
-        <h2 className="text-3xl font-black text-gray-900">Trai nghiem kham benh hien dai</h2>
-        <p className="mt-2 text-gray-600">Toi uu cho benh nhan can dat lich nhanh va ro rang thong tin.</p>
+        <h1 className="mt-7 text-center text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl dark:text-slate-100">
+          {isVi ? "Chọn vai trò để bắt đầu" : "Choose your role to start"}
+        </h1>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {features.map((item) => (
-            <article key={item.title} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-              <div className="text-3xl">{item.icon}</div>
-              <h3 className="mt-3 text-lg font-bold text-gray-900">{item.title}</h3>
-              <p className="mt-2 text-sm text-gray-600">{item.desc}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+        <p className="mt-4 max-w-2xl text-center text-base leading-7 text-gray-600 sm:text-lg dark:text-slate-400">
+          {isVi
+            ? "Một điểm vào duy nhất, hệ thống đưa bạn thẳng đến đúng khu vực chức năng."
+            : "One clean entry point, then direct routing to the right workspace."}
+        </p>
 
-      <section className="border-y border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-4 px-6 py-10 md:flex-row md:items-center">
-          <div>
-            <h3 className="text-2xl font-black text-gray-900">Can dat lich ngay hom nay?</h3>
-            <p className="mt-1 text-gray-600">Bat dau tu viec chon bac si va chi nhanh phu hop.</p>
-          </div>
+        <div className="mt-10 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2">
           <Link
             to="/appointments"
-            className="rounded-xl bg-[#0F766E] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#0D9488]"
+            className="group flex min-h-[230px] flex-col rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#E06666]/40 hover:shadow-lg dark:border-slate-700 dark:bg-[#141B29] dark:hover:border-[#E06666]/50 dark:hover:shadow-[0_18px_35px_rgba(0,0,0,0.35)]"
           >
-            Mo trang dat lich
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E06666] dark:text-[#F29A9A]">
+              {isVi ? "For Patients" : "For Patients"}
+            </p>
+            <h2 className="mt-3 text-2xl font-semibold text-gray-900 dark:text-slate-100">
+              {isVi ? "Bệnh nhân" : "Patients"}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-slate-400">
+              {isVi
+                ? "Đặt lịch, theo dõi lịch khám, gửi yêu cầu tư vấn trong một luồng đơn giản."
+                : "Book appointments, track schedule, and request consultations in one simple flow."}
+            </p>
+            <p className="mt-auto pt-5 text-sm font-semibold text-[#C14D4D] transition group-hover:translate-x-1 dark:text-[#F29A9A]">
+              {isVi ? "Đi tới patient flow" : "Go to patient flow"} →
+            </p>
+          </Link>
+
+          <Link
+            to="/register/provider"
+            className="group flex min-h-[230px] flex-col rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#E06666]/40 hover:shadow-lg dark:border-slate-700 dark:bg-[#141B29] dark:hover:border-[#E06666]/50 dark:hover:shadow-[0_18px_35px_rgba(0,0,0,0.35)]"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E06666] dark:text-[#F29A9A]">
+              {isVi ? "For Doctors / Branch Owners" : "For Doctors / Branch Owners"}
+            </p>
+            <h2 className="mt-3 text-2xl font-semibold text-gray-900 dark:text-slate-100">
+              {isVi ? "Bác sĩ / Chủ chi nhánh" : "Doctors / Branch Owners"}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-slate-400">
+              {isVi
+                ? "Mở chi nhánh, quản lý đội ngũ bác sĩ và vận hành lịch khám theo hệ thống."
+                : "Open branches, manage doctor teams, and operate schedules in a focused workspace."}
+            </p>
+            <p className="mt-auto pt-5 text-sm font-semibold text-[#C14D4D] transition group-hover:translate-x-1 dark:text-[#F29A9A]">
+              {isVi ? "Đi tới provider flow" : "Go to provider flow"} →
+            </p>
           </Link>
         </div>
-      </section>
+
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500 dark:text-slate-500">
+          <Link to="/login" className="transition hover:text-[#E06666] dark:hover:text-[#F29A9A]">
+            {isVi ? "Đăng nhập" : "Sign in"}
+          </Link>
+          <span className="text-gray-300 dark:text-slate-600">•</span>
+          <Link to="/pricing" className="transition hover:text-[#E06666] dark:hover:text-[#F29A9A]">
+            {isVi ? "Bảng giá" : "Pricing"}
+          </Link>
+          <span className="text-gray-300 dark:text-slate-600">•</span>
+          <Link to="/holoramind" className="text-xs uppercase tracking-[0.14em] transition hover:text-[#E06666] dark:hover:text-[#F29A9A]">
+            HoloraMind
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };

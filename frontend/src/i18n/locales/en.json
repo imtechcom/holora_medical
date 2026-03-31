@@ -23,7 +23,8 @@
     "save": "Save",
     "saving": "Saving",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "pricing": "Pricing"
   },
   "navbar": {
     "holora": "Holora Medical",
@@ -33,7 +34,9 @@
     "adminPanel": "Admin Panel",
     "login": "Login",
     "register": "Register",
-    "logout": "Logout"
+    "logout": "Logout",
+    "pricing": "Pricing",
+    "providerPortal": "Provider Portal"
   },
   "auth": {
     "createAccount": "Create your account",

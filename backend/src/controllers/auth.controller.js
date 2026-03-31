@@ -2,6 +2,19 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
 const { OAuth2Client } = require("google-auth-library");
+const crypto = require("crypto");
+const { ensureHoloraFreeSubscription } = require("../middleware/provider.middleware");
+
+const queryAsync = (sql, params = []) =>
+  new Promise((resolve, reject) => {
+    db.query(sql, params, (err, results) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(results);
+    });
+  });
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -54,7 +67,9 @@ const issueTokenAndRespond = (res, user) => {
 };
 
 const register = async (req, res) => {
-  const { full_name, username, email, password, phone } = req.body;
+  const { full_name, username, email, password, phone, account_type } = req.body;
+  const normalizedAccountType = account_type === "provider" ? "provider" : "patient";
+  const targetRoleCode = normalizedAccountType === "provider" ? "clinic_owner" : "patient";
 
   if (!full_name || !username || !email || !password) {
     return res.status(400).json({
@@ -116,18 +131,18 @@ const register = async (req, res) => {
 
           const newUserId = userResult.insertId;
 
-          // lấy role patient theo code, không hardcode id
-          const getPatientRoleSql = `
+          // Role is selected by account_type (patient/provider)
+          const getRoleSql = `
             SELECT id 
             FROM role 
-            WHERE code = 'patient' 
+            WHERE code = ? 
               AND status = 'active'
             LIMIT 1
           `;
 
-          db.query(getPatientRoleSql, (roleErr, roleResults) => {
+          db.query(getRoleSql, [targetRoleCode], (roleErr, roleResults) => {
             if (roleErr) {
-              console.error("Get patient role error:", roleErr);
+              console.error("Get register role error:", roleErr);
               return res.status(500).json({
                 message: "Register failed",
                 error: roleErr.message,
@@ -136,11 +151,11 @@ const register = async (req, res) => {
 
             if (!roleResults.length) {
               return res.status(500).json({
-                message: "Patient role not found. Please seed role table first.",
+                message: `${targetRoleCode} role not found. Please seed role table first.`,
               });
             }
 
-            const patientRoleId = roleResults[0].id;
+            const roleId = roleResults[0].id;
 
             const insertUserRoleSql = `
               INSERT INTO user_role (user_id, role_id, assigned_at, assigned_by)
@@ -149,7 +164,7 @@ const register = async (req, res) => {
 
             db.query(
               insertUserRoleSql,
-              [newUserId, patientRoleId],
+              [newUserId, roleId],
               (userRoleErr) => {
                 if (userRoleErr) {
                   console.error("Insert user_role error:", userRoleErr);
@@ -159,7 +174,21 @@ const register = async (req, res) => {
                   });
                 }
 
-                // Tùy chọn: tạo luôn hồ sơ patient
+                if (normalizedAccountType === "provider") {
+                  // Auto-assign HOLORA_FREE to new clinic_owner (fire-and-forget, non-fatal)
+                  ensureHoloraFreeSubscription(newUserId).catch((err) => {
+                    console.error("Auto-assign HOLORA_FREE failed for user", newUserId, err.message);
+                  });
+
+                  return res.status(201).json({
+                    message: "Provider register successful. Please login.",
+                    user_id: newUserId,
+                    role: "clinic_owner",
+                    account_type: "provider",
+                  });
+                }
+
+                // Patient flow: create patient profile
                 const patientCode = `PAT${String(newUserId).padStart(6, "0")}`;
 
                 const insertPatientSql = `
@@ -198,6 +227,7 @@ const register = async (req, res) => {
                       message: "Register successful. Please login.",
                       user_id: newUserId,
                       role: "patient",
+                      account_type: "patient",
                     });
                   }
                 );
@@ -455,4 +485,167 @@ const googleAuth = async (req, res) => {
   }
 };
 
-module.exports = { register, login, googleAuth };
+const acceptDoctorInvite = async (req, res) => {
+  const { token, password } = req.body;
+
+  if (!token || !password) {
+    return res.status(400).json({
+      message: "token and password are required",
+    });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({
+      message: "Password must be at least 6 characters",
+    });
+  }
+
+  try {
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    const inviteRows = await queryAsync(
+      `
+        SELECT id, user_id, doctor_id, email, expires_at, used_at, revoked_at
+        FROM doctor_invite
+        WHERE token_hash = ?
+        LIMIT 1
+      `,
+      [tokenHash]
+    );
+
+    if (!inviteRows.length) {
+      return res.status(404).json({ message: "Invite not found" });
+    }
+
+    const invite = inviteRows[0];
+
+    if (invite.revoked_at) {
+      return res.status(410).json({ message: "Invite was revoked" });
+    }
+
+    if (invite.used_at) {
+      return res.status(410).json({ message: "Invite has already been used" });
+    }
+
+    if (new Date(invite.expires_at).getTime() < Date.now()) {
+      return res.status(410).json({ message: "Invite has expired" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await queryAsync(
+      `
+        UPDATE users
+        SET password_hash = ?, updated_at = NOW()
+        WHERE id = ?
+      `,
+      [passwordHash, invite.user_id]
+    );
+
+    await queryAsync(
+      `
+        UPDATE doctor_invite
+        SET used_at = NOW(), updated_at = NOW()
+        WHERE id = ?
+      `,
+      [invite.id]
+    );
+
+    return res.json({
+      message: "Doctor account is ready. Please login.",
+      data: {
+        email: invite.email,
+        doctor_id: invite.doctor_id,
+      },
+    });
+  } catch (error) {
+    console.error("Accept doctor invite error:", error);
+    return res.status(500).json({
+      message: "Failed to accept doctor invite",
+      error: error.message,
+    });
+  }
+};
+
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Vui lòng nhập Email của bạn" });
+  }
+
+  try {
+    const userRows = await queryAsync(
+      `SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
+      [email]
+    );
+
+    if (!userRows.length) {
+      // Để tránh dò email, ta cứ báo là đã gửi email (Security Best Practice)
+      return res.json({ message: "Nếu Email hợp lệ, thư khôi phục đã được gửi đi." });
+    }
+
+    const user = userRows[0];
+    // Sinh Token ngẫu nhiên (chống lộ)
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    // Thời gian hết hạn là 1 Tiếng sau kể từ bây giờ
+    const expires = new Date(Date.now() + 3600000); 
+
+    await queryAsync(
+      `UPDATE users SET reset_password_token = ?, reset_password_expires = ?, updated_at = NOW() WHERE id = ?`,
+      [resetToken, expires, user.id]
+    );
+
+    // TODO: Gửi Email thực tế ở đây sử dụng Nodemailer/SendGrid...
+    // Hiện tại in ra màn hình Console để Dev copy cho nhanh
+    const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
+    console.log(`\n\n[RESET PASSWORD SIMULATOR] 🚀`);
+    console.log(`Gửi đến email: ${email}`);
+    console.log(`Đường link khôi phục của bạn là: ${resetLink}`);
+    console.log(`Link có gián trị trong vòng 1 tiếng.\n\n`);
+
+    return res.json({ message: "Thư khôi phục đã được gửi vào Email của bạn!" });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return res.status(500).json({ message: "Lỗi Server, không thể gửi yêu cầu", error: error.message });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { token, new_password } = req.body;
+
+  if (!token || !new_password) {
+    return res.status(400).json({ message: "Token và Mật khẩu mới là bắt buộc." });
+  }
+
+  if (new_password.length < 6) {
+    return res.status(400).json({ message: "Mật khẩu mới phải có ít nhất 6 ký tự." });
+  }
+
+  try {
+    const userRows = await queryAsync(
+      `SELECT id FROM users WHERE reset_password_token = ? AND reset_password_expires > NOW() LIMIT 1`,
+      [token]
+    );
+
+    if (!userRows.length) {
+      return res.status(400).json({ message: "Yêu cầu khôi phục không hợp lệ hoặc đã hết hạn." });
+    }
+
+    const userId = userRows[0].id;
+    const passwordHash = await bcrypt.hash(new_password, 10);
+
+    await queryAsync(
+      `UPDATE users SET password_hash = ?, reset_password_token = NULL, reset_password_expires = NULL, updated_at = NOW() WHERE id = ?`,
+      [passwordHash, userId]
+    );
+
+    return res.json({ message: "Mật khẩu của bạn đã được thay đổi thành công. Bạn có thể đăng nhập ngay!" });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return res.status(500).json({ message: "Lỗi khi đổi mật khẩu mới", error: error.message });
+  }
+};
+
+module.exports = { register, login, googleAuth, acceptDoctorInvite, forgotPassword, resetPassword };

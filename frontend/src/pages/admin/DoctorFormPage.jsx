@@ -6,11 +6,11 @@ import {
   createDoctorApi,
   updateDoctorApi,
 } from "../../services/doctorService";
-import { createUserApi } from "../../services/userService";
 import specialtyService from "../../services/specialtyService";
 import branchService from "../../services/branchService";
+import subscriptionService from "../../services/subscriptionService";
 
-const DoctorFormPage = () => {
+const DoctorFormPage = ({ returnPath = "/admin/doctors", fetchBranchesUrl = null }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { doctorId } = useParams();
@@ -20,8 +20,11 @@ const DoctorFormPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [inviteSetupUrl, setInviteSetupUrl] = useState("");
   const [specialties, setSpecialties] = useState([]);
   const [branches, setBranches] = useState([]);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [plans, setPlans] = useState([]);
 
   const [formData, setFormData] = useState({
     user_id: "",
@@ -37,6 +40,7 @@ const DoctorFormPage = () => {
     bio: "",
     avatar_url: "",
     status: "active",
+    account_mode: "manual",
     // New fields for user creation (create mode only)
     username: "",
     password: "",
@@ -46,7 +50,11 @@ const DoctorFormPage = () => {
   const fetchSpecialties = useCallback(async () => {
     try {
       const res = await specialtyService.getAllSpecialties();
-      setSpecialties(res.data || []);
+      const allSpecialties = res.data || [];
+      const leafSpecialties = allSpecialties.filter(
+        (item) => Number(item.child_count || 0) === 0
+      );
+      setSpecialties(leafSpecialties);
     } catch (err) {
       console.error("Error fetching specialties:", err);
     }
@@ -54,12 +62,34 @@ const DoctorFormPage = () => {
 
   const fetchBranches = useCallback(async () => {
     try {
-      const res = await branchService.getAllBranches();
+      const res = fetchBranchesUrl
+        ? await branchService.getMyBranches()
+        : await branchService.getAllBranches();
       setBranches(res.data || []);
     } catch (err) {
       console.error("Error fetching branches:", err);
     }
-  }, []);
+  }, [fetchBranchesUrl]);
+
+  const fetchSubscriptionContext = useCallback(async () => {
+    if (!fetchBranchesUrl) {
+      setSubscriptions([]);
+      setPlans([]);
+      return;
+    }
+
+    try {
+      const [subscriptionRes, planRes] = await Promise.all([
+        subscriptionService.getMySubscriptions(),
+        subscriptionService.getPlans(),
+      ]);
+
+      setSubscriptions(subscriptionRes.data || []);
+      setPlans(planRes.data || []);
+    } catch (err) {
+      console.error("Error fetching subscription context:", err);
+    }
+  }, [fetchBranchesUrl]);
 
   const fetchDoctor = useCallback(async () => {
     try {
@@ -79,6 +109,7 @@ const DoctorFormPage = () => {
         bio: doctor.bio || "",
         avatar_url: doctor.avatar_url || "",
         status: doctor.status || "active",
+        account_mode: "manual",
         username: "",
         password: "",
       });
@@ -93,10 +124,47 @@ const DoctorFormPage = () => {
   useEffect(() => {
     fetchSpecialties();
     fetchBranches();
+    fetchSubscriptionContext();
     if (isEdit) {
       fetchDoctor();
     }
-  }, [fetchSpecialties, fetchBranches, fetchDoctor, isEdit]);
+  }, [fetchSpecialties, fetchBranches, fetchSubscriptionContext, fetchDoctor, isEdit]);
+
+  const selectedBranches = branches.filter((branch) =>
+    formData.branch_ids.includes(branch.id)
+  );
+
+  const primarySelectedBranch = selectedBranches[0] || null;
+
+  const selectedBranchSubscription = primarySelectedBranch
+    ? subscriptions.find(
+        (subscription) =>
+          subscription.scope_type === "branch" &&
+          Number(subscription.scope_id) === Number(primarySelectedBranch.id)
+      ) || null
+    : null;
+
+  const selectedBranchPlan = selectedBranchSubscription
+    ? plans.find((plan) => plan.code === selectedBranchSubscription.plan_code) || null
+    : null;
+
+  const doctorManageEntitlement = selectedBranchPlan?.entitlements?.find(
+    (entitlement) => entitlement.feature_code === "doctor.manage"
+  ) || null;
+
+  const selectedBranchDoctorCount = Number(primarySelectedBranch?.doctor_count || 0);
+  const selectedBranchDoctorLimit = Number(doctorManageEntitlement?.limit_value || 0);
+  const hasFiniteDoctorLimit = Number.isInteger(selectedBranchDoctorLimit) && selectedBranchDoctorLimit > 0;
+  const selectedBranchHasSubscription = !fetchBranchesUrl || !!selectedBranchSubscription;
+  const selectedBranchSubscriptionActive =
+    !fetchBranchesUrl ||
+    !selectedBranchSubscription ||
+    ["trialing", "active"].includes(selectedBranchSubscription.status);
+  const selectedBranchDoctorLimitReached =
+    fetchBranchesUrl &&
+    !isEdit &&
+    hasFiniteDoctorLimit &&
+    selectedBranchDoctorCount >= selectedBranchDoctorLimit;
 
   const validateForm = () => {
     if (!formData.full_name?.trim()) {
@@ -119,18 +187,37 @@ const DoctorFormPage = () => {
       setError(t("admin.branchRequired"));
       return false;
     }
+    if (fetchBranchesUrl && !selectedBranchHasSubscription) {
+      setError("Selected branch does not have an active subscription yet. Create the branch again or activate a plan first.");
+      return false;
+    }
+    if (fetchBranchesUrl && !selectedBranchSubscriptionActive) {
+      setError("Selected branch subscription is inactive. Please activate or renew the branch plan first.");
+      return false;
+    }
+    if (selectedBranchDoctorLimitReached) {
+      setError("Selected branch has reached its doctor limit for the current subscription.");
+      return false;
+    }
     if (!isEdit) {
-      if (!formData.username?.trim()) {
-        setError(t("admin.usernameRequired"));
-        return false;
-      }
-      if (!formData.password?.trim()) {
-        setError(t("admin.passwordRequired"));
-        return false;
-      }
-      if (formData.password.length < 6) {
-        setError(t("admin.passwordMinLength"));
-        return false;
+      if (formData.account_mode === "invite") {
+        if (!formData.email?.trim()) {
+          setError("Doctor email is required for invite mode");
+          return false;
+        }
+      } else {
+        if (!formData.username?.trim()) {
+          setError(t("admin.usernameRequired"));
+          return false;
+        }
+        if (!formData.password?.trim()) {
+          setError(t("admin.passwordRequired"));
+          return false;
+        }
+        if (formData.password.length < 6) {
+          setError(t("admin.passwordMinLength"));
+          return false;
+        }
       }
     }
     return true;
@@ -140,6 +227,7 @@ const DoctorFormPage = () => {
     e.preventDefault();
     setError("");
     setSuccessMessage("");
+    setInviteSetupUrl("");
 
     if (!validateForm()) {
       return;
@@ -151,46 +239,42 @@ const DoctorFormPage = () => {
         // Update existing doctor
         await updateDoctorApi(doctorId, formData);
         setSuccessMessage(t("admin.doctorUpdatedSuccess"));
-        setTimeout(() => navigate("/admin/doctors"), 1500);
+        setTimeout(() => navigate(returnPath), 1500);
       } else {
-        // Create new doctor with auto user creation
-        const doctorData = { ...formData };
-        let userId = null;
+        const doctorData = {
+          ...formData,
+          invite_redirect_base: `${window.location.origin}/doctor/invite-setup`,
+        };
 
-        try {
-          // Step 1: Create user account with doctor role
-          const userPayload = {
-            username: formData.username,
-            password: formData.password,
-            email: formData.email || formData.username + "@hospital.local",
-            full_name: formData.full_name,
-            role_code: "doctor",
-          };
-          const userRes = await createUserApi(userPayload);
-          userId = userRes.data.id || userRes.data.user_id;
-
-          // Step 2: Link user to doctor record
-          doctorData.user_id = userId;
+        if (doctorData.account_mode === "invite") {
           delete doctorData.username;
           delete doctorData.password;
+        }
 
-          // Step 3: Create doctor record
-          await createDoctorApi(doctorData);
+        const createRes = await createDoctorApi(doctorData);
+        const setupUrl = createRes?.data?.invite_setup_url || "";
+
+        if (setupUrl) {
+          setInviteSetupUrl(setupUrl);
+          setSuccessMessage("Doctor invited successfully. Share this setup link with the doctor.");
+        } else {
           setSuccessMessage(t("admin.doctorCreatedSuccess"));
-          setTimeout(() => navigate("/admin/doctors"), 1500);
-        } catch (userErr) {
-          const errorMsg =
-            userErr?.response?.data?.message ||
-            t("admin.errorCreatingUserAccount");
-          setError(errorMsg);
-          console.error("Error creating user account:", userErr);
-          setSubmitting(false);
-          return;
+          setTimeout(() => navigate(returnPath), 1500);
         }
       }
     } catch (err) {
-      const errorMsg =
-        err?.response?.data?.message || t("admin.errorSubmittingForm");
+      let errorMsg = err?.response?.data?.message || t("admin.errorSubmittingForm");
+
+      if (err?.response?.status === 402) {
+        if (err?.response?.data?.message === "Active subscription required") {
+          errorMsg = "Selected branch does not have an active doctor subscription. Open Subscription to activate a plan or create a new branch trial.";
+        }
+
+        if ((err?.response?.data?.message || "").includes("Doctor limit reached")) {
+          errorMsg = "Selected branch has reached the doctor limit for its current plan. Upgrade the branch subscription or choose another branch.";
+        }
+      }
+
       setError(errorMsg);
       console.error("Error submitting form:", err);
     } finally {
@@ -248,6 +332,11 @@ const DoctorFormPage = () => {
           <div>
             <p className="font-semibold">{t("common.success")}</p>
             <p className="text-sm">{successMessage}</p>
+            {inviteSetupUrl && (
+              <div className="mt-3 rounded-md border border-green-300 bg-white px-3 py-2 text-xs break-all text-gray-700">
+                {inviteSetupUrl}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -346,13 +435,43 @@ const DoctorFormPage = () => {
                 <option value="">{t("admin.selectSpecialty")}</option>
                 {specialties.map((spec) => (
                   <option key={spec.id} value={spec.id}>
-                    {spec.name}
+                    {spec.parent_name ? `${spec.parent_name} > ${spec.name}` : spec.name}
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="md:col-span-2">
+              {!isEdit && (
+                <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Account setup mode</p>
+                  <div className="flex flex-wrap gap-4 text-sm text-gray-700">
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="account_mode"
+                        value="manual"
+                        checked={formData.account_mode === "manual"}
+                        onChange={handleInputChange}
+                        className="text-[#E06666] focus:ring-[#E06666]"
+                      />
+                      Create login now
+                    </label>
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="account_mode"
+                        value="invite"
+                        checked={formData.account_mode === "invite"}
+                        onChange={handleInputChange}
+                        className="text-[#E06666] focus:ring-[#E06666]"
+                      />
+                      Invite by email
+                    </label>
+                  </div>
+                </div>
+              )}
+
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 {t("admin.branches")} <span className="text-red-500">*</span>
               </label>
@@ -380,9 +499,53 @@ const DoctorFormPage = () => {
                 </div>
               )}
               <p className="text-xs text-gray-500 mt-1">{t("admin.selectBranchesHelp")}</p>
+              {fetchBranchesUrl && primarySelectedBranch && (
+                <div className="mt-3 space-y-2">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                    <p className="font-semibold text-gray-800">Primary branch for subscription check</p>
+                    <p className="mt-1">
+                      {primarySelectedBranch.name}
+                      {selectedBranchSubscription
+                        ? ` • ${selectedBranchSubscription.plan_name} (${selectedBranchSubscription.status})`
+                        : " • No active subscription found"}
+                    </p>
+                    {hasFiniteDoctorLimit ? (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Doctors used: {selectedBranchDoctorCount}/{selectedBranchDoctorLimit}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-gray-500">Doctor limit: Unlimited</p>
+                    )}
+                  </div>
+
+                  {!selectedBranchHasSubscription && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      This branch has no active subscription record yet. Go to Subscription and activate a branch plan if needed.
+                    </div>
+                  )}
+
+                  {selectedBranchHasSubscription && !selectedBranchSubscriptionActive && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      The selected branch subscription is not active. You need an active or trialing plan before creating a doctor.
+                    </div>
+                  )}
+
+                  {selectedBranchDoctorLimitReached && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                      This branch has reached the doctor limit of its current plan. Upgrade the subscription or select another branch.
+                    </div>
+                  )}
+
+                  {!selectedBranchDoctorLimitReached && hasFiniteDoctorLimit && selectedBranchDoctorCount === selectedBranchDoctorLimit - 1 && (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                      This branch has only 1 doctor slot left on the current plan.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {!isEdit && (
+            {!isEdit && formData.account_mode === "manual" && (
               <>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -418,6 +581,12 @@ const DoctorFormPage = () => {
                   </p>
                 </div>
               </>
+            )}
+
+            {!isEdit && formData.account_mode === "invite" && (
+              <div className="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                A one-time setup link will be generated and shown after saving this doctor.
+              </div>
             )}
           </div>
         </div>

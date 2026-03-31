@@ -56,6 +56,7 @@ const getBranchById = (req, res) => {
 // Create branch
 const createBranch = (req, res) => {
   const { name, code, phone, email, address, city, description, status } = req.body;
+  const ownerUserId = req.user?.id || null;
 
   if (!name || !code || !address) {
     return res.status(400).json({
@@ -85,14 +86,15 @@ const createBranch = (req, res) => {
 
     const insertSql = `
       INSERT INTO branch (
-        name, code, phone, email, address, city, description, status, created_at, updated_at
+        name, code, owner_user_id, phone, email, address, city, description, status, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `;
 
     const values = [
       name,
       code,
+      ownerUserId,
       phone || null,
       email || null,
       address,
@@ -116,6 +118,7 @@ const createBranch = (req, res) => {
           id: result.insertId,
           name,
           code,
+          owner_user_id: ownerUserId,
           phone: phone || null,
           email: email || null,
           address,
@@ -224,9 +227,38 @@ const deleteBranch = (req, res) => {
   });
 };
 
+// Get branches owned by the authenticated user
+const getMyBranches = (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  const sql = `
+    SELECT
+      b.*,
+      COUNT(DISTINCT db.doctor_id) AS doctor_count
+    FROM branch b
+    LEFT JOIN doctor_branch db ON db.branch_id = b.id
+    WHERE b.owner_user_id = ?
+      AND b.deleted_at IS NULL
+    GROUP BY b.id
+    ORDER BY b.created_at DESC
+  `;
+
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.error("Get my branches error:", err);
+      return res.status(500).json({ message: "Database error", error: err.message });
+    }
+    return res.json({ message: "Branches fetched successfully", data: results });
+  });
+};
+
 module.exports = {
   getAllBranches,
   getBranchById,
+  getMyBranches,
   createBranch,
   updateBranch,
   deleteBranch,

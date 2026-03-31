@@ -235,9 +235,42 @@ const addConsultationResponse = (req, res) => {
   });
 };
 
+// Bệnh nhân xem lịch sử tư vấn của chính mình (UCxx)
+const getPatientConsultations = (req, res) => {
+  const userId = req.user.id;
+
+  const getPatientSql = "SELECT id FROM patient WHERE user_id = ? LIMIT 1";
+  db.query(getPatientSql, [userId], (err, pResults) => {
+    if (err) return res.status(500).json({ message: "Lỗi cơ sở dữ liệu", error: err.message });
+    if (!pResults.length) return res.status(403).json({ message: "Không tìm thấy hồ sơ bệnh nhân." });
+
+    const patientId = pResults[0].id;
+
+    const sql = `
+      SELECT 
+        c.id, c.chief_complaint, c.status, c.priority, c.created_at,
+        d.full_name as doctor_name
+      FROM consultation c
+      LEFT JOIN doctor d ON c.doctor_id = d.id
+      WHERE c.patient_id = ?
+      ORDER BY c.created_at DESC
+    `;
+
+    db.query(sql, [patientId], (err, results) => {
+      if (err) return res.status(500).json({ message: "Lỗi cơ sở dữ liệu", error: err.message });
+      
+      return res.json({
+        message: "Lấy lịch sử tư vấn thành công",
+        data: results
+      });
+    });
+  });
+};
+
 module.exports = {
   createConsultation,
   getDoctorConsultations,
   getConsultationDetails,
-  addConsultationResponse
+  addConsultationResponse,
+  getPatientConsultations
 };

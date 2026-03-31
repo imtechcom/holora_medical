@@ -12,6 +12,9 @@ router.post("/", consultationController.createConsultation);
 // Doctor -> Xem danh sách chờ
 router.get("/doctor-requests", consultationController.getDoctorConsultations);
 
+// Patient -> Xem lịch sử cùa mình
+router.get("/my-history", consultationController.getPatientConsultations);
+
 // Lấy chi tiết 1 ca tư vấn (Bệnh nhân và Bác sĩ dùng chung)
 router.get("/:id", consultationController.getConsultationDetails);
 

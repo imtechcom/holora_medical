@@ -23,6 +23,7 @@ const PatientDashboardPage = () => {
     pastConsultations: 0
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -32,8 +33,12 @@ const PatientDashboardPage = () => {
         if (res.data) {
           setStats(res.data);
         }
+        setError("");
       } catch (err) {
         console.error("Error fetching stats:", err);
+        console.error("Error response:", err?.response);
+        console.error("Error message:", err?.message);
+        setError(err?.response?.data?.message || err.message || "Failed to load dashboard stats");
       } finally {
         setLoading(false);
       }
@@ -66,6 +71,17 @@ const PatientDashboardPage = () => {
      return (
        <div className="flex items-center justify-center min-h-[400px]">
          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E06666]"></div>
+       </div>
+     );
+  }
+
+  if (error) {
+     return (
+       <div className="max-w-4xl mx-auto">
+         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-6 rounded-2xl">
+           <h2 className="text-lg font-bold text-red-800 dark:text-red-300 mb-2">Error Loading Dashboard</h2>
+           <p className="text-red-700 dark:text-red-400">{error}</p>
+         </div>
        </div>
      );
   }

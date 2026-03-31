@@ -39,12 +39,16 @@ services:
       DB_USER: root
       DB_PASSWORD: root
       JWT_SECRET: holora_secret
+      GOOGLE_CLIENT_ID: 949646551056-us2qk9838n66ubnma5b76ekp0bnh6old.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: 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
     depends_on:
       - mysql
 
   frontend:
     build:
       context: ../frontend
+      args:
+        VITE_GOOGLE_CLIENT_ID: 949646551056-us2qk9838n66ubnma5b76ekp0bnh6old.apps.googleusercontent.com
     container_name: holora_medical_frontend
     restart: always
     ports:

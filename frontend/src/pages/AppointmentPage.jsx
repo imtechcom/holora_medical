@@ -23,25 +23,7 @@ const AppointmentPage = () => {
   const [isBooking, setIsBooking] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  useEffect(() => {
-    if (role !== "patient") {
-      alert("Chỉ bệnh nhân mới có chức năng tự đặt lịch.");
-      navigate("/admin");
-      return;
-    }
 
-    fetchDoctors();
-    fetchMyAppointments();
-  }, [role, navigate]);
-
-  useEffect(() => {
-    if (selectedDoctor && selectedDate && selectedBranchId) {
-      fetchSlots();
-    } else {
-      setAvailableSlots([]);
-      setSelectedSlot("");
-    }
-  }, [selectedDoctor, selectedDate, duration, selectedBranchId, fetchSlots]);
 
   const fetchDoctors = async () => {
     try {
@@ -82,6 +64,26 @@ const AppointmentPage = () => {
       setLoadingSlots(false);
     }
   }, [selectedBranchId, selectedDate, selectedDoctor, duration]);
+
+  useEffect(() => {
+    if (role !== "patient") {
+      alert("Chỉ bệnh nhân mới có chức năng tự đặt lịch.");
+      navigate("/admin");
+      return;
+    }
+
+    fetchDoctors();
+    fetchMyAppointments();
+  }, [role, navigate]);
+
+  useEffect(() => {
+    if (selectedDoctor && selectedDate && selectedBranchId) {
+      fetchSlots();
+    } else {
+      setAvailableSlots([]);
+      setSelectedSlot("");
+    }
+  }, [selectedDoctor, selectedDate, duration, selectedBranchId, fetchSlots]);
 
   const selectedDoctorBranches = useMemo(() => {
     if (!selectedDoctor?.branches?.length) return [];
@@ -309,6 +311,7 @@ const AppointmentPage = () => {
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Bac si</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Chi nhanh</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Trang thai</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Khám Trực Tuyến</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
@@ -351,6 +354,16 @@ const AppointmentPage = () => {
                         >
                           {app.status}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-right text-sm">
+                        {(app.status === "scheduled" || app.status === "confirmed") && (
+                          <button
+                            onClick={() => navigate(`/appointments/${app.id}/room`)}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700"
+                          >
+                            📞 Vào Phòng
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))

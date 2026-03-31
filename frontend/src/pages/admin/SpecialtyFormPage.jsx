@@ -12,9 +12,12 @@ const SpecialtyFormPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     code: '',
+    parent_id: '',
     description: '',
     status: 'active'
   });
+
+  const [allSpecialties, setAllSpecialties] = useState([]);
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -30,6 +33,7 @@ const SpecialtyFormPage = () => {
       setFormData({
         name: specialty.name || '',
         code: specialty.code || '',
+        parent_id: specialty.parent_id || '',
         description: specialty.description || '',
         status: specialty.status || 'active'
       });
@@ -45,6 +49,19 @@ const SpecialtyFormPage = () => {
       fetchSpecialty();
     }
   }, [isEditMode, fetchSpecialty]);
+
+  useEffect(() => {
+    const fetchAllSpecialties = async () => {
+      try {
+        const response = await specialtyService.getAllSpecialties();
+        setAllSpecialties(response.data || []);
+      } catch (error) {
+        console.error("Error fetching specialties list:", error);
+      }
+    };
+
+    fetchAllSpecialties();
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -92,6 +109,7 @@ const SpecialtyFormPage = () => {
       const payload = {
         name: formData.name.trim(),
         code: formData.code.trim(),
+        parent_id: formData.parent_id || null,
         description: formData.description.trim(),
         status: formData.status
       };
@@ -211,6 +229,27 @@ const SpecialtyFormPage = () => {
                   >
                     <option value="active">{t('common.active')}</option>
                     <option value="inactive">{t('common.inactive')}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Parent Specialty
+                  </label>
+                  <select
+                    name="parent_id"
+                    value={formData.parent_id}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">None (Root specialty)</option>
+                    {allSpecialties
+                      .filter((item) => !isEditMode || String(item.id) !== String(specialtyId))
+                      .map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.parent_name ? `${item.parent_name} > ${item.name}` : item.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>

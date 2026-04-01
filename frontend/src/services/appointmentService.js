@@ -51,9 +51,26 @@ export const appointmentService = {
     return response.data;
   },
 
+    // Admin: Lấy tất cả lịch khám với filter
+    getAllAppointmentsAdmin: async ({ status, start_date, end_date, search } = {}) => {
+      const params = {};
+      if (status)     params.status     = status;
+      if (start_date) params.start_date = start_date;
+      if (end_date)   params.end_date   = end_date;
+      if (search)     params.search     = search;
+      const response = await api.get("/appointments/admin/all", { params });
+      return response.data;
+    },
+
   // Đổi trạng thái lịch khám (Bác sĩ/Admin)
   updateStatus: async (appointmentId, status, cancellation_reason = "") => {
     const response = await api.put(`/appointments/${appointmentId}/status`, { status, cancellation_reason });
+    return response.data;
+  },
+
+  // Lấy chi tiết lịch khám bằng ID
+  getAppointmentById: async (id) => {
+    const response = await api.get(`/appointments/${id}`);
     return response.data;
   }
 };

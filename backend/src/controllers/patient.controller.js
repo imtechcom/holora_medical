@@ -1,6 +1,15 @@
 const db = require("../config/db");
+const { generateMedicalCode } = require("../utils/medical-code.util");
 
 const isJoinTableMissing = (err) => err?.code === "ER_NO_SUCH_TABLE";
+
+const queryAsync = (sql, params = []) =>
+  new Promise((resolve, reject) => {
+    db.query(sql, params, (err, results) => {
+      if (err) reject(err);
+      else resolve(results);
+    });
+  });
 
 const normalizeBranchIds = (branchIds) => {
   if (!Array.isArray(branchIds)) return [];
@@ -201,7 +210,7 @@ const getAllPatients = (req, res) => {
       u.status as user_status
     FROM patient p
     LEFT JOIN users u ON p.user_id = u.id
-    WHERE p.status != 'blocked' OR p.status IS NOT NULL
+    WHERE p.deleted_at IS NULL
     ORDER BY p.created_at DESC
   `;
 
@@ -265,10 +274,20 @@ const getPatientById = (req, res) => {
   });
 };
 
+const getNextPatientCode = (req, res) => {
+  generateMedicalCode("patient", (err, code) => {
+    if (err) {
+      console.error("Generate next patient code error:", err);
+      return res.status(500).json({ message: "Database error", error: err.message });
+    }
+
+    return res.json({ message: "Next patient code generated successfully", data: { code } });
+  });
+};
+
 // Create patient
 const createPatient = (req, res) => {
   const {
-    patient_code,
     full_name,
     phone,
     email,
@@ -283,28 +302,18 @@ const createPatient = (req, res) => {
     branch_ids,
   } = req.body;
 
-  if (!patient_code || !full_name || !phone) {
+  if (!full_name || !phone) {
     return res.status(400).json({
-      message: "Patient code, full name, and phone are required",
+      message: "Full name and phone are required",
     });
   }
 
-  const checkSql = `
-    SELECT id FROM patient WHERE patient_code = ? LIMIT 1
-  `;
-
-  db.query(checkSql, [patient_code], (checkErr, checkResults) => {
-    if (checkErr) {
-      console.error("Check patient error:", checkErr);
+  generateMedicalCode("patient", (codeErr, patient_code) => {
+    if (codeErr) {
+      console.error("Generate patient code error:", codeErr);
       return res.status(500).json({
         message: "Database error",
-        error: checkErr.message,
-      });
-    }
-
-    if (checkResults.length > 0) {
-      return res.status(409).json({
-        message: "Patient code already exists",
+        error: codeErr.message,
       });
     }
 
@@ -335,6 +344,9 @@ const createPatient = (req, res) => {
       ],
       (insertErr, insertResults) => {
         if (insertErr) {
+          if (insertErr.code === "ER_DUP_ENTRY") {
+            return res.status(409).json({ message: "Patient code already exists" });
+          }
           console.error("Create patient error:", insertErr);
           return res.status(500).json({
             message: "Failed to create patient",
@@ -453,8 +465,8 @@ const deletePatient = (req, res) => {
 
   const deleteSql = `
     UPDATE patient
-    SET status = 'blocked', updated_at = NOW()
-    WHERE id = ?
+    SET deleted_at = NOW(), updated_at = NOW()
+    WHERE id = ? AND deleted_at IS NULL
   `;
 
   db.query(deleteSql, [id], (err, results) => {
@@ -472,7 +484,7 @@ const deletePatient = (req, res) => {
       });
     }
 
-    db.query("DELETE FROM patient_branch WHERE patient_id = ?", [id], () => {
+    db.query("UPDATE patient_branch SET deleted_at = NOW() WHERE patient_id = ? AND deleted_at IS NULL", [id], () => {
       return res.json({
         message: "Patient deleted successfully",
       });
@@ -628,12 +640,135 @@ const updateMyProfile = (req, res) => {
   });
 };
 
+const getPatientsByOwnerBranches = async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  try {
+    const branchRows = await queryAsync(
+      "SELECT id FROM branch WHERE owner_user_id = ? AND deleted_at IS NULL",
+      [userId]
+    );
+
+    if (!branchRows.length) {
+      return res.json({ message: "No patients found", data: [] });
+    }
+
+    const branchIds = branchRows.map((r) => r.id);
+
+    const patientRows = await queryAsync(
+      `SELECT DISTINCT
+          p.id, p.patient_code, p.full_name, p.phone, p.email,
+          p.gender, p.date_of_birth, p.blood_group, p.status,
+          p.created_at
+       FROM patient p
+       INNER JOIN patient_branch pb ON pb.patient_id = p.id AND pb.deleted_at IS NULL
+       WHERE pb.branch_id IN (?)
+         AND p.status != 'blocked'
+       ORDER BY p.full_name ASC`,
+      [branchIds]
+    );
+
+    if (!patientRows.length) {
+      return res.json({ message: "No patients found", data: [] });
+    }
+
+    const patientIds = patientRows.map((r) => r.id);
+    const branchMap = await new Promise((resolve, reject) => {
+      fetchPatientBranchesByPatientIds(patientIds, (err, map) => {
+        if (err) reject(err);
+        else resolve(map);
+      });
+    });
+
+    const data = patientRows.map((p) => {
+      const branches = branchMap.get(p.id) || [];
+      return {
+        ...p,
+        branch_ids: branches.map((b) => b.id),
+        branch_names: branches.map((b) => b.name).join(", "),
+        branches,
+      };
+    });
+
+    return res.json({ message: "Patients fetched successfully", data });
+  } catch (err) {
+    console.error("getPatientsByOwnerBranches error:", err);
+    if (isJoinTableMissing(err)) {
+      return res.json({ message: "No patients found", data: [] });
+    }
+    return res.status(500).json({ message: "Database error", error: err.message });
+  }
+};
+
+const getMyStats = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    console.log("getMyStats: Fetching stats for userId:", userId);
+    
+    // Lấy patient_id từ user_id
+    const patientRows = await queryAsync(
+      "SELECT id FROM patient WHERE user_id = ? LIMIT 1",
+      [userId]
+    );
+
+    console.log("patientRows:", patientRows);
+
+    if (!patientRows.length) {
+      console.log("No patient record found for userId:", userId);
+      return res.status(404).json({ message: "Patient profile not found" });
+    }
+
+    const patientId = patientRows[0].id;
+    console.log("patientId:", patientId);
+
+    // Đếm số lịch hẹn sắp tới (confirmed, pending)
+    const appointmentCountSql = `
+      SELECT COUNT(*) AS count 
+      FROM appointment 
+      WHERE patient_id = ? 
+        AND status IN ('confirmed', 'pending')
+        AND appointment_date >= CURDATE()
+    `;
+    const apptRes = await queryAsync(appointmentCountSql, [patientId]);
+    console.log("apptRes:", apptRes);
+
+    // Đếm số ca tư vấn đã hoàn thành
+    const consultationCountSql = `
+      SELECT COUNT(*) AS count 
+      FROM consultation 
+      WHERE patient_id = ? 
+        AND status = 'completed'
+    `;
+    const consRes = await queryAsync(consultationCountSql, [patientId]);
+    console.log("consRes:", consRes);
+
+    return res.json({
+      message: "Stats fetched successfully",
+      data: {
+        upcomingAppointments: apptRes[0].count,
+        pastConsultations: consRes[0].count,
+      },
+    });
+  } catch (err) {
+    console.error("Get my stats error:", err);
+    console.error("Error stack:", err.stack);
+    return res.status(500).json({ message: "Database error", error: err.message });
+  }
+};
+
 module.exports = {
   getAllPatients,
   getPatientById,
+  getNextPatientCode,
   createPatient,
   updatePatient,
   deletePatient,
   getMyProfile,
   updateMyProfile,
+  getPatientsByOwnerBranches,
+  getMyStats,
 };

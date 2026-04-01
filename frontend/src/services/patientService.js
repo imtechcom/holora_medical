@@ -12,6 +12,11 @@ export const getPatientByIdApi = async (id) => {
   return response.data;
 };
 
+export const getNextPatientCodeApi = async () => {
+  const response = await api.get("/patients/next-code");
+  return response.data;
+};
+
 // Create patient
 export const createPatientApi = async (payload) => {
   const response = await api.post("/patients", payload);
@@ -39,5 +44,17 @@ export const getMyProfileApi = async () => {
 // Update current authenticated user's patient profile
 export const updateMyProfileApi = async (payload) => {
   const response = await api.put("/patients/me", payload);
+  return response.data;
+};
+
+// Get patients in branches owned by the authenticated clinic_owner
+export const getPatientsByOwnerBranchesApi = async () => {
+  const response = await api.get("/patients/my-branches");
+  return response.data;
+};
+
+// Get current authenticated user's stats (appointments, consultations)
+export const getPatientStatsApi = async () => {
+  const response = await api.get("/patients/me/stats");
   return response.data;
 };

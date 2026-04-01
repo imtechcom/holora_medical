@@ -1,6 +1,20 @@
 const db = require('../config/db');
 
 // --- HÀM HỖ TRỢ XỬ LÝ THỜI GIAN NHANH ---
+const findPatientIdByUserId = (userId, callback) => {
+  db.query('SELECT id FROM patient WHERE user_id = ? LIMIT 1', [userId], (err, rows) => {
+    if (err) return callback(err, null);
+    callback(null, rows.length ? rows[0].id : null);
+  });
+};
+
+const findDoctorIdByUserId = (userId, callback) => {
+  db.query('SELECT id FROM doctor WHERE user_id = ? LIMIT 1', [userId], (err, rows) => {
+    if (err) return callback(err, null);
+    callback(null, rows.length ? rows[0].id : null);
+  });
+};
+
 const timeToMinutes = (timeStr) => {
   const [h, m] = timeStr.split(':');
   return parseInt(h) * 60 + parseInt(m);
@@ -115,9 +129,18 @@ exports.getAvailableSlots = (req, res) => {
 
 // Đặt Lịch (POST /appointments)
 exports.bookAppointment = (req, res) => {
-  const patient_id = req.user.patient_id; 
-  if (!patient_id) return res.status(403).json({ message: 'Only patients can book appointments. Profile not found.' });
+  if (req.user.role !== 'patient') {
+    return res.status(403).json({ message: 'Only patients can book appointments.' });
+  }
 
+  findPatientIdByUserId(req.user.id, (err, patient_id) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!patient_id) return res.status(403).json({ message: 'Only patients can book appointments. Profile not found.' });
+    _doBookAppointment(req, res, patient_id);
+  });
+};
+
+const _doBookAppointment = (req, res, patient_id) => {
   const { doctor_id, specialty_id, branch_id, appointment_date, start_time, duration_minutes, reason, appointment_type } = req.body;
 
   if (!doctor_id || !branch_id || !appointment_date || !start_time || !duration_minutes) {
@@ -129,7 +152,7 @@ exports.bookAppointment = (req, res) => {
     [doctor_id, branch_id],
     (branchErr, branchRows) => {
       if (branchErr) {
-        return res.status(500).json({ error: branchErr.message });
+        return res.status(500).json({ message: branchErr.message });
       }
 
       if (!branchRows.length) {
@@ -148,7 +171,7 @@ exports.bookAppointment = (req, res) => {
          AND (start_time < ? AND end_time > ?)`,
         [doctor_id, endDateTime, startDateTime],
         (err, overlaps) => {
-          if (err) return res.status(500).json({ error: err.message });
+          if (err) return res.status(500).json({ message: err.message });
           if (overlaps.length > 0) {
             return res.status(409).json({ message: 'Rất tiếc, khung giờ NÀY VỪA BỊ ĐẶT. Vui lòng chọn khung giờ khác.' });
           }
@@ -162,7 +185,7 @@ exports.bookAppointment = (req, res) => {
           const params = [patient_id, doctor_id, specialty_id || null, branch_id, appointment_code, appointment_date, startDateTime, endDateTime, appointment_type || 'online', reason];
 
           db.query(query, params, (err2, result) => {
-            if (err2) return res.status(500).json({ error: err2.message });
+            if (err2) return res.status(500).json({ message: err2.message });
             res.status(201).json({ message: 'Đặt lịch thành công!', appointment_id: result.insertId });
           });
         }
@@ -173,7 +196,7 @@ exports.bookAppointment = (req, res) => {
 
 // Lấy lịch của Tôi
 exports.getMyAppointments = (req, res) => {
-  const { role, id: user_id, patient_id, doctor_id } = req.user;
+  const { role, id: user_id } = req.user;
 
   let query = `
     SELECT a.*, 
@@ -189,20 +212,33 @@ exports.getMyAppointments = (req, res) => {
   `;
   const params = [];
 
+  const runQuery = (filterField, filterValue) => {
+    if (filterField) {
+      query += ` AND ${filterField} = ?`;
+      params.push(filterValue);
+    }
+    query += ' ORDER BY a.appointment_date DESC, a.start_time DESC';
+    db.query(query, params, (err, results) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(results);
+    });
+  };
+
   if (role === 'patient') {
-    query += ' AND a.patient_id = ?';
-    params.push(patient_id);
+    findPatientIdByUserId(user_id, (err, patient_id) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!patient_id) return res.status(403).json({ message: 'Patient profile not found.' });
+      runQuery('a.patient_id', patient_id);
+    });
   } else if (role === 'doctor') {
-    query += ' AND a.doctor_id = ?';
-    params.push(doctor_id);
-  } // Admin lấy tất.
-
-  query += ' ORDER BY a.appointment_date DESC, a.start_time DESC';
-
-  db.query(query, params, (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(results);
-  });
+    findDoctorIdByUserId(user_id, (err, doctor_id) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!doctor_id) return res.status(403).json({ message: 'Doctor profile not found.' });
+      runQuery('a.doctor_id', doctor_id);
+    });
+  } else {
+    runQuery(null, null); // Admin lấy tất.
+  }
 };
 
 // Cập nhật trạng thái
@@ -215,4 +251,102 @@ exports.updateAppointmentStatus = (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: 'Đã cập nhật trạng thái ca khám!' });
   });
+};
+
+// Admin: Lấy TẤT CẢ lịch khám với filter (status, date range, search)
+exports.getAllAppointmentsAdmin = (req, res) => {
+  const { status, start_date, end_date, search } = req.query;
+
+  let query = `
+    SELECT a.*,
+           d.full_name AS doctor_name, d.avatar_url AS doctor_avatar,
+           s.name AS specialty_name,
+           p.full_name AS patient_name, p.phone AS patient_phone,
+           b.name AS branch_name, b.code AS branch_code
+    FROM appointment a
+    LEFT JOIN doctor d ON a.doctor_id = d.id
+    LEFT JOIN specialty s ON d.specialty_id = s.id
+    LEFT JOIN patient p ON a.patient_id = p.id
+    LEFT JOIN branch b ON a.branch_id = b.id
+    WHERE 1=1
+  `;
+  const params = [];
+
+  if (status) {
+    query += ' AND a.status = ?';
+    params.push(status);
+  }
+  if (start_date) {
+    query += ' AND a.appointment_date >= ?';
+    params.push(start_date);
+  }
+  if (end_date) {
+    query += ' AND a.appointment_date <= ?';
+    params.push(end_date);
+  }
+  if (search) {
+    query += ' AND (p.full_name LIKE ? OR a.appointment_code LIKE ? OR d.full_name LIKE ?)';
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+
+  query += ' ORDER BY a.appointment_date DESC, a.start_time DESC';
+
+  db.query(query, params, (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+};
+
+// Lấy chi tiết lịch khám theo ID (Kèm verify quyền truy cập)
+exports.getAppointmentById = (req, res) => {
+  const { id } = req.params;
+  const { role, id: user_id } = req.user;
+
+  const checkAndFetch = (patient_id, doctor_id) => {
+    const query = `
+      SELECT a.*, 
+             d.full_name as doctor_name, d.avatar_url as doctor_avatar, s.name as specialty_name,
+             p.full_name as patient_name, p.phone as patient_phone,
+             b.name as branch_name, b.code as branch_code
+      FROM appointment a
+      LEFT JOIN doctor d ON a.doctor_id = d.id
+      LEFT JOIN specialty s ON d.specialty_id = s.id
+      LEFT JOIN patient p ON a.patient_id = p.id
+      LEFT JOIN branch b ON a.branch_id = b.id
+      WHERE a.id = ?
+    `;
+
+    db.query(query, [id], (err, results) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!results.length) return res.status(404).json({ message: 'Không tìm thấy lịch khám!' });
+
+      const appointment = results[0];
+
+      // Verify quyền: Chỉ Admin, Bác sĩ nhận ca, hoặc Bệnh nhân đặt ca mới được lấy thông tin.
+      if (role === 'patient' && appointment.patient_id !== patient_id) {
+        return res.status(403).json({ message: 'Bạn không có quyền truy cập Video Call của lịch hẹn này!' });
+      }
+      if (role === 'doctor' && appointment.doctor_id !== doctor_id) {
+        return res.status(403).json({ message: 'Bạn không có quyền truy cập Video Call của lịch hẹn này!' });
+      }
+
+      res.json(appointment);
+    });
+  };
+
+  if (role === 'patient') {
+    findPatientIdByUserId(user_id, (err, patient_id) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!patient_id) return res.status(403).json({ message: 'Patient profile not found.' });
+      checkAndFetch(patient_id, null);
+    });
+  } else if (role === 'doctor') {
+    findDoctorIdByUserId(user_id, (err, doctor_id) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!doctor_id) return res.status(403).json({ message: 'Doctor profile not found.' });
+      checkAndFetch(null, doctor_id);
+    });
+  } else {
+    checkAndFetch(null, null); // Admin
+  }
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { AlertCircle, CheckCircle2, Eye, Loader2, Lock, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import * as roleService from "../../services/roleService";
 import RolePermissionsModal from "../../components/RolePermissionsModal";
 
@@ -16,10 +17,7 @@ const RolesPage = () => {
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [selectedRoleForPermissions, setSelectedRoleForPermissions] = useState(null);
 
-  // Fetch roles on mount
-  useEffect(() => {
-    fetchRoles();
-  }, []);
+  useEffect(() => { fetchRoles(); }, []);
 
   const fetchRoles = async () => {
     try {
@@ -29,279 +27,153 @@ const RolesPage = () => {
       setRoles(res.data || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch roles");
-      console.error("Error fetching roles:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddRole = () => {
-    navigate("/admin/roles/new");
-  };
-
-  const handleManagePermissions = (role) => {
-    setSelectedRoleForPermissions(role);
-    setShowPermissionsModal(true);
-  };
-
-  const handleEditRole = (role) => {
-    navigate(`/admin/roles/${role.id}/edit`);
-  };
-
   const handleDeleteRole = async (id, isSystemRole, userCount) => {
-    if (isSystemRole) {
-      setError(t("admin.cannotDeleteSystemRole"));
-      setShowDeleteConfirm(null);
-      return;
-    }
-    if (userCount > 0) {
-      setError(t("admin.cannotDeleteRoleWithUsers"));
-      setShowDeleteConfirm(null);
-      return;
-    }
-
+    if (isSystemRole) { setError(t("admin.cannotDeleteSystemRole")); setShowDeleteConfirm(null); return; }
+    if (userCount > 0) { setError(t("admin.cannotDeleteRoleWithUsers")); setShowDeleteConfirm(null); return; }
     try {
       setError("");
-      const response = await roleService.deleteRoleApi(id);
-      if (response) {
-        setSuccess(t("admin.deleteRoleSuccess"));
-        setShowDeleteConfirm(null);
-        fetchRoles();
-      }
+      await roleService.deleteRoleApi(id);
+      setSuccess(t("admin.deleteRoleSuccess"));
+      setShowDeleteConfirm(null);
+      fetchRoles();
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to delete role";
-      if (errorMsg.includes("cannot")) {
-        setError(t("admin.cannotDeleteRoleWithUsers"));
-      } else {
-        setError(errorMsg);
-      }
+      const msg = err.response?.data?.message || "Failed to delete role";
+      setError(msg.includes("cannot") ? t("admin.cannotDeleteRoleWithUsers") : msg);
       setShowDeleteConfirm(null);
     }
   };
 
-  // Filter roles based on search
   const filteredRoles = roles.filter(
-    (role) =>
-      role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      role.code.toLowerCase().includes(searchTerm.toLowerCase())
+    (r) =>
+      r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">
-          {t("admin.rolesManagement")}
-        </h1>
-        <p className="text-gray-600 mt-2">{t("admin.manageSystemRoles")}</p>
-      </div>
-
-      {/* Success Message */}
-      {success && (
-        <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">
-          {success}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-text-main">{t("admin.rolesManagement")}</h2>
+          <p className="mt-0.5 text-sm text-text-dim">{t("admin.manageSystemRoles")}</p>
         </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {/* Toolbar */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="flex-1 w-full md:w-auto">
-            <input
-              type="text"
-              placeholder={t("admin.search")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <button
-            onClick={handleAddRole}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
-          >
-            + {t("admin.addNewRole")}
+        <div className="flex items-center gap-2">
+          <button onClick={fetchRoles} disabled={loading} className="inline-flex items-center gap-1.5 rounded-xl border border-border-main px-3 py-2 text-sm font-semibold text-text-main transition hover:bg-bg-app disabled:opacity-60">
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />{t("common.refresh")}
+          </button>
+          <button onClick={() => navigate("/admin/roles/new")} className="inline-flex items-center gap-1.5 rounded-xl bg-[#E06666] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#D55555]">
+            <Plus className="h-4 w-4" />{t("admin.addNewRole")}
           </button>
         </div>
       </div>
 
+      {success && (
+        <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-900/15 dark:text-emerald-400">
+          <CheckCircle2 className="h-4 w-4" />{success}
+        </div>
+      )}
+      {error && (
+        <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-900/15 dark:text-red-400">
+          <AlertCircle className="h-4 w-4" />{error}
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-dim" />
+        <input type="text" placeholder={t("admin.search")} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full rounded-xl border border-border-main bg-bg-app py-2.5 pl-9 pr-4 text-sm text-text-main outline-none transition focus:ring-2 focus:ring-[#E06666]/40 dark:bg-slate-900" />
+      </div>
+
       {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center text-gray-500">
-            {t("common.loading")}...
-          </div>
-        ) : filteredRoles.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            {t("admin.noRoles")}
-          </div>
-        ) : (
-          <table className="w-full">
-            <thead className="bg-gray-100 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  {t("admin.name")}
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  {t("admin.code")}
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  {t("admin.description")}
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  {t("admin.userCount")}
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  {t("admin.status")}
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  {t("common.actions")}
-                </th>
+      <div className="overflow-hidden rounded-2xl border border-border-main bg-bg-surface shadow-sm dark:bg-slate-800">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead>
+              <tr className="border-b border-border-main bg-bg-app dark:bg-slate-900/60">
+                {[t("admin.name"), t("admin.code"), t("admin.description"), t("admin.userCount"), t("admin.status"), t("common.actions")].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.07em] text-text-dim">{h}</th>
+                ))}
               </tr>
             </thead>
-            <tbody>
-              {filteredRoles.map((role) => (
-                <tr key={role.id} className="border-b hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm text-gray-900">
+            <tbody className="divide-y divide-border-main">
+              {loading ? (
+                <tr><td colSpan={6} className="py-12 text-center text-sm text-text-dim"><span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />{t("common.loading")}</span></td></tr>
+              ) : filteredRoles.length === 0 ? (
+                <tr><td colSpan={6} className="py-12 text-center text-sm text-text-dim">{t("admin.noRoles")}</td></tr>
+              ) : filteredRoles.map((role) => (
+                <tr key={role.id} className="hover:bg-bg-app dark:hover:bg-slate-900/40">
+                  <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-2">
-                      {role.name}
+                      <span className="font-semibold text-text-main">{role.name}</span>
                       {role.is_system_role && (
-                        <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded">
-                          {t("admin.systemRole")}
-                        </span>
+                        <span className="inline-flex rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">{t("admin.systemRole")}</span>
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    <code className="bg-gray-100 px-2 py-1 rounded">
-                      {role.code}
-                    </code>
+                  <td className="px-4 py-3 text-sm">
+                    <code className="rounded bg-bg-app px-2 py-1 text-xs font-mono text-text-dim dark:bg-slate-900">{role.code}</code>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {role.description || "-"}
+                  <td className="px-4 py-3 text-sm text-text-dim">{role.description || "—"}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <span className="inline-flex rounded-full border border-border-main bg-bg-app px-3 py-1 text-xs font-semibold text-text-main dark:bg-slate-900">{role.user_count || 0}</span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">
-                      {role.user_count || 0}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      role.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-700"
+                  <td className="px-4 py-3 text-sm">
+                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                      role.status === "active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
                     }`}>
-                      {role.status === "active"
-                        ? t("admin.statusActive")
-                        : t("admin.statusInactive")}
+                      {role.status === "active" ? t("admin.statusActive") : t("admin.statusInactive")}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm flex gap-2">
-                    <button
-                      onClick={() => navigate(`/admin/roles/${role.id}`)}
-                      className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-                      title="View role details"
-                    >
-                      👁️ {t("admin.details")}
-                    </button>
-                    <button
-                      onClick={() => handleManagePermissions(role)}
-                      className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors disabled:bg-gray-300"
-                      disabled={role.is_system_role}
-                      title={
-                        role.is_system_role
-                          ? "Cannot manage permissions for system role"
-                          : "Manage permissions"
-                      }
-                    >
-                      🔐 {t("admin.permissions")}
-                    </button>
-                    <button
-                      onClick={() => handleEditRole(role)}
-                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:bg-gray-300"
-                      disabled={role.is_system_role}
-                      title={
-                        role.is_system_role
-                          ? "Cannot edit system role"
-                          : "Edit role"
-                      }
-                    >
-                      {t("common.edit")}
-                    </button>
-                    <button
-                      onClick={() => setShowDeleteConfirm(role.id)}
-                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:bg-gray-300"
-                      disabled={
-                        role.is_system_role || (role.user_count || 0) > 0
-                      }
-                      title={
-                        role.is_system_role
-                          ? "Cannot delete system role"
-                          : (role.user_count || 0) > 0
-                          ? "Cannot delete role with assigned users"
-                          : "Delete role"
-                      }
-                    >
-                      {t("common.delete")}
-                    </button>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button onClick={() => navigate(`/admin/roles/${role.id}`)} className="inline-flex items-center gap-1 rounded-lg border border-border-main px-2.5 py-1.5 text-xs font-semibold text-text-main transition hover:bg-bg-app">
+                        <Eye className="h-3 w-3" />{t("admin.details")}
+                      </button>
+                      <button onClick={() => { setSelectedRoleForPermissions(role); setShowPermissionsModal(true); }} disabled={role.is_system_role}
+                        className="inline-flex items-center gap-1 rounded-lg border border-border-main px-2.5 py-1.5 text-xs font-semibold text-text-main transition hover:bg-bg-app disabled:cursor-not-allowed disabled:opacity-40">
+                        <Lock className="h-3 w-3" />{t("admin.permissions")}
+                      </button>
+                      <button onClick={() => navigate(`/admin/roles/${role.id}/edit`)} disabled={role.is_system_role}
+                        className="inline-flex items-center gap-1 rounded-lg border border-border-main px-2.5 py-1.5 text-xs font-semibold text-text-main transition hover:bg-bg-app disabled:cursor-not-allowed disabled:opacity-40">
+                        <Pencil className="h-3 w-3" />{t("common.edit")}
+                      </button>
+                      <button onClick={() => setShowDeleteConfirm(role.id)} disabled={role.is_system_role || (role.user_count || 0) > 0}
+                        className="inline-flex items-center gap-1 rounded-lg border border-border-main px-2.5 py-1.5 text-xs font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-red-900/10">
+                        <Trash2 className="h-3 w-3" />{t("common.delete")}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        )}
+        </div>
       </div>
 
-      {/* Modal Form */}
-      {/* Removed - Now uses dedicated RoleFormPage for create/edit */}
-
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              {t("admin.confirmDeleteRole")}
-            </h3>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                onClick={() => {
-                  const role = roles.find((r) => r.id === showDeleteConfirm);
-                  handleDeleteRole(
-                    showDeleteConfirm,
-                    role?.is_system_role,
-                    role?.user_count
-                  );
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                {t("common.delete")}
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-3xl border border-border-main bg-bg-surface p-6 shadow-2xl dark:bg-slate-900">
+            <h3 className="text-base font-bold text-text-main">{t("admin.confirmDeleteRole")}</h3>
+            <div className="mt-5 flex gap-3">
+              <button onClick={() => setShowDeleteConfirm(null)} className="flex-1 rounded-xl border border-border-main py-2.5 text-sm font-semibold text-text-main transition hover:bg-bg-app">{t("common.cancel")}</button>
+              <button onClick={() => { const r = roles.find((x) => x.id === showDeleteConfirm); handleDeleteRole(showDeleteConfirm, r?.is_system_role, r?.user_count); }}
+                className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-bold text-white transition hover:bg-red-700">{t("common.delete")}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Role Permissions Modal */}
       {showPermissionsModal && selectedRoleForPermissions && (
         <RolePermissionsModal
           roleId={selectedRoleForPermissions.id}
           roleName={selectedRoleForPermissions.name}
-          onClose={() => {
-            setShowPermissionsModal(false);
-            setSelectedRoleForPermissions(null);
-          }}
+          onClose={() => { setShowPermissionsModal(false); setSelectedRoleForPermissions(null); }}
           onSuccess={fetchRoles}
         />
       )}

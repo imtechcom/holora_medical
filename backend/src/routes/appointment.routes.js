@@ -16,6 +16,12 @@ router.post('/', authorizeRole('patient'), appointmentController.bookAppointment
 // Lấy lịch hẹn của mình (Nếu Patient thì thấy lịch chữa, nếu Doctor thì thấy lịch làm việc)
 router.get('/', appointmentController.getMyAppointments);
 
+// Admin: Lấy TẤT CẢ lịch khám (có filter)
+router.get('/admin/all', authorizeRole('super_admin', 'admin'), appointmentController.getAllAppointmentsAdmin);
+
+// Lấy 1 ca khám cụ thể (để vào phòng Video)
+router.get('/:id', appointmentController.getAppointmentById);
+
 // Cập nhật trạng thái (Bác sĩ/Admin duyệt ca, hoàn thành ca, huỷ ca)
 router.put('/:id/status', authorizeRole('super_admin', 'admin', 'doctor'), appointmentController.updateAppointmentStatus);
 

@@ -147,8 +147,8 @@ const RoleDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen">
-        <div className="text-center py-12 text-gray-500">
+      <div className="space-y-5">
+        <div className="text-center py-12 text-text-dim">
           {t("common.loading")}...
         </div>
       </div>
@@ -157,14 +157,14 @@ const RoleDetailPage = () => {
 
   if (!role) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="space-y-5">
         <div className="text-center py-12 text-red-500">
           {t("admin.roleNotFound")}
         </div>
         <div className="text-center">
           <button
             onClick={() => navigate("/admin/roles")}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-[#E06666] text-white rounded-lg hover:bg-[#D55555]"
           >
             {t("admin.backToRoles")}
           </button>
@@ -174,19 +174,19 @@ const RoleDetailPage = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="space-y-5">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
           <button
             onClick={() => navigate("/admin/roles")}
-            className="mb-4 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+            className="mb-4 px-4 py-2 border border-border-main text-text-main rounded-lg hover:bg-bg-app transition-colors text-sm"
           >
             ← {t("admin.backToRoles")}
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">{role.name}</h1>
-          <p className="text-gray-600 mt-2">
-            {t("admin.roleCode")}: <code className="bg-gray-100 px-2 py-1 rounded">{role.code}</code>
+          <h1 className="text-3xl font-bold text-text-main">{role.name}</h1>
+          <p className="text-text-dim mt-2">
+            {t("admin.roleCode")}: <code className="bg-bg-app px-2 py-1 rounded">{role.code}</code>
           </p>
         </div>
         {role.is_system_role && (
@@ -198,12 +198,12 @@ const RoleDetailPage = () => {
 
       {/* Messages */}
       {success && (
-        <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">
+        <div className="mb-4 p-4 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-400">
           {success}
         </div>
       )}
       {error && (
-        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
+        <div className="mb-4 p-4 border border-red-200 bg-red-50 text-red-700 rounded-lg dark:border-red-800/40 dark:bg-red-900/20 dark:text-red-400">
           {error}
         </div>
       )}
@@ -211,35 +211,36 @@ const RoleDetailPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Role Info */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
+          <div className="bg-bg-surface rounded-2xl border border-border-main p-6 dark:bg-slate-800">
+
+            <h2 className="text-xl font-bold text-text-main mb-4">
               {t("admin.roleInformation")}
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-gray-600">{t("admin.name")}</label>
-                <p className="font-medium text-gray-900">{role.name}</p>
+                <label className="text-sm text-text-dim">{t("admin.name")}</label>
+                <p className="font-medium text-text-main">{role.name}</p>
               </div>
 
               <div>
-                <label className="text-sm text-gray-600">{t("admin.code")}</label>
-                <p className="font-monospace text-gray-900">{role.code}</p>
+                <label className="text-sm text-text-dim">{t("admin.code")}</label>
+                <p className="font-monospace text-text-main">{role.code}</p>
               </div>
 
               <div>
-                <label className="text-sm text-gray-600">{t("admin.description")}</label>
-                <p className="text-gray-900">{role.description || "-"}</p>
+                <label className="text-sm text-text-dim">{t("admin.description")}</label>
+                <p className="text-text-main">{role.description || "-"}</p>
               </div>
 
               <div>
-                <label className="text-sm text-gray-600">{t("admin.status")}</label>
+                <label className="text-sm text-text-dim">{t("admin.status")}</label>
                 <p className="mt-1">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${
                       role.status === "active"
                         ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-700"
+                        : "bg-bg-app text-text-dim"
                     }`}
                   >
                     {role.status === "active"
@@ -250,24 +251,24 @@ const RoleDetailPage = () => {
               </div>
 
               <div>
-                <label className="text-sm text-gray-600">{t("admin.userCount")}</label>
-                <p className="text-2xl font-bold text-blue-600">{role.user_count || 0}</p>
+                <label className="text-sm text-text-dim">{t("admin.userCount")}</label>
+                <p className="text-2xl font-bold text-[#E06666]">{role.user_count || 0}</p>
               </div>
             </div>
           </div>
 
           {/* Stats */}
-          <div className="bg-white rounded-lg shadow p-6 mt-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
+          <div className="bg-bg-surface rounded-2xl border border-border-main p-6 mt-6 dark:bg-slate-800">
+            <h3 className="text-lg font-bold text-text-main mb-4">
               {t("admin.permissionStats")}
             </h3>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">{t("admin.assigned")}</span>
+                <span className="text-text-dim">{t("admin.assigned")}</span>
                 <span className="text-2xl font-bold text-green-600">{assignedCount}</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-bg-app rounded-full h-2">
                 <div
                   className="bg-green-500 h-2 rounded-full transition-all"
                   style={{ width: `${totalCount > 0 ? (assignedCount / totalCount) * 100 : 0}%` }}
@@ -275,11 +276,11 @@ const RoleDetailPage = () => {
               </div>
 
               <div className="flex items-center justify-between mt-4">
-                <span className="text-gray-600">{t("admin.unassigned")}</span>
-                <span className="text-2xl font-bold text-gray-600">{unassignedCount}</span>
+                <span className="text-text-dim">{t("admin.unassigned")}</span>
+                <span className="text-2xl font-bold text-text-dim">{unassignedCount}</span>
               </div>
 
-              <div className="text-sm text-gray-500 mt-3">
+              <div className="text-sm text-text-dim mt-3">
                 {t("admin.totalPermissions")}: {totalCount}
               </div>
             </div>
@@ -288,16 +289,16 @@ const RoleDetailPage = () => {
 
         {/* Right Column - Permissions */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-bg-surface rounded-2xl border border-border-main p-6 dark:bg-slate-800">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">
+              <h2 className="text-xl font-bold text-text-main">
                 {t("admin.permissionsManagement")}
               </h2>
               {!role.is_system_role && (
                 <button
                   onClick={handleSavePermissions}
                   disabled={saving}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+                  className="px-6 py-2 bg-[#E06666] text-white rounded-lg hover:bg-[#D55555] transition-colors disabled:opacity-50"
                 >
                   {saving ? t("common.saving") : t("common.save")}
                 </button>
@@ -312,13 +313,13 @@ const RoleDetailPage = () => {
                   placeholder={t("admin.search")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 dark:bg-slate-700"
                 />
               </div>
               <select
                 value={selectedModule}
                 onChange={(e) => setSelectedModule(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 dark:bg-slate-700"
               >
                 <option value="">{t("admin.allModules")}</option>
                 {modules.map((module) => (
@@ -331,17 +332,17 @@ const RoleDetailPage = () => {
 
             {/* Permissions List */}
             {Object.keys(groupedPermissions).length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-text-dim">
                 {t("admin.noPermissionsFound")}
               </div>
             ) : (
               <div className="space-y-6">
                 {Object.entries(groupedPermissions).map(([module, perms]) => (
-                  <div key={module} className="border rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <div key={module} className="border border-border-main rounded-lg p-4">
+                    <h3 className="font-semibold text-text-main mb-3 flex items-center gap-2">
                       <span className="text-lg">📦</span>
                       {module}
-                      <span className="text-sm text-gray-500 ml-2">
+                      <span className="text-sm text-text-dim ml-2">
                         ({perms.filter((p) => selectedPermissions.includes(p.id)).length}/{perms.length})
                       </span>
                     </h3>
@@ -349,24 +350,24 @@ const RoleDetailPage = () => {
                       {perms.map((permission) => (
                         <label
                           key={permission.id}
-                          className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded cursor-pointer transition-colors"
+                          className="flex items-center gap-3 p-3 hover:bg-bg-app rounded cursor-pointer transition-colors dark:hover:bg-slate-700"
                         >
                           <input
                             type="checkbox"
                             checked={selectedPermissions.includes(permission.id)}
                             onChange={() => handleTogglePermission(permission.id)}
                             disabled={saving || role.is_system_role}
-                            className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                            className="w-4 h-4 text-[#E06666] rounded focus:ring-2 focus:ring-[#E06666]/30 disabled:opacity-50"
                           />
                           <div className="flex-1">
-                            <div className="text-sm font-medium text-gray-900">
+                              <div className="text-sm font-medium text-text-main">
                               {permission.name}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-text-dim">
                               {permission.code}
                             </div>
                             {permission.description && (
-                              <div className="text-xs text-gray-600 mt-1">
+                              <div className="text-xs text-text-dim mt-1">
                                 {permission.description}
                               </div>
                             )}
@@ -375,7 +376,7 @@ const RoleDetailPage = () => {
                             className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
                               permission.status === "active"
                                 ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-700"
+                                : "bg-bg-app text-text-dim"
                             }`}
                           >
                             {permission.status === "active"
@@ -391,8 +392,8 @@ const RoleDetailPage = () => {
             )}
 
             {role.is_system_role && (
-              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
+              <div className="mt-6 p-4 border border-amber-200 bg-amber-50 text-amber-800 rounded-lg dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-400">
+                <p className="text-sm">
                   ⚠️ {t("admin.systemRolePermissionsWarning")}
                 </p>
               </div>

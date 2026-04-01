@@ -128,7 +128,7 @@ const PatientDashboardPage = () => {
             <Link 
               key={idx} 
               to={item.link}
-              className="group bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 hover:shadow-md transition-all"
+              className="group bg-bg-surface dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-border-main dark:border-slate-700 hover:shadow-md transition-all"
             >
               <div className="flex justify-between items-start mb-4">
                 <div className={`p-3 rounded-2xl ${item.lightBg}`}>
@@ -148,7 +148,7 @@ const PatientDashboardPage = () => {
         </div>
 
         {/* Quick Discovery Area */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700">
+        <div className="bg-bg-surface dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-border-main dark:border-slate-700">
            <h3 className="text-lg font-bold text-text-main mb-6 flex items-center gap-2">
              <MapPin className="w-5 h-5 text-[#E06666]" />
              {t("patient.discovery")}
@@ -156,7 +156,7 @@ const PatientDashboardPage = () => {
            <div className="space-y-3">
              <Link 
                to="/patient/branches"
-               className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-slate-750 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors group"
+               className="flex items-center justify-between p-4 rounded-2xl bg-bg-app hover:bg-bg-app dark:hover:bg-slate-700 transition-colors group"
              >
                <div className="flex items-center gap-3">
                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
@@ -169,10 +169,10 @@ const PatientDashboardPage = () => {
 
              <Link 
                to="/patient/doctors"
-               className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-slate-750 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors group"
+               className="flex items-center justify-between p-4 rounded-2xl bg-bg-app hover:bg-bg-app dark:hover:bg-slate-700 transition-colors group"
              >
                <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600">
+                 <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
                    <Users className="w-5 h-5" />
                  </div>
                  <span className="font-semibold text-text-main">{t("patient.browseDoctors")}</span>
@@ -205,7 +205,7 @@ const PatientDashboardPage = () => {
          </div>
 
          {/* Profile Management Card */}
-         <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 border border-gray-100 dark:border-slate-700 flex flex-col justify-between">
+         <div className="bg-bg-surface dark:bg-slate-800 rounded-3xl p-8 border border-border-main dark:border-slate-700 flex flex-col justify-between">
             <div>
               <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mb-6 text-indigo-600">
                 <UserCircle2 className="w-7 h-7" />
@@ -215,7 +215,7 @@ const PatientDashboardPage = () => {
             </div>
             <Link 
               to="/patient/profile"
-              className="w-full py-3 bg-gray-100 dark:bg-slate-700 text-center rounded-xl font-bold text-text-main hover:bg-[#E06666] hover:text-white transition-all shadow-sm"
+              className="w-full py-3 bg-bg-app dark:bg-slate-700 text-center rounded-xl font-bold text-text-main hover:bg-[#E06666] hover:text-white transition-all shadow-sm"
             >
               {t("common.editProfile")}
             </Link>

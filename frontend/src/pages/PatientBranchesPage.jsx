@@ -253,7 +253,7 @@ const PatientBranchesPage = () => {
                 type="button"
                 onClick={handleUseMyLocation}
                 disabled={isLocating}
-                className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:border-[#E06666]/40 hover:text-[#B64949] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:border-[#E06666]/40 hover:text-[#B64949] disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
               >
                 <LocateFixed size={14} />
                 {isLocating ? "Dang xac dinh vi tri..." : "Gan vi tri cua toi"}

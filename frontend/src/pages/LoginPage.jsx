@@ -80,12 +80,13 @@ const LoginPage = () => {
       callback: handleGoogleCredential,
     });
 
+    const btnWidth = Math.min(340, Math.max(200, window.innerWidth - 100));
     window.google.accounts.id.renderButton(googleBtnRef.current, {
       theme: "outline",
       size: "large",
       text: "continue_with",
       shape: "pill",
-      width: 340,
+      width: btnWidth,
     });
   }, [handleGoogleCredential]);
 
@@ -175,7 +176,7 @@ const LoginPage = () => {
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-gray-200 bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-[#141B29] dark:shadow-[0_24px_60px_rgba(0,0,0,0.28)] sm:p-8">
+          <div className="rounded-[28px] border border-gray-200 bg-white p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-[#141B29] dark:shadow-[0_24px_60px_rgba(0,0,0,0.28)] sm:p-8">
             <div className="mb-8">
               <p className="inline-flex items-center rounded-full border border-[#E06666]/20 bg-[#FFF5F5] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#C14D4D] dark:border-[#E06666]/30 dark:bg-[#2B1F28] dark:text-[#F3A3A3]">
                 {isVi ? "Sign in" : "Sign in"}
@@ -246,7 +247,7 @@ const LoginPage = () => {
                 <div className="h-px flex-1 bg-gray-200 dark:bg-slate-700" />
               </div>
 
-              <div className="flex justify-center rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 dark:border-slate-700 dark:bg-[#0F141F]">
+              <div className="flex justify-center overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3 dark:border-slate-700 dark:bg-[#0F141F]">
                 <div ref={googleBtnRef} />
               </div>
             </form>

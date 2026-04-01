@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -24,6 +24,7 @@ import {
 const PatientLayout = ({ children }) => {
   const { theme, toggleTheme } = useTheme();
   const { t } = useTranslation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navClass = ({ isActive }) =>
     isActive
@@ -34,7 +35,10 @@ const PatientLayout = ({ children }) => {
     <div className="min-h-screen bg-bg-app dark:bg-slate-900 transition-colors duration-200">
       <div className="flex min-h-screen">
         {/* Sidebar */}
-        <aside className="w-64 bg-bg-surface dark:bg-slate-800 shadow-md flex flex-col border-r border-border-main">
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        )}
+        <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-bg-surface dark:bg-slate-800 shadow-md border-r border-border-main transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="border-b border-border-main px-6 py-5">
             <Link to="/patient" className="flex items-center gap-2">
               <Logo size="sm" />
@@ -45,7 +49,7 @@ const PatientLayout = ({ children }) => {
             </Link>
           </div>
 
-          <nav className="flex-1 space-y-1 p-4">
+          <nav className="flex-1 space-y-1 overflow-y-auto p-4" onClick={() => setSidebarOpen(false)}>
             <NavLink to="/patient" end className={navClass}>
               <Home className="w-5 h-5" />
               <span>{t("patient.dashboard")}</span>
@@ -113,9 +117,9 @@ const PatientLayout = ({ children }) => {
           {/* Topbar */}
           <header className="flex h-16 items-center justify-between bg-bg-surface dark:bg-slate-800 px-6 shadow-sm border-b border-border-main z-40">
             <div className="flex items-center gap-4">
-               <div className="lg:hidden">
-                 {/* Mobile menu toggle could go here */}
-               </div>
+               <button onClick={() => setSidebarOpen(v => !v)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 lg:hidden">
+                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+               </button>
                <h1 className="text-lg font-bold text-text-main flex items-center gap-2">
                  <Layout className="w-5 h-5 text-[#E06666]" />
                  {t("patient.myZone")}
@@ -149,7 +153,7 @@ const PatientLayout = ({ children }) => {
             <Breadcrumb />
 
           {/* Main content area */}
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex-1 p-3 sm:p-6">{children}</main>
         </div>
       </div>
     </div>

@@ -178,7 +178,7 @@ const HoloraMindPage = () => {
               <div className="w-8 h-8 rounded-lg bg-[#E06666] flex items-center justify-center text-white font-bold">H</div>
               <span className="font-semibold text-lg tracking-tight">HoloraMind</span>
             </div>
-            <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-gray-400 hover:text-[#E06666]">
+            <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-gray-400 dark:text-slate-500 hover:text-[#E06666]">
               <X size={20} />
             </button>
           </div>
@@ -320,7 +320,7 @@ const HoloraMindPage = () => {
                 ))}
                 {isSending && (
                   <div className="flex justify-start">
-                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-bl-none animate-pulse text-xs text-gray-500">
+                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-bl-none animate-pulse text-xs text-gray-500 dark:text-slate-400">
                        HoloraMind đang suy nghĩ...
                     </div>
                   </div>
@@ -353,7 +353,7 @@ const HoloraMindPage = () => {
                 className="w-full resize-none bg-transparent px-4 py-3 text-sm focus:outline-none custom-scrollbar max-h-40 min-h-[44px]"
               />
               <div className="flex items-center justify-between px-2 pt-2 border-t border-gray-50 dark:border-slate-800">
-                <div className="text-[10px] text-gray-400 font-medium px-2">HoloraMind v1.0 • AI-Native Assistant</div>
+                <div className="text-[10px] text-gray-400 dark:text-slate-500 font-medium px-2">HoloraMind v1.0 • AI-Native Assistant</div>
                 <button 
                   type="submit"
                   disabled={!input.trim() || isSending}

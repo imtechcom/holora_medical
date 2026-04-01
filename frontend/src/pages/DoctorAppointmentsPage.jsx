@@ -42,6 +42,7 @@ const DoctorAppointmentsPage = () => {
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [confirmState, setConfirmState] = useState(null);
+  const [cancelModal, setCancelModal] = useState({ open: false, id: null, reason: "" });
 
   const statusLabels = {
     scheduled: t("doctor.appointmentsPage.status.scheduled"),
@@ -84,14 +85,25 @@ const DoctorAppointmentsPage = () => {
     fetchAppointments();
   }, [fetchAppointments]);
 
-  const handleUpdateStatus = async (id, newStatus) => {
-    let cancelReason = "";
+  const handleUpdateStatus = (id, newStatus) => {
     if (newStatus === "cancelled") {
-      cancelReason = window.prompt(t("doctor.appointmentsPage.cancelPrompt"));
-      if (cancelReason === null) return;
+      setCancelModal({ open: true, id, reason: "" });
+      return;
     }
     const nextLabel = statusLabels[newStatus] || newStatus.toUpperCase();
-    setConfirmState({ id, newStatus, cancelReason, nextLabel });
+    setConfirmState({ id, newStatus, cancelReason: "", nextLabel });
+  };
+
+  const handleConfirmCancel = async () => {
+    try {
+      await appointmentService.updateStatus(cancelModal.id, "cancelled", cancelModal.reason);
+      fetchAppointments();
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || t("doctor.appointmentsPage.updateError"));
+      console.error(err);
+    } finally {
+      setCancelModal({ open: false, id: null, reason: "" });
+    }
   };
 
   const confirmUpdateStatus = async () => {
@@ -100,7 +112,7 @@ const DoctorAppointmentsPage = () => {
       await appointmentService.updateStatus(confirmState.id, confirmState.newStatus, confirmState.cancelReason);
       fetchAppointments();
     } catch (err) {
-      window.alert(t("doctor.appointmentsPage.updateError"));
+      setError(err.response?.data?.message || err.message || t("doctor.appointmentsPage.updateError"));
       console.error(err);
     } finally {
       setConfirmState(null);
@@ -330,6 +342,38 @@ const DoctorAppointmentsPage = () => {
           </table>
         </div>
       </section>
+
+      {/* Cancel reason modal */}
+      {cancelModal.open && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+          <div className="w-full max-w-md overflow-hidden rounded-t-3xl border border-border-main bg-bg-surface p-6 shadow-2xl sm:rounded-3xl dark:bg-slate-900">
+            <h3 className="text-base font-bold text-text-main">{t("doctor.appointmentsPage.cancelPrompt") || "Lý do huỷ lịch hẹn"}</h3>
+            <p className="mt-1 text-sm text-text-dim">Nhập lý do để bệnh nhân được thông báo.</p>
+            <textarea
+              autoFocus
+              rows={3}
+              value={cancelModal.reason}
+              onChange={(e) => setCancelModal((prev) => ({ ...prev, reason: e.target.value }))}
+              placeholder="VD: Bác sĩ có lịch đột xuất, vui lòng đặt lại..."
+              className="mt-4 w-full resize-none rounded-xl border border-border-main bg-bg-app px-4 py-3 text-sm text-text-main outline-none focus:ring-2 focus:ring-red-400 dark:bg-slate-800"
+            />
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={() => setCancelModal({ open: false, id: null, reason: "" })}
+                className="flex-1 rounded-xl border border-border-main px-4 py-2.5 text-sm font-semibold text-text-main transition hover:bg-bg-app"
+              >
+                {t("common.cancel") || "Đóng"}
+              </button>
+              <button
+                onClick={handleConfirmCancel}
+                className="flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-600"
+              >
+                {t("doctor.appointmentsPage.cancelAction") || "Xác nhận huỷ"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={Boolean(confirmState)}

@@ -47,9 +47,11 @@ const DoctorConsultationHistoryPage = () => {
   const [selectedId, setSelectedId] = useState(null);
   const [detailData, setDetailData] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState("");
 
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [replyError, setReplyError] = useState("");
 
   useEffect(() => {
     fetchHistory();
@@ -73,14 +75,15 @@ const DoctorConsultationHistoryPage = () => {
   const handleOpenDetail = async (id) => {
     setSelectedId(id);
     setDetailData(null);
+    setDetailError("");
+    setReplyError("");
     setLoadingDetail(true);
     try {
       const res = await consultationService.getConsultationDetails(id);
       setDetailData(res.data);
     } catch (err) {
       console.error("Failed to fetch consultation detail:", err);
-      alert(t("doctor.consultationsPage.errors.loadDetail"));
-      setSelectedId(null);
+      setDetailError(t("doctor.consultationsPage.errors.loadDetail"));
     } finally {
       setLoadingDetail(false);
     }
@@ -98,6 +101,7 @@ const DoctorConsultationHistoryPage = () => {
 
     try {
       setSubmitting(true);
+      setReplyError("");
       await consultationService.addResponse(selectedId, {
         content: replyText,
         complete: false,
@@ -108,7 +112,7 @@ const DoctorConsultationHistoryPage = () => {
       setDetailData(res.data);
     } catch (err) {
       console.error("Failed to send consultation response:", err);
-      alert(err.response?.data?.message || err.message || t("doctor.consultationsPage.errors.sendReply"));
+      setReplyError(err.response?.data?.message || err.message || t("doctor.consultationsPage.errors.sendReply"));
     } finally {
       setSubmitting(false);
     }
@@ -274,6 +278,17 @@ const DoctorConsultationHistoryPage = () => {
                   {t("doctor.consultationsPage.loadingDetail")}
                 </span>
               </div>
+            ) : detailError ? (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-8">
+                <AlertCircle className="h-8 w-8 text-red-500" />
+                <p className="text-sm text-red-600 dark:text-red-400">{detailError}</p>
+                <button
+                  onClick={handleCloseDetail}
+                  className="rounded-xl border border-border-main px-4 py-2 text-sm font-semibold text-text-main hover:bg-bg-app"
+                >
+                  {t("common.close")}
+                </button>
+              </div>
             ) : detailData ? (
               <>
                 <div className="w-full overflow-y-auto border-r border-border-main bg-[linear-gradient(180deg,#f0f7ff_0%,#fafbfc_100%)] p-6 dark:border-slate-700 dark:bg-slate-900/80 md:w-1/3">
@@ -354,6 +369,12 @@ const DoctorConsultationHistoryPage = () => {
 
                   {detailData.status !== "completed" ? (
                     <form onSubmit={handleSubmitResponse} className="border-t border-border-main bg-bg-surface p-4 dark:bg-slate-900">
+                      {replyError && (
+                        <div className="mb-2 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-800/40 dark:bg-red-900/15 dark:text-red-400">
+                          <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                          {replyError}
+                        </div>
+                      )}
                       <textarea
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}

@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const { generateMedicalCode } = require("../utils/medical-code.util");
 
 // Get all branches
 const getAllBranches = (req, res) => {
@@ -53,35 +54,35 @@ const getBranchById = (req, res) => {
   });
 };
 
-// Create branch
-const createBranch = (req, res) => {
-  const { name, code, phone, email, address, city, description, status } = req.body;
-  const ownerUserId = req.user?.id || null;
-
-  if (!name || !code || !address) {
-    return res.status(400).json({
-      message: "Name, code and address are required",
-    });
-  }
-
-  if (!/^[A-Z0-9_]+$/.test(code)) {
-    return res.status(400).json({
-      message: "Code must contain only uppercase letters, numbers, and underscores",
-    });
-  }
-
-  const checkSql = "SELECT id FROM branch WHERE code = ? AND deleted_at IS NULL";
-  db.query(checkSql, [code], (checkErr, checkResults) => {
-    if (checkErr) {
-      console.error("Check branch code error:", checkErr);
-      return res.status(500).json({
-        message: "Database error",
-        error: checkErr.message,
-      });
+const getNextBranchCode = (req, res) => {
+  generateMedicalCode("branch", (err, code) => {
+    if (err) {
+      console.error("Generate next branch code error:", err);
+      return res.status(500).json({ message: "Database error", error: err.message });
     }
 
-    if (checkResults.length > 0) {
-      return res.status(409).json({ message: "Branch code already exists" });
+    return res.json({ message: "Next branch code generated successfully", data: { code } });
+  });
+};
+
+// Create branch
+const createBranch = (req, res) => {
+  const { name, phone, email, address, city, description, status } = req.body;
+  const ownerUserId = req.user?.id || null;
+
+  if (!name || !address) {
+    return res.status(400).json({
+      message: "Name and address are required",
+    });
+  }
+
+  generateMedicalCode("branch", (codeErr, code) => {
+    if (codeErr) {
+      console.error("Generate branch code error:", codeErr);
+      return res.status(500).json({
+        message: "Database error",
+        error: codeErr.message,
+      });
     }
 
     const insertSql = `
@@ -105,6 +106,9 @@ const createBranch = (req, res) => {
 
     db.query(insertSql, values, (insertErr, result) => {
       if (insertErr) {
+        if (insertErr.code === "ER_DUP_ENTRY") {
+          return res.status(409).json({ message: "Branch code already exists" });
+        }
         console.error("Create branch error:", insertErr);
         return res.status(500).json({
           message: "Database error",
@@ -258,6 +262,7 @@ const getMyBranches = (req, res) => {
 module.exports = {
   getAllBranches,
   getBranchById,
+  getNextBranchCode,
   getMyBranches,
   createBranch,
   updateBranch,

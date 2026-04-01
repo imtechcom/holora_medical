@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getAllBranches,
   getBranchById,
+  getNextBranchCode,
   getMyBranches,
   createBranch,
   updateBranch,
@@ -17,6 +18,7 @@ const {
 } = require("../middleware/provider.middleware");
 
 router.get("/", getAllBranches);
+router.get("/next-code", getNextBranchCode);
 router.get("/my", authenticateToken, requireProviderRole, getMyBranches);
 router.get("/:id", getBranchById);
 router.post(

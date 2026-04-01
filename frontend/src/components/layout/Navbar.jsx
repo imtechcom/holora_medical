@@ -21,7 +21,9 @@ const Navbar = () => {
     navigate("/login");
   };
 
-  const isAdmin = role === "super_admin" || role === "admin" || role === "doctor";
+  const isAdmin = role === "super_admin" || role === "admin";
+  const isDoctor = role === "doctor";
+  const isPatient = role === "patient";
   const isClinicOwner = role === "clinic_owner";
 
   useEffect(() => {
@@ -50,7 +52,7 @@ const Navbar = () => {
         <Link to="/" className="flex items-center gap-2.5 transition hover:opacity-85">
           <Logo size="md" />
           <span className="text-base font-semibold tracking-tight text-[#E06666] sm:text-lg">
-            Holora Medical
+            HoloraMed
           </span>
         </Link>
 
@@ -71,12 +73,6 @@ const Navbar = () => {
             HoloraMind
           </Link>
 
-          {isAuthenticated && role === "patient" && (
-            <Link to="/appointments" className="text-sm font-medium text-gray-700 transition hover:text-[#E06666] dark:text-slate-200">
-              {t("navbar.appointments")}
-            </Link>
-          )}
-
           {isAdmin && (
             <Link
               to="/admin"
@@ -86,12 +82,30 @@ const Navbar = () => {
             </Link>
           )}
 
+          {isDoctor && (
+            <Link
+              to="/doctor"
+              className="rounded-lg bg-blue-100/40 px-3 py-1.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-100/60 dark:text-blue-300"
+            >
+              {t("navbar.doctorZone")}
+            </Link>
+          )}
+
+          {isPatient && (
+            <Link
+              to="/patient"
+              className="rounded-lg bg-green-100/40 px-3 py-1.5 text-sm font-semibold text-green-600 transition hover:bg-green-100/60 dark:text-green-300"
+            >
+              {t("navbar.patientZone")}
+            </Link>
+          )}
+
           {isClinicOwner && (
             <Link
               to="/clinic-owner"
-              className="rounded-lg bg-[#E06666]/10 px-3 py-1.5 text-sm font-semibold text-[#E06666] transition hover:bg-[#E06666]/20"
+              className="rounded-lg bg-purple-100/40 px-3 py-1.5 text-sm font-semibold text-purple-600 transition hover:bg-purple-100/60 dark:text-purple-300"
             >
-              {t("navbar.providerPortal")}
+              {t("navbar.clinicZone")}
             </Link>
           )}
         </div>
@@ -159,18 +173,84 @@ const Navbar = () => {
                     {role === "patient" && (
                       <>
                         <Link
-                          to="/branches"
+                          to="/patient/branches"
                           onClick={() => setMenuOpen(false)}
                           className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-[#E06666]/40 hover:text-[#E06666] dark:border-slate-700 dark:text-slate-200"
                         >
-                          Tim chi nhanh
+                          {t("patient.browseBranches")}
                         </Link>
                         <Link
-                          to="/profile"
+                          to="/patient/profile"
                           onClick={() => setMenuOpen(false)}
                           className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-[#E06666]/40 hover:text-[#E06666] dark:border-slate-700 dark:text-slate-200"
                         >
                           {t("patient.profile")}
+                        </Link>
+                      </>
+                    )}
+
+                    {role === "doctor" && (
+                      <>
+                        <Link
+                          to="/doctor/appointments"
+                          onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400/40 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
+                        >
+                          📅 {t("navbar.appointments")}
+                        </Link>
+                        <Link
+                          to="/doctor/consultations"
+                          onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400/40 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
+                        >
+                          💬 {t("navbar.consultations")}
+                        </Link>
+                        <Link
+                          to="/doctor/schedule"
+                          onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400/40 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
+                        >
+                          🗓️ {t("navbar.schedule")}
+                        </Link>
+                        <Link
+                          to="/doctor/patients"
+                          onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400/40 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
+                        >
+                          👥 {t("navbar.patients")}
+                        </Link>
+                        <Link
+                          to="/doctor/profile"
+                          onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400/40 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
+                        >
+                          ⚙️ {t("navbar.profile")}
+                        </Link>
+                      </>
+                    )}
+
+                    {role === "clinic_owner" && (
+                      <>
+                        <Link
+                          to="/clinic-owner"
+                          onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-purple-400/40 hover:text-purple-600 dark:border-slate-700 dark:text-slate-200"
+                        >
+                          📊 {t("navbar.dashboard")}
+                        </Link>
+                        <Link
+                          to="/clinic-owner/doctors"
+                          onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-purple-400/40 hover:text-purple-600 dark:border-slate-700 dark:text-slate-200"
+                        >
+                          👨‍⚕️ {t("navbar.doctors")}
+                        </Link>
+                        <Link
+                          to="/clinic-owner/branches"
+                          onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-purple-400/40 hover:text-purple-600 dark:border-slate-700 dark:text-slate-200"
+                        >
+                          🏢 {t("navbar.branches")}
                         </Link>
                       </>
                     )}

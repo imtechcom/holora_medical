@@ -1,6 +1,7 @@
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
+const { generateMedicalCode } = require("../utils/medical-code.util");
 
 const queryAsync = (sql, params = []) =>
   new Promise((resolve, reject) => {
@@ -14,6 +15,10 @@ const queryAsync = (sql, params = []) =>
   });
 
 const isJoinTableMissing = (err) => err?.code === "ER_NO_SUCH_TABLE";
+const VALID_DOCTOR_STATUSES = new Set(["active", "inactive", "on_leave", "deleted"]);
+
+const normalizeDoctorStatus = (status) =>
+  VALID_DOCTOR_STATUSES.has(status) ? status : "active";
 
 const normalizeBranchIds = (branchIds) => {
   if (!Array.isArray(branchIds)) return [];
@@ -347,6 +352,17 @@ const createDoctorInvite = async ({ userId, doctorId, email, createdByUserId, re
   return `${normalizedBase}?token=${token}`;
 };
 
+const getNextDoctorCode = (req, res) => {
+  generateMedicalCode("doctor", (err, code) => {
+    if (err) {
+      console.error("Generate next doctor code error:", err);
+      return res.status(500).json({ message: "Database error", error: err.message });
+    }
+
+    return res.json({ message: "Next doctor code generated successfully", data: { code } });
+  });
+};
+
 const createDoctorRecord = (
   res,
   created_by_user_id,
@@ -365,6 +381,7 @@ const createDoctorRecord = (
   branch_ids,
   onCreated = null
 ) => {
+  const normalizedStatus = normalizeDoctorStatus(status);
   const checkSql = "SELECT id FROM doctor WHERE license_number = ?";
   db.query(checkSql, [license_number], (err, results) => {
     if (err) {
@@ -381,8 +398,7 @@ const createDoctorRecord = (
       });
     }
 
-    const generateCodeSql = "SELECT MAX(CAST(SUBSTRING(doctor_code, 7) AS UNSIGNED)) as maxId FROM doctor WHERE doctor_code LIKE 'DOCTOR%'";
-    db.query(generateCodeSql, (codeErr, codeResults) => {
+    generateMedicalCode("doctor", (codeErr, doctor_code) => {
       if (codeErr) {
         console.error("Generate code error:", codeErr);
         return res.status(500).json({
@@ -390,9 +406,6 @@ const createDoctorRecord = (
           error: codeErr.message,
         });
       }
-
-      const nextId = (codeResults[0]?.maxId || 0) + 1;
-      const doctor_code = `DOCTOR${String(nextId).padStart(6, "0")}`;
 
       const insertSql = `
         INSERT INTO doctor (user_id, created_by_user_id, specialty_id, doctor_code, full_name, phone, email, license_number, qualification, experience_years, consultation_fee, bio, avatar_url, status, created_at, updated_at)
@@ -413,11 +426,14 @@ const createDoctorRecord = (
         consultation_fee || 0,
         bio || null,
         avatar_url || null,
-        status || "active",
+        normalizedStatus,
       ];
 
       db.query(insertSql, insertValues, (insertErr, result) => {
         if (insertErr) {
+          if (insertErr.code === "ER_DUP_ENTRY") {
+            return res.status(409).json({ message: "Doctor code already exists" });
+          }
           console.error("Create doctor SQL error:", insertErr.message);
           return res.status(500).json({
             message: "Database error",
@@ -446,7 +462,7 @@ const createDoctorRecord = (
             consultation_fee: consultation_fee || 0,
             bio,
             avatar_url,
-            status: status || "active",
+            status: normalizedStatus,
             created_at: new Date(),
             updated_at: new Date(),
           };
@@ -505,6 +521,125 @@ const getAllDoctors = (req, res) => {
       });
     });
   });
+};
+
+const searchDoctors = async (req, res) => {
+  const {
+    q = "",
+    specialty_id,
+    branch_id,
+    status,
+    page = "1",
+    limit = "20",
+  } = req.query;
+
+  const parsedPage = Math.max(1, Number.parseInt(page, 10) || 1);
+  const parsedLimit = Math.min(50, Math.max(1, Number.parseInt(limit, 10) || 20));
+  const offset = (parsedPage - 1) * parsedLimit;
+
+  const where = ["d.status <> 'deleted'"];
+  const params = [];
+
+  if (status) {
+    where.push("d.status = ?");
+    params.push(status);
+  }
+
+  const keyword = `${q || ""}`.trim();
+  if (keyword) {
+    const like = `%${keyword}%`;
+    where.push("(d.full_name LIKE ? OR d.doctor_code LIKE ? OR s.name LIKE ?)");
+    params.push(like, like, like);
+  }
+
+  const specialtyId = Number.parseInt(specialty_id, 10);
+  if (Number.isInteger(specialtyId) && specialtyId > 0) {
+    where.push("d.specialty_id = ?");
+    params.push(specialtyId);
+  }
+
+  const branchId = Number.parseInt(branch_id, 10);
+  if (Number.isInteger(branchId) && branchId > 0) {
+    where.push(`EXISTS (
+      SELECT 1
+      FROM doctor_branch dbf
+      INNER JOIN branch bf ON bf.id = dbf.branch_id
+      WHERE dbf.doctor_id = d.id
+        AND dbf.deleted_at IS NULL
+        AND bf.deleted_at IS NULL
+        AND dbf.branch_id = ?
+    )`);
+    params.push(branchId);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  try {
+    const countRows = await queryAsync(
+      `
+        SELECT COUNT(*) AS total
+        FROM doctor d
+        LEFT JOIN specialty s ON d.specialty_id = s.id
+        ${whereSql}
+      `,
+      params
+    );
+
+    const total = Number(countRows?.[0]?.total || 0);
+    if (total === 0) {
+      return res.json({
+        message: "No doctors found",
+        data: [],
+        meta: {
+          page: parsedPage,
+          limit: parsedLimit,
+          total,
+          totalPages: 0,
+          hasMore: false,
+        },
+      });
+    }
+
+    const rows = await queryAsync(
+      `
+        SELECT
+          d.*,
+          u.username,
+          u.email as user_email,
+          s.name as specialty_name
+        FROM doctor d
+        LEFT JOIN users u ON d.user_id = u.id
+        LEFT JOIN specialty s ON d.specialty_id = s.id
+        ${whereSql}
+        ORDER BY d.created_at DESC
+        LIMIT ? OFFSET ?
+      `,
+      [...params, parsedLimit, offset]
+    );
+
+    const doctorsWithBranches = await new Promise((resolve, reject) => {
+      attachBranchesForDoctors(rows, (branchErr, enriched) => {
+        if (branchErr) reject(branchErr);
+        else resolve(enriched);
+      });
+    });
+
+    const totalPages = Math.ceil(total / parsedLimit);
+    return res.json({
+      message: "Doctors fetched successfully",
+      data: doctorsWithBranches,
+      meta: {
+        page: parsedPage,
+        limit: parsedLimit,
+        total,
+        totalPages,
+        hasMore: parsedPage < totalPages,
+      },
+    });
+  } catch (err) {
+    console.error("Search doctors error:", err);
+    return res.status(500).json({ message: "Database error", error: err.message });
+  }
 };
 
 // Get doctor by ID
@@ -567,6 +702,7 @@ const createDoctor = (req, res) => {
   } = req.body;
 
   const accountMode = account_mode === "invite" ? "invite" : "manual";
+  const normalizedStatus = normalizeDoctorStatus(status);
 
   if (!full_name || !phone || !license_number || !specialty_id) {
     return res.status(400).json({
@@ -709,6 +845,12 @@ const createDoctor = (req, res) => {
   }
 
   if (!user_id && username && password) {
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required when creating a new doctor login",
+      });
+    }
+
     if (!username || !password || password.length < 6) {
       return res.status(400).json({
         message: "Username and password (min 6 chars) are required for new doctor accounts",
@@ -816,7 +958,7 @@ const createDoctor = (req, res) => {
                 consultation_fee,
                 bio,
                 avatar_url,
-                status,
+                normalizedStatus,
                 newUserId,
                 branch_ids
               );
@@ -845,7 +987,7 @@ const createDoctor = (req, res) => {
       consultation_fee,
       bio,
       avatar_url,
-      status,
+      normalizedStatus,
       user_id || null,
       branch_ids
     );
@@ -880,6 +1022,7 @@ const updateDoctor = (req, res) => {
     status,
     branch_ids,
   } = req.body;
+  const normalizedStatus = normalizeDoctorStatus(status);
 
   if (!full_name || !phone || !license_number) {
     return res.status(400).json({
@@ -931,7 +1074,7 @@ const updateDoctor = (req, res) => {
         consultation_fee || 0,
         bio || null,
         avatar_url || null,
-        status || "active",
+        normalizedStatus,
         id,
       ],
       (updateErr, result) => {
@@ -1060,7 +1203,6 @@ const getDoctorsByOwnerBranches = async (req, res) => {
        INNER JOIN doctor_branch db ON db.doctor_id = d.id AND db.deleted_at IS NULL
        WHERE db.branch_id IN (?)
          AND d.status <> 'deleted'
-         AND d.deleted_at IS NULL
        ORDER BY d.full_name ASC`,
       [branchIds]
     );
@@ -1081,8 +1223,8 @@ const getDoctorsByOwnerBranches = async (req, res) => {
       const branches = branchMap.get(d.id) || [];
       return {
         ...d,
-        branch_ids: branches.map((b) => b.branch_id),
-        branch_names: branches.map((b) => b.branch_name).join(", "),
+        branch_ids: branches.map((b) => b.id),
+        branch_names: branches.map((b) => b.name).join(", "),
         branches,
       };
     });
@@ -1094,10 +1236,257 @@ const getDoctorsByOwnerBranches = async (req, res) => {
   }
 };
 
+// Get current authenticated doctor's profile
+const getMyProfile = (req, res) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  const sql = `
+    SELECT
+      d.*,
+      u.username,
+      u.email as user_email,
+      s.name as specialty_name,
+      s.id as specialty_id
+    FROM doctor d
+    LEFT JOIN users u ON d.user_id = u.id
+    LEFT JOIN specialty s ON d.specialty_id = s.id
+    WHERE d.user_id = ? AND d.status <> 'deleted'
+    LIMIT 1
+  `;
+
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.error("Get my doctor profile error:", err);
+      return res.status(500).json({
+        message: "Database error",
+        error: err.message,
+      });
+    }
+
+    if (!results.length) {
+      return res.status(404).json({
+        message: "Doctor profile not found",
+      });
+    }
+
+    attachBranchesForDoctors([results[0]], (branchErr, withBranches) => {
+      if (branchErr) {
+        return res.status(500).json({
+          message: "Database error",
+          error: branchErr.message,
+        });
+      }
+
+      return res.json({
+        message: "Doctor profile fetched successfully",
+        data: withBranches[0],
+      });
+    });
+  });
+};
+
+// Update current authenticated doctor's profile
+const updateMyProfile = (req, res) => {
+  const userId = req.user?.id;
+  const {
+    full_name,
+    phone,
+    email,
+    license_number,
+    qualification,
+    experience_years,
+    consultation_fee,
+    bio,
+    avatar_url,
+  } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  if (!full_name || !phone) {
+    return res.status(400).json({
+      message: "Full name and phone are required",
+    });
+  }
+
+  const getDoctorSql = `
+    SELECT id
+    FROM doctor
+    WHERE user_id = ? AND status <> 'deleted'
+    LIMIT 1
+  `;
+
+  db.query(getDoctorSql, [userId], (getErr, getRows) => {
+    if (getErr) {
+      console.error("Get doctor profile for update error:", getErr);
+      return res.status(500).json({
+        message: "Database error",
+        error: getErr.message,
+      });
+    }
+
+    if (!getRows.length) {
+      return res.status(404).json({
+        message: "Doctor profile not found",
+      });
+    }
+
+    const doctorId = getRows[0].id;
+    const safeExperienceYears = Number.isFinite(Number(experience_years))
+      ? Math.max(0, Number(experience_years))
+      : 0;
+    const safeConsultationFee = Number.isFinite(Number(consultation_fee))
+      ? Math.max(0, Number(consultation_fee))
+      : 0;
+
+    const updateSql = `
+      UPDATE doctor
+      SET
+        full_name = ?,
+        phone = ?,
+        email = ?,
+        license_number = ?,
+        qualification = ?,
+        experience_years = ?,
+        consultation_fee = ?,
+        bio = ?,
+        avatar_url = ?,
+        updated_at = NOW()
+      WHERE id = ?
+    `;
+
+    const values = [
+      full_name,
+      phone,
+      email || null,
+      license_number || null,
+      qualification || null,
+      safeExperienceYears,
+      safeConsultationFee,
+      bio || null,
+      avatar_url || null,
+      doctorId,
+    ];
+
+    db.query(updateSql, values, (updateErr, updateResult) => {
+      if (updateErr) {
+        console.error("Update my doctor profile error:", updateErr);
+        return res.status(500).json({
+          message: "Database error",
+          error: updateErr.message,
+        });
+      }
+
+      if (updateResult.affectedRows === 0) {
+        return res.status(500).json({
+          message: "Failed to update doctor profile",
+        });
+      }
+
+      return res.json({
+        message: "Doctor profile updated successfully",
+      });
+    });
+  });
+};
+
+// Get all unique patients for the current authenticated doctor
+const getMyPatients = async (req, res) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  try {
+    // Find doctor_id from user_id
+    const doctorRows = await queryAsync(
+      "SELECT id FROM doctor WHERE user_id = ? AND status <> 'deleted' LIMIT 1",
+      [userId]
+    );
+
+    if (!doctorRows.length) {
+      return res.json({ message: "No patients found", data: [] });
+    }
+
+    const doctorId = doctorRows[0].id;
+
+    // Get unique patients from both appointments and consultations
+    const sql = `
+      SELECT DISTINCT
+        p.id,
+        p.patient_code,
+        p.full_name,
+        p.phone,
+        p.email,
+        p.gender,
+        p.date_of_birth,
+        p.blood_group,
+        p.status,
+        p.created_at,
+        (
+          SELECT COUNT(*)
+          FROM appointment a
+          WHERE a.patient_id = p.id AND a.doctor_id = ? AND a.status IN ('completed', 'confirmed', 'in_progress')
+        ) as appointment_count,
+        (
+          SELECT COUNT(*)
+          FROM consultation c
+          WHERE c.patient_id = p.id AND c.doctor_id = ? AND c.status IN ('completed', 'in_progress', 'pending')
+        ) as consultation_count,
+        (
+          SELECT MAX(a.appointment_date)
+          FROM appointment a
+          WHERE a.patient_id = p.id AND a.doctor_id = ?
+        ) as last_appointment_date
+      FROM patient p
+      WHERE (
+        p.id IN (
+          SELECT DISTINCT patient_id
+          FROM appointment
+          WHERE doctor_id = ? AND status IN ('completed', 'confirmed', 'in_progress', 'scheduled')
+        )
+        OR
+        p.id IN (
+          SELECT DISTINCT patient_id
+          FROM consultation
+          WHERE doctor_id = ? AND status IN ('pending', 'in_progress', 'completed')
+        )
+      )
+      AND p.deleted_at IS NULL
+      ORDER BY p.full_name ASC
+    `;
+
+    const params = [doctorId, doctorId, doctorId, doctorId, doctorId];
+    const patients = await queryAsync(sql, params);
+
+    return res.json({
+      message: "Patients fetched successfully",
+      data: patients,
+    });
+  } catch (err) {
+    console.error("getMyPatients error:", err);
+    return res.status(500).json({
+      message: "Database error",
+      error: err.message,
+    });
+  }
+};
+
 module.exports = {
   getAllDoctors,
+  searchDoctors,
   getDoctorById,
   getDoctorsByOwnerBranches,
+  getMyProfile,
+  updateMyProfile,
+  getMyPatients,
+  getNextDoctorCode,
   createDoctor,
   updateDoctor,
   deleteDoctor,

@@ -1,10 +1,147 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "../context/AuthContext";
+import ConfirmModal from "../components/ConfirmModal";
 
 const HomePage = () => {
+  const navigate = useNavigate();
   const { i18n } = useTranslation();
+  const { user, role } = useAuth();
   const isVi = i18n.language === "vi";
+  const [rolePrompt, setRolePrompt] = useState(null);
+
+  const getZonePath = () => {
+    switch (role) {
+      case "patient":
+        return "/patient";
+      case "doctor":
+        return "/doctor";
+      case "clinic_owner":
+        return "/clinic-owner";
+      case "admin":
+      case "super_admin":
+        return "/admin";
+      case "receptionist":
+        return "/receptionist";
+      case "accountant":
+        return "/accountant";
+      default:
+        return "/";
+    }
+  };
+
+  const patientEntryPath = user ? getZonePath() : "/register";
+  const providerEntryPath = user ? getZonePath() : "/register/provider";
+
+  const patientEntryLabel = user
+    ? isVi
+      ? "Đi tới khu vực của bạn"
+      : "Go to your zone"
+    : isVi
+    ? "Đi tới đăng ký Patient"
+    : "Go to patient registration";
+
+  const providerEntryLabel = user
+    ? isVi
+      ? "Đi tới khu vực của bạn"
+      : "Go to your zone"
+    : isVi
+    ? "Đi tới đăng ký Provider"
+    : "Go to provider registration";
+
+  const getRoleLabel = () => {
+    switch (role) {
+      case "patient":
+        return isVi ? "patient" : "patient";
+      case "doctor":
+        return isVi ? "doctor" : "doctor";
+      case "clinic_owner":
+        return isVi ? "clinic owner" : "clinic owner";
+      case "admin":
+      case "super_admin":
+        return isVi ? "admin" : "admin";
+      case "receptionist":
+        return isVi ? "receptionist" : "receptionist";
+      case "accountant":
+        return isVi ? "accountant" : "accountant";
+      default:
+        return isVi ? "user" : "user";
+    }
+  };
+
+  const getZoneLabel = () => {
+    switch (role) {
+      case "patient":
+        return isVi ? "Patient Zone" : "Patient Zone";
+      case "doctor":
+        return isVi ? "Doctor Zone" : "Doctor Zone";
+      case "clinic_owner":
+        return isVi ? "Provider Zone" : "Provider Zone";
+      case "admin":
+      case "super_admin":
+        return isVi ? "Admin Panel" : "Admin Panel";
+      case "receptionist":
+        return isVi ? "Receptionist Zone" : "Receptionist Zone";
+      case "accountant":
+        return isVi ? "Accountant Zone" : "Accountant Zone";
+      default:
+        return isVi ? "khu vực của bạn" : "your zone";
+    }
+  };
+
+  const openWrongCardPrompt = (entryType) => {
+    setRolePrompt({
+      entryType,
+      zonePath: getZonePath(),
+      zoneLabel: getZoneLabel(),
+      roleLabel: getRoleLabel(),
+    });
+  };
+
+  const handlePatientEntry = (event) => {
+    if (!user) return;
+
+    if (role === "patient") return;
+
+    event.preventDefault();
+    openWrongCardPrompt("patient");
+  };
+
+  const handleProviderEntry = (event) => {
+    if (!user) return;
+
+    if (role === "doctor" || role === "clinic_owner") return;
+
+    event.preventDefault();
+    openWrongCardPrompt("provider");
+  };
+
+  const handleConfirmZoneRedirect = () => {
+    if (!rolePrompt?.zonePath) return;
+    navigate(rolePrompt.zonePath);
+    setRolePrompt(null);
+  };
+
+  const promptTitle = isVi
+    ? "Tài khoản hiện tại không phù hợp với lựa chọn này"
+    : "This selection does not match your current account";
+
+  const promptDescription = rolePrompt
+    ? isVi
+      ? `Bạn đang đăng nhập bằng tài khoản ${rolePrompt.roleLabel}. Nếu tiếp tục, hệ thống sẽ đưa bạn về ${rolePrompt.zoneLabel} để làm việc đúng theo quyền hiện tại.`
+      : `You are currently signed in with a ${rolePrompt.roleLabel} account. If you continue, the system will take you to ${rolePrompt.zoneLabel}, which matches your current permissions.`
+    : "";
+
+  const promptSelectionLabel = rolePrompt
+    ? rolePrompt.entryType === "provider"
+      ? isVi
+        ? "Bạn vừa chọn khu vực Provider"
+        : "You selected the Provider area"
+      : isVi
+      ? "Bạn vừa chọn khu vực Patient"
+      : "You selected the Patient area"
+    : "";
 
   return (
     <div className="relative min-h-[calc(100vh-140px)] overflow-hidden bg-white text-gray-900 dark:bg-[#0F141F] dark:text-slate-100">
@@ -31,7 +168,8 @@ const HomePage = () => {
 
         <div className="mt-10 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2">
           <Link
-            to="/appointments"
+            to={patientEntryPath}
+            onClick={handlePatientEntry}
             className="group flex min-h-[230px] flex-col rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#E06666]/40 hover:shadow-lg dark:border-slate-700 dark:bg-[#141B29] dark:hover:border-[#E06666]/50 dark:hover:shadow-[0_18px_35px_rgba(0,0,0,0.35)]"
           >
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E06666] dark:text-[#F29A9A]">
@@ -46,12 +184,13 @@ const HomePage = () => {
                 : "Book appointments, track schedule, and request consultations in one simple flow."}
             </p>
             <p className="mt-auto pt-5 text-sm font-semibold text-[#C14D4D] transition group-hover:translate-x-1 dark:text-[#F29A9A]">
-              {isVi ? "Đi tới patient flow" : "Go to patient flow"} →
+              {patientEntryLabel} →
             </p>
           </Link>
 
           <Link
-            to="/register/provider"
+            to={providerEntryPath}
+            onClick={handleProviderEntry}
             className="group flex min-h-[230px] flex-col rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#E06666]/40 hover:shadow-lg dark:border-slate-700 dark:bg-[#141B29] dark:hover:border-[#E06666]/50 dark:hover:shadow-[0_18px_35px_rgba(0,0,0,0.35)]"
           >
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E06666] dark:text-[#F29A9A]">
@@ -66,7 +205,7 @@ const HomePage = () => {
                 : "Open branches, manage doctor teams, and operate schedules in a focused workspace."}
             </p>
             <p className="mt-auto pt-5 text-sm font-semibold text-[#C14D4D] transition group-hover:translate-x-1 dark:text-[#F29A9A]">
-              {isVi ? "Đi tới provider flow" : "Go to provider flow"} →
+              {providerEntryLabel} →
             </p>
           </Link>
         </div>
@@ -85,6 +224,38 @@ const HomePage = () => {
           </Link>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={Boolean(rolePrompt)}
+        title={promptTitle}
+        description={promptDescription}
+        badgeLabel={promptSelectionLabel}
+        tone="default"
+        confirmLabel={isVi ? "Đi tới đúng khu vực" : "Go to the correct zone"}
+        cancelLabel={isVi ? "Ở lại trang này" : "Stay on this page"}
+        closeLabel={isVi ? "Đóng" : "Close"}
+        onConfirm={handleConfirmZoneRedirect}
+        onClose={() => setRolePrompt(null)}
+      >
+        <div className="rounded-2xl border border-[#F0D6D1] bg-[#FFF8F6] p-4 dark:border-slate-700 dark:bg-slate-900/70">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+            {isVi ? "Tài khoản hiện tại" : "Current account"}
+          </p>
+          <div className="mt-3 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                {user?.full_name || (isVi ? "Người dùng" : "User")}
+              </p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {isVi ? "Vai trò" : "Role"}: {rolePrompt?.roleLabel || ""}
+              </p>
+            </div>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300">
+              {rolePrompt?.zoneLabel || ""}
+            </span>
+          </div>
+        </div>
+      </ConfirmModal>
     </div>
   );
 };

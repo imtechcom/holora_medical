@@ -59,10 +59,10 @@ const MyDoctorsPage = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-text-main">
             {t("clinicOwner.myDoctors") || "My Doctors"}
           </h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <p className="text-text-dim text-sm mt-1">
             {t("clinicOwner.myDoctorsSubtitle") || "Doctors across all your branches"}
           </p>
         </div>
@@ -81,17 +81,17 @@ const MyDoctorsPage = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={t("admin.searchDoctors") || "Search by name, specialty, branch..."}
-          className="w-full max-w-md border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E06666]"
+          className="w-full max-w-md border border-border-main bg-bg-surface dark:bg-slate-800 text-text-main rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E06666] placeholder-text-dim"
         />
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
           {error}
         </div>
       )}
       {success && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-700 dark:text-green-400 text-sm">
           {success}
         </div>
       )}
@@ -101,15 +101,15 @@ const MyDoctorsPage = () => {
           <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#E06666]"></div>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+        <div className="bg-bg-surface dark:bg-slate-800 rounded-xl shadow-sm border border-border-main p-12 text-center">
           <div className="text-5xl mb-4">👨‍⚕️</div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+          <h3 className="text-lg font-semibold text-text-main mb-2">
             {searchTerm
               ? t("admin.noDoctorsFound") || "No doctors match your search"
               : t("clinicOwner.noDoctors") || "No doctors yet"}
           </h3>
           {!searchTerm && (
-            <p className="text-gray-400 text-sm mb-6">
+            <p className="text-text-dim text-sm mb-6">
               {t("clinicOwner.noDoctorsHint") || "Add doctors to your branches to get started."}
             </p>
           )}
@@ -123,44 +123,44 @@ const MyDoctorsPage = () => {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-bg-surface dark:bg-slate-800 rounded-xl shadow-sm border border-border-main overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-bg-app dark:bg-slate-900 border-b border-border-main">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-dim">
                   {t("admin.doctor") || "Doctor"}
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-dim">
                   {t("admin.specialty") || "Specialty"}
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-dim">
                   {t("branch.managementTitle") || "Branches"}
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-dim">
                   {t("common.status") || "Status"}
                 </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-dim">
                   {t("common.actions") || "Actions"}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-border-main">
               {filtered.map((doctor) => (
-                <tr key={doctor.id} className="hover:bg-gray-50/50 transition">
+                <tr key={doctor.id} className="hover:bg-bg-app dark:hover:bg-slate-700/50 transition">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">{doctor.full_name}</div>
+                    <div className="font-medium text-text-main">{doctor.full_name}</div>
                     {doctor.email && (
-                      <div className="text-xs text-gray-400">{doctor.email}</div>
+                      <div className="text-xs text-text-dim">{doctor.email}</div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{doctor.specialty_name || "—"}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{doctor.branch_names || "—"}</td>
+                  <td className="px-4 py-3 text-text-dim">{doctor.specialty_name || "—"}</td>
+                  <td className="px-4 py-3 text-text-dim text-xs">{doctor.branch_names || "—"}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${
                         doctor.status === "active"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-500"
+                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                          : "bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400"
                       }`}
                     >
                       {doctor.status}
@@ -174,7 +174,7 @@ const MyDoctorsPage = () => {
                       >
                         {t("common.edit") || "Edit"}
                       </button>
-                      <span className="text-gray-200">|</span>
+                      <span className="text-border-main">|</span>
                       <button
                         onClick={() => setShowDeleteConfirm(doctor.id)}
                         className="text-red-400 hover:text-red-600 text-xs font-medium"
@@ -192,18 +192,18 @@ const MyDoctorsPage = () => {
 
       {/* Delete confirm modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-bg-surface dark:bg-slate-800 rounded-xl shadow-xl p-6 max-w-sm w-full mx-4 border border-border-main">
+            <h3 className="text-lg font-semibold text-text-main mb-2">
               {t("admin.confirmDeleteDoctor") || "Delete Doctor?"}
             </h3>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-text-dim mb-6">
               {t("admin.confirmDeleteDoctorText") || "This action cannot be undone."}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(null)}
-                className="flex-1 border border-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition"
+                className="flex-1 border border-border-main px-4 py-2 rounded-lg text-sm text-text-main hover:bg-bg-app dark:hover:bg-slate-700 transition"
               >
                 {t("common.cancel") || "Cancel"}
               </button>

@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { consultationService } from "../services/consultationService";
 import { aiService } from "../services/aiService";
 import { useAuth } from "../context/AuthContext";
+import ConfirmModal from "../components/ConfirmModal";
 
 const DoctorConsultationDetailPage = () => {
   const { id } = useParams();
@@ -17,6 +18,7 @@ const DoctorConsultationDetailPage = () => {
   
   // Trạng thái nút bấm gửi yêu cầu
   const [requestAILoading, setRequestAILoading] = useState(null);
+  const [confirmAiImageId, setConfirmAiImageId] = useState(null);
 
   useEffect(() => {
     fetchDetail();
@@ -44,9 +46,7 @@ const DoctorConsultationDetailPage = () => {
     }
   };
 
-  const handleRequestAI = async (imageId) => {
-    if (!window.confirm("Gửi ảnh này cho Holora AI phân tích? (Có thể mất vài giây do gọi sang Model API)")) return;
-    
+  const startRequestAI = async (imageId) => {
     setRequestAILoading(imageId);
     try {
       await aiService.requestImageAnalysis(id, imageId);
@@ -71,7 +71,12 @@ const DoctorConsultationDetailPage = () => {
       alert("Lỗi khi yêu cầu AI: " + (err.response?.data?.message || err.message));
     } finally {
       setRequestAILoading(null);
+      setConfirmAiImageId(null);
     }
+  };
+
+  const handleRequestAI = (imageId) => {
+    setConfirmAiImageId(imageId);
   };
 
   const handleReplySubmit = async (e, markComplete = false) => {
@@ -326,6 +331,18 @@ const DoctorConsultationDetailPage = () => {
 
       </div>
 
+      <ConfirmModal
+        isOpen={confirmAiImageId !== null}
+        title="Gửi ảnh này cho Holora AI phân tích?"
+        description="Tác vụ này có thể mất vài giây do hệ thống sẽ gửi ảnh sang dịch vụ model để xử lý."
+        badgeLabel="Holora AI"
+        tone="info"
+        confirmLabel="Gửi phân tích"
+        cancelLabel="Hủy"
+        closeLabel="Đóng"
+        onConfirm={() => startRequestAI(confirmAiImageId)}
+        onClose={() => setConfirmAiImageId(null)}
+      />
     </div>
   );
 };

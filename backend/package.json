@@ -19,7 +19,9 @@
     "migrate:provider-ownership": "node migrate-provider-ownership.js",
     "migrate:patient-branch": "node migrate-patient-branch.js",
     "migrate:appointment-branch": "node migrate-appointment-branch.js",
-    "migrate:payment": "node migrate-payment.js"
+    "migrate:payment": "node migrate-payment.js",
+    "migrate:medical-codes": "node migrate-medical-codes.js",
+    "migrate:schedule": "node migrate_schedule.js"
   },
   "keywords": [],
   "author": "",

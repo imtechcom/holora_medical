@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   getDoctorByIdApi,
+  getNextDoctorCodeApi,
   createDoctorApi,
   updateDoctorApi,
 } from "../../services/doctorService";
@@ -25,6 +26,7 @@ const DoctorFormPage = ({ returnPath = "/admin/doctors", fetchBranchesUrl = null
   const [branches, setBranches] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [plans, setPlans] = useState([]);
+  const [doctorCode, setDoctorCode] = useState("");
 
   const [formData, setFormData] = useState({
     user_id: "",
@@ -113,6 +115,7 @@ const DoctorFormPage = ({ returnPath = "/admin/doctors", fetchBranchesUrl = null
         username: "",
         password: "",
       });
+      setDoctorCode(doctor.doctor_code || "");
     } catch (err) {
       console.error("Error fetching doctor:", err);
       setError(t("admin.errorLoadingDoctor"));
@@ -121,14 +124,25 @@ const DoctorFormPage = ({ returnPath = "/admin/doctors", fetchBranchesUrl = null
     }
   }, [doctorId, t]);
 
+  const fetchNextDoctorCode = useCallback(async () => {
+    try {
+      const res = await getNextDoctorCodeApi();
+      setDoctorCode(res?.data?.code || "");
+    } catch (err) {
+      console.error("Error fetching next doctor code:", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchSpecialties();
     fetchBranches();
     fetchSubscriptionContext();
     if (isEdit) {
       fetchDoctor();
+    } else {
+      fetchNextDoctorCode();
     }
-  }, [fetchSpecialties, fetchBranches, fetchSubscriptionContext, fetchDoctor, isEdit]);
+  }, [fetchSpecialties, fetchBranches, fetchSubscriptionContext, fetchDoctor, fetchNextDoctorCode, isEdit]);
 
   const selectedBranches = branches.filter((branch) =>
     formData.branch_ids.includes(branch.id)
@@ -165,6 +179,15 @@ const DoctorFormPage = ({ returnPath = "/admin/doctors", fetchBranchesUrl = null
     !isEdit &&
     hasFiniteDoctorLimit &&
     selectedBranchDoctorCount >= selectedBranchDoctorLimit;
+  const isClinicOwnerMode = Boolean(fetchBranchesUrl);
+  const selectedSpecialty = specialties.find(
+    (specialty) => Number(specialty.id) === Number(formData.specialty_id)
+  );
+  const selectedBranchNames = selectedBranches.map((branch) => branch.name).join(", ");
+  const inputClassName =
+    "w-full rounded-xl border border-border-main bg-bg-app dark:bg-slate-900 px-4 py-3 text-sm text-text-main placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-[#E06666]";
+  const cardClassName =
+    "rounded-2xl border border-border-main bg-bg-surface dark:bg-slate-800 shadow-sm";
 
   const validateForm = () => {
     if (!formData.full_name?.trim()) {
@@ -206,6 +229,10 @@ const DoctorFormPage = ({ returnPath = "/admin/doctors", fetchBranchesUrl = null
           return false;
         }
       } else {
+        if (!formData.email?.trim()) {
+          setError("Doctor email is required when creating a login account");
+          return false;
+        }
         if (!formData.username?.trim()) {
           setError(t("admin.usernameRequired"));
           return false;
@@ -305,35 +332,75 @@ const DoctorFormPage = ({ returnPath = "/admin/doctors", fetchBranchesUrl = null
 
   if (loading) {
     return (
-      <div className="rounded-2xl bg-white p-6 shadow-sm text-center">
-        <div className="animate-spin inline-block w-8 h-8 border-4 border-[#E06666] border-r-transparent rounded-full"></div>
+      <div className="rounded-2xl border border-border-main bg-bg-surface dark:bg-slate-800 p-8 text-center shadow-sm">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#E06666] border-r-transparent"></div>
+        <p className="mt-4 text-sm text-text-dim">
+          {t("admin.loading", { defaultValue: "Loading doctor form..." })}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-white p-8 shadow-sm">
-      {/* Header */}
-      <div className="border-b pb-6 mb-6">
-        <h2 className="text-3xl font-bold text-[#E06666] mb-2">
-          {isEdit ? t("admin.editDoctor") : t("admin.addNewDoctor")}
-        </h2>
-        <p className="text-gray-600">
-          {isEdit
-            ? t("admin.updateDoctorInfo")
-            : t("admin.fillFormToAddDoctor")}
-        </p>
+    <div className="space-y-6">
+      <div className="overflow-hidden rounded-[28px] border border-[#f0c9c2] bg-[linear-gradient(135deg,#fff7f2_0%,#ffe6dc_52%,#fff0ea_100%)] p-6 shadow-sm dark:border-[#7a3d3b] dark:bg-[linear-gradient(135deg,rgba(127,29,29,0.30)_0%,rgba(51,65,85,0.92)_56%,rgba(15,23,42,1)_100%)] lg:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#B85757] dark:text-[#F2B4A8]">
+              {isClinicOwnerMode
+                ? "Clinic owner workspace"
+                : "Admin workspace"}
+            </p>
+            <h1 className="mt-3 text-3xl font-bold text-text-main lg:text-4xl">
+              {isEdit ? t("admin.editDoctor") : t("admin.addNewDoctor")}
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-text-dim lg:text-base">
+              {isClinicOwnerMode
+                ? "Create a doctor profile with branch-aware subscription checks, account setup mode, and a clean handoff for your clinic operations."
+                : isEdit
+                  ? t("admin.updateDoctorInfo")
+                  : t("admin.fillFormToAddDoctor")}
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3 text-xs font-medium text-text-main">
+              <span className="rounded-full border border-white/60 bg-white/70 px-3 py-1.5 dark:border-slate-600 dark:bg-slate-900/40">
+                {selectedBranches.length > 0
+                  ? `${selectedBranches.length} branch${selectedBranches.length > 1 ? "es" : ""} selected`
+                  : "No branch selected yet"}
+              </span>
+              <span className="rounded-full border border-white/60 bg-white/70 px-3 py-1.5 dark:border-slate-600 dark:bg-slate-900/40">
+                {formData.account_mode === "invite"
+                  ? "Invite-based access"
+                  : "Create login instantly"}
+              </span>
+              <span className="rounded-full border border-white/60 bg-white/70 px-3 py-1.5 dark:border-slate-600 dark:bg-slate-900/40">
+                Status: {formData.status}
+              </span>
+            </div>
+          </div>
+
+          <div className="min-w-[280px] rounded-2xl border border-white/60 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/50">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-text-dim">
+              {t("admin.doctorCode")}
+            </p>
+            <p className="mt-3 break-all font-mono text-lg font-semibold text-text-main">
+              {doctorCode || "HLR_MED_ddmmyyyy_DT0001"}
+            </p>
+            <p className="mt-3 text-sm text-text-dim">
+              {isEdit
+                ? "Doctor code is fixed after creation."
+                : "The code is reserved automatically when this form opens."}
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Success Message */}
       {successMessage && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-start gap-3">
-          <span className="text-xl flex-shrink-0">✅</span>
+        <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
           <div>
             <p className="font-semibold">{t("common.success")}</p>
-            <p className="text-sm">{successMessage}</p>
+            <p className="mt-1 text-sm">{successMessage}</p>
             {inviteSetupUrl && (
-              <div className="mt-3 rounded-md border border-green-300 bg-white px-3 py-2 text-xs break-all text-gray-700">
+              <div className="mt-3 break-all rounded-xl border border-green-300 bg-white px-3 py-2 text-xs text-slate-700 dark:border-green-700 dark:bg-slate-900 dark:text-slate-200">
                 {inviteSetupUrl}
               </div>
             )}
@@ -341,395 +408,478 @@ const DoctorFormPage = ({ returnPath = "/admin/doctors", fetchBranchesUrl = null
         </div>
       )}
 
-      {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start gap-3">
-          <span className="text-xl flex-shrink-0">⚠️</span>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           <div>
             <p className="font-semibold">{t("common.error")}</p>
-            <p className="text-sm">{error}</p>
+            <p className="mt-1 text-sm">{error}</p>
           </div>
         </div>
       )}
 
-      {/* Form */}
-      <form onSubmit={handleSubmit}>
-        {/* Section 1: Basic Information */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
-              1
-            </span>
-            {t("admin.basicInformation")}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.fullName")} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="full_name"
-                value={formData.full_name}
-                onChange={handleInputChange}
-                placeholder="Dr. John Doe"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.email")}
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="doctor@hospital.com"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.phone")} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                placeholder="+84 812 345 6789"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.license_number")} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="license_number"
-                value={formData.license_number}
-                onChange={handleInputChange}
-                placeholder="LIC-2024-001234"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                {t("admin.licenseNumberHelp")}
+      <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-6">
+          <section className={cardClassName}>
+            <div className="border-b border-border-main px-6 py-5">
+              <h2 className="text-lg font-semibold text-text-main">
+                {t("admin.basicInformation")}
+              </h2>
+              <p className="mt-1 text-sm text-text-dim">
+                Core identity, specialty, and access settings.
               </p>
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.specialty")} <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="specialty_id"
-                value={formData.specialty_id}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition bg-white"
-              >
-                <option value="">{t("admin.selectSpecialty")}</option>
-                {specialties.map((spec) => (
-                  <option key={spec.id} value={spec.id}>
-                    {spec.parent_name ? `${spec.parent_name} > ${spec.name}` : spec.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="md:col-span-2">
-              {!isEdit && (
-                <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Account setup mode</p>
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-700">
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="account_mode"
-                        value="manual"
-                        checked={formData.account_mode === "manual"}
-                        onChange={handleInputChange}
-                        className="text-[#E06666] focus:ring-[#E06666]"
-                      />
-                      Create login now
-                    </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="account_mode"
-                        value="invite"
-                        checked={formData.account_mode === "invite"}
-                        onChange={handleInputChange}
-                        className="text-[#E06666] focus:ring-[#E06666]"
-                      />
-                      Invite by email
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.branches")} <span className="text-red-500">*</span>
-              </label>
-              {branches.length === 0 ? (
-                <p className="text-sm text-gray-500">{t("admin.noBranchesAvailable")}</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 border border-gray-300 rounded-lg">
-                  {branches.map((branch) => {
-                    const checked = formData.branch_ids.includes(branch.id);
-                    return (
-                      <label key={branch.id} className="flex items-center gap-2 text-sm text-gray-700">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => handleBranchToggle(branch.id)}
-                          className="w-4 h-4 text-[#E06666] border-gray-300 rounded focus:ring-[#E06666]"
-                        />
-                        <span>
-                          {branch.name}
-                          {branch.code ? ` (${branch.code})` : ""}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-              <p className="text-xs text-gray-500 mt-1">{t("admin.selectBranchesHelp")}</p>
-              {fetchBranchesUrl && primarySelectedBranch && (
-                <div className="mt-3 space-y-2">
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-                    <p className="font-semibold text-gray-800">Primary branch for subscription check</p>
-                    <p className="mt-1">
-                      {primarySelectedBranch.name}
-                      {selectedBranchSubscription
-                        ? ` • ${selectedBranchSubscription.plan_name} (${selectedBranchSubscription.status})`
-                        : " • No active subscription found"}
-                    </p>
-                    {hasFiniteDoctorLimit ? (
-                      <p className="mt-1 text-xs text-gray-500">
-                        Doctors used: {selectedBranchDoctorCount}/{selectedBranchDoctorLimit}
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-xs text-gray-500">Doctor limit: Unlimited</p>
-                    )}
-                  </div>
-
-                  {!selectedBranchHasSubscription && (
-                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      This branch has no active subscription record yet. Go to Subscription and activate a branch plan if needed.
-                    </div>
-                  )}
-
-                  {selectedBranchHasSubscription && !selectedBranchSubscriptionActive && (
-                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      The selected branch subscription is not active. You need an active or trialing plan before creating a doctor.
-                    </div>
-                  )}
-
-                  {selectedBranchDoctorLimitReached && (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                      This branch has reached the doctor limit of its current plan. Upgrade the subscription or select another branch.
-                    </div>
-                  )}
-
-                  {!selectedBranchDoctorLimitReached && hasFiniteDoctorLimit && selectedBranchDoctorCount === selectedBranchDoctorLimit - 1 && (
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-                      This branch has only 1 doctor slot left on the current plan.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {!isEdit && formData.account_mode === "manual" && (
-              <>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("admin.username")} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleInputChange}
-                    placeholder="doctor_username"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t("admin.usernameHelp")}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("admin.password")} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t("admin.passwordHelp")}
-                  </p>
-                </div>
-              </>
-            )}
-
-            {!isEdit && formData.account_mode === "invite" && (
-              <div className="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-                A one-time setup link will be generated and shown after saving this doctor.
+            <div className="grid grid-cols-1 gap-5 px-6 py-6 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text-main">
+                  {t("admin.fullName")} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="full_name"
+                  value={formData.full_name}
+                  onChange={handleInputChange}
+                  placeholder="Dr. John Doe"
+                  className={inputClassName}
+                />
               </div>
-            )}
-          </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text-main">
+                  {t("admin.doctorCode")}
+                </label>
+                <input
+                  type="text"
+                  value={doctorCode}
+                  readOnly
+                  disabled
+                  className="w-full rounded-xl border border-border-main bg-bg-app px-4 py-3 font-mono text-sm text-text-dim cursor-not-allowed dark:bg-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text-main">
+                  {t("admin.email")}
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="doctor@hospital.com"
+                  className={inputClassName}
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text-main">
+                  {t("admin.phone")} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="+84 812 345 6789"
+                  className={inputClassName}
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text-main">
+                  {t("admin.license_number")} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="license_number"
+                  value={formData.license_number}
+                  onChange={handleInputChange}
+                  placeholder="LIC-2024-001234"
+                  className={inputClassName}
+                />
+                <p className="mt-2 text-xs text-text-dim">{t("admin.licenseNumberHelp")}</p>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text-main">
+                  {t("admin.specialty")} <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="specialty_id"
+                  value={formData.specialty_id}
+                  onChange={handleInputChange}
+                  className={inputClassName}
+                >
+                  <option value="">{t("admin.selectSpecialty")}</option>
+                  {specialties.map((spec) => (
+                    <option key={spec.id} value={spec.id}>
+                      {spec.parent_name ? `${spec.parent_name} > ${spec.name}` : spec.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section className={cardClassName}>
+            <div className="border-b border-border-main px-6 py-5">
+              <h2 className="text-lg font-semibold text-text-main">
+                Branch assignment and account access
+              </h2>
+              <p className="mt-1 text-sm text-text-dim">
+                Pick the working branches first, then decide how this doctor will sign in.
+              </p>
+            </div>
+            <div className="space-y-5 px-6 py-6">
+              {!isEdit && (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label
+                    className={`cursor-pointer rounded-2xl border p-4 transition ${
+                      formData.account_mode === "manual"
+                        ? "border-[#E06666] bg-[#fff4f2] dark:bg-red-950/20"
+                        : "border-border-main bg-bg-app dark:bg-slate-900"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="account_mode"
+                      value="manual"
+                      checked={formData.account_mode === "manual"}
+                      onChange={handleInputChange}
+                      className="sr-only"
+                    />
+                    <p className="text-sm font-semibold text-text-main">Create login now</p>
+                    <p className="mt-1 text-sm text-text-dim">
+                      Add username and password immediately so the doctor can sign in right away.
+                    </p>
+                  </label>
+                  <label
+                    className={`cursor-pointer rounded-2xl border p-4 transition ${
+                      formData.account_mode === "invite"
+                        ? "border-[#E06666] bg-[#fff4f2] dark:bg-red-950/20"
+                        : "border-border-main bg-bg-app dark:bg-slate-900"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="account_mode"
+                      value="invite"
+                      checked={formData.account_mode === "invite"}
+                      onChange={handleInputChange}
+                      className="sr-only"
+                    />
+                    <p className="text-sm font-semibold text-text-main">Invite by email</p>
+                    <p className="mt-1 text-sm text-text-dim">
+                      Generate a one-time setup link and send the onboarding handoff later.
+                    </p>
+                  </label>
+                </div>
+              )}
+
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <label className="block text-sm font-semibold text-text-main">
+                    {t("admin.branches")} <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-xs text-text-dim">
+                    {selectedBranches.length > 0
+                      ? `${selectedBranches.length} selected`
+                      : "Select at least one branch"}
+                  </span>
+                </div>
+                {branches.length === 0 ? (
+                  <p className="text-sm text-text-dim">{t("admin.noBranchesAvailable")}</p>
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {branches.map((branch) => {
+                      const checked = formData.branch_ids.includes(branch.id);
+                      return (
+                        <label
+                          key={branch.id}
+                          className={`cursor-pointer rounded-2xl border p-4 transition ${
+                            checked
+                              ? "border-[#E06666] bg-[#fff4f2] shadow-sm dark:bg-red-950/20"
+                              : "border-border-main bg-bg-app dark:bg-slate-900"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => handleBranchToggle(branch.id)}
+                              className="mt-1 h-4 w-4 rounded border-border-main text-[#E06666] focus:ring-[#E06666]"
+                            />
+                            <div>
+                              <p className="text-sm font-semibold text-text-main">{branch.name}</p>
+                              <p className="mt-1 text-xs text-text-dim">{branch.code || "No branch code"}</p>
+                              {typeof branch.doctor_count !== "undefined" && (
+                                <p className="mt-2 text-xs text-text-dim">
+                                  Current doctors: {branch.doctor_count}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="mt-3 text-xs text-text-dim">{t("admin.selectBranchesHelp")}</p>
+              </div>
+
+              {!isEdit && formData.account_mode === "manual" && (
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-text-main">
+                      {t("admin.username")} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleInputChange}
+                      placeholder="doctor_username"
+                      className={inputClassName}
+                    />
+                    <p className="mt-2 text-xs text-text-dim">{t("admin.usernameHelp")}</p>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-text-main">
+                      {t("admin.password")} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="••••••••"
+                      className={inputClassName}
+                    />
+                    <p className="mt-2 text-xs text-text-dim">{t("admin.passwordHelp")}</p>
+                  </div>
+                </div>
+              )}
+
+              {!isEdit && formData.account_mode === "invite" && (
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950/20 dark:text-blue-300">
+                  A one-time setup link will be generated and shown after saving this doctor.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className={cardClassName}>
+            <div className="border-b border-border-main px-6 py-5">
+              <h2 className="text-lg font-semibold text-text-main">
+                {t("admin.professionalDetails")}
+              </h2>
+              <p className="mt-1 text-sm text-text-dim">
+                Add clinical profile details and consultation settings.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-5 px-6 py-6 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text-main">
+                  {t("admin.qualifications")}
+                </label>
+                <input
+                  type="text"
+                  name="qualification"
+                  value={formData.qualification}
+                  onChange={handleInputChange}
+                  placeholder="MD, Bachelor of Medicine"
+                  className={inputClassName}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text-main">
+                  {t("admin.experience_years")}
+                </label>
+                <input
+                  type="number"
+                  name="experience_years"
+                  value={formData.experience_years}
+                  onChange={handleInputChange}
+                  placeholder="5"
+                  min="0"
+                  max="70"
+                  className={inputClassName}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text-main">
+                  {t("admin.consultationFee")} ($)
+                </label>
+                <input
+                  type="number"
+                  name="consultation_fee"
+                  step="0.01"
+                  value={formData.consultation_fee}
+                  onChange={handleInputChange}
+                  placeholder="50.00"
+                  min="0"
+                  className={inputClassName}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text-main">
+                  {t("admin.status")}
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  className={inputClassName}
+                >
+                  <option value="active">{t("admin.statusActive")}</option>
+                  <option value="inactive">{t("admin.statusInactive")}</option>
+                  <option value="on_leave">On leave</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-semibold text-text-main">
+                  {t("admin.bio")}
+                </label>
+                <textarea
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleInputChange}
+                  placeholder={t("admin.bioPlaceholder")}
+                  rows="4"
+                  className={`${inputClassName} resize-none`}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-semibold text-text-main">
+                  {t("admin.avatarUrl")}
+                </label>
+                <input
+                  type="url"
+                  name="avatar_url"
+                  value={formData.avatar_url}
+                  onChange={handleInputChange}
+                  placeholder="https://example.com/avatar.jpg"
+                  className={inputClassName}
+                />
+              </div>
+            </div>
+          </section>
         </div>
 
-        {/* Section 2: Professional Details */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
-              2
-            </span>
-            {t("admin.professionalDetails")}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.qualifications")}
-              </label>
-              <input
-                type="text"
-                name="qualification"
-                value={formData.qualification}
-                onChange={handleInputChange}
-                placeholder="MD, Bachelor of Medicine"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
+        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <section className={`${cardClassName} p-6`}>
+            <h2 className="text-base font-semibold text-text-main">Doctor snapshot</h2>
+            <div className="mt-4 space-y-4 text-sm">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-text-dim">Primary branch</p>
+                <p className="mt-1 font-medium text-text-main">
+                  {primarySelectedBranch?.name || "Waiting for branch selection"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-text-dim">Specialty</p>
+                <p className="mt-1 font-medium text-text-main">
+                  {selectedSpecialty?.name || "Not selected yet"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-text-dim">Branch coverage</p>
+                <p className="mt-1 font-medium text-text-main">
+                  {selectedBranchNames || "No branches selected"}
+                </p>
+              </div>
             </div>
+          </section>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.experience_years")}
-              </label>
-              <input
-                type="number"
-                name="experience_years"
-                value={formData.experience_years}
-                onChange={handleInputChange}
-                placeholder="5"
-                min="0"
-                max="70"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
+          {fetchBranchesUrl && primarySelectedBranch && (
+            <section className={`${cardClassName} p-6`}>
+              <h2 className="text-base font-semibold text-text-main">Subscription guardrail</h2>
+              <p className="mt-2 text-sm text-text-dim">
+                The first selected branch is used to validate subscription and doctor limits.
+              </p>
+              <div className="mt-4 rounded-2xl border border-border-main bg-bg-app p-4 dark:bg-slate-900">
+                <p className="font-medium text-text-main">{primarySelectedBranch.name}</p>
+                <p className="mt-1 text-sm text-text-dim">
+                  {selectedBranchSubscription
+                    ? `${selectedBranchSubscription.plan_name} • ${selectedBranchSubscription.status}`
+                    : "No active subscription found"}
+                </p>
+                {hasFiniteDoctorLimit ? (
+                  <>
+                    <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                      <div
+                        className={`h-full rounded-full ${
+                          selectedBranchDoctorLimitReached ? "bg-red-500" : "bg-[#E06666]"
+                        }`}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.round((selectedBranchDoctorCount / selectedBranchDoctorLimit) * 100)
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-text-dim">
+                      Doctors used: {selectedBranchDoctorCount}/{selectedBranchDoctorLimit}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-3 text-xs text-text-dim">Doctor limit: Unlimited</p>
+                )}
+              </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.consultationFee")} ($)
-              </label>
-              <input
-                type="number"
-                name="consultation_fee"
-                step="0.01"
-                value={formData.consultation_fee}
-                onChange={handleInputChange}
-                placeholder="50.00"
-                min="0"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
+              {!selectedBranchHasSubscription && (
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+                  This branch has no active subscription record yet.
+                </div>
+              )}
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.status")}
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition bg-white"
+              {selectedBranchHasSubscription && !selectedBranchSubscriptionActive && (
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+                  The selected branch subscription is inactive.
+                </div>
+              )}
+
+              {selectedBranchDoctorLimitReached && (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                  This branch has reached the doctor limit of its current plan.
+                </div>
+              )}
+            </section>
+          )}
+
+          <section className={`${cardClassName} p-6`}>
+            <h2 className="text-base font-semibold text-text-main">Actions</h2>
+            <p className="mt-2 text-sm text-text-dim">
+              Review the doctor profile, then save when everything looks correct.
+            </p>
+            <div className="mt-5 space-y-3">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#E06666] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#D55555] disabled:bg-gray-400"
               >
-                <option value="active">{t("admin.statusActive")}</option>
-                <option value="inactive">{t("admin.statusInactive")}</option>
-                <option value="blocked">Blocked</option>
-              </select>
+                {submitting ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                    {t("common.saving")}
+                  </>
+                ) : isEdit ? (
+                  t("common.update")
+                ) : (
+                  t("common.save")
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(returnPath)}
+                disabled={submitting}
+                className="w-full rounded-xl border border-border-main px-4 py-3 text-sm font-medium text-text-main transition hover:bg-bg-app dark:hover:bg-slate-700 disabled:opacity-50"
+              >
+                {t("common.cancel")}
+              </button>
             </div>
-          </div>
-        </div>
-
-        {/* Section 3: Additional Information */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
-              3
-            </span>
-            {t("admin.additionalInformation")}
-          </h3>
-          <div className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.bio")}
-              </label>
-              <textarea
-                name="bio"
-                value={formData.bio}
-                onChange={handleInputChange}
-                placeholder={t("admin.bioPlaceholder")}
-                rows="4"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition resize-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.avatarUrl")}
-              </label>
-              <input
-                type="url"
-                name="avatar_url"
-                value={formData.avatar_url}
-                onChange={handleInputChange}
-                placeholder="https://example.com/avatar.jpg"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="border-t pt-6 flex justify-end gap-4">
-          <button
-            type="button"
-            onClick={() => navigate("/admin/doctors")}
-            disabled={submitting}
-            className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-          >
-            {t("common.cancel")}
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-6 py-2.5 bg-[#E06666] text-white rounded-lg hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
-          >
-            {submitting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-r-transparent rounded-full animate-spin"></div>
-                {t("common.saving")}
-              </>
-            ) : (
-              <>
-                ✓ {isEdit ? t("common.update") : t("common.save")}
-              </>
-            )}
-          </button>
-        </div>
+          </section>
+        </aside>
       </form>
     </div>
   );

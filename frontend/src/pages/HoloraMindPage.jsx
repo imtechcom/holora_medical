@@ -5,10 +5,10 @@ import { useAuth } from "../context/AuthContext";
 import { holoraMindService } from "../services/holoraMindService";
 
 const SUGGESTIONS = [
-  "Tôi bị sốt 38.8 và đau họng, cần theo dõi gì?",
-  "Phân biệt cúm A và cảm lạnh trong 1 phút",
-  "Checklist trước buổi khám tổng quát",
-  "Khi nào cần đi cấp cứu nếu khó thở?",
+  "Tôi là chủ phòng khám, tôi muốn tối ưu quy trình tiếp nhận bệnh nhân mới.",
+  "Tôi là bệnh nhân, tôi muốn biết cách chuẩn bị cho buổi khám sắp tới.",
+  "Tôi là bác sĩ, tôi muốn phân tích triệu chứng của bệnh nhân để đưa ra chẩn đoán sơ bộ.",
+  "Tôi là nhân viên lễ tân, tôi muốn tự động hóa việc đặt lịch và nhắc lịch cho bệnh nhân.",
 ];
 
 const PROJECTS = [

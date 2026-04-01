@@ -1,6 +1,5 @@
 import React from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { Link, NavLink } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher";
@@ -23,15 +22,8 @@ import {
 } from "lucide-react";
 
 const PatientLayout = ({ children }) => {
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t } = useTranslation();
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   const navClass = ({ isActive }) =>
     isActive

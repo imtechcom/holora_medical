@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { appointmentService } from "../../services/appointmentService";
+import ConfirmModal from "../../components/ConfirmModal";
 const STATUS_OPTIONS = [
   { value: "", label: "Tất cả trạng thái" },
   { value: "scheduled",   label: "Đã đặt" },
@@ -33,6 +34,7 @@ const AppointmentsAdminPage = () => {
   const [endDate,         setEndDate]         = useState("");
   const [search,          setSearch]          = useState("");
   const [searchInput,     setSearchInput]     = useState("");
+  const [confirmState, setConfirmState] = useState(null);
 
   const fetchAppointments = async (filters = {}) => {
     try {
@@ -57,13 +59,19 @@ const AppointmentsAdminPage = () => {
       cancelReason = prompt("Lý do từ chối/huỷ ca khám này là gì?");
       if (cancelReason === null) return;
     }
-    if (!window.confirm(`Xác nhận chuyển sang: ${newStatus.toUpperCase()}?`)) return;
+    setConfirmState({ id, newStatus, cancelReason });
+  };
+
+  const confirmUpdateStatus = async () => {
+    if (!confirmState) return;
     try {
-      await appointmentService.updateStatus(id, newStatus, cancelReason);
+      await appointmentService.updateStatus(confirmState.id, confirmState.newStatus, confirmState.cancelReason);
       fetchAppointments({ status: statusFilter, start_date: startDate, end_date: endDate, search });
     } catch (err) {
       alert("Lỗi khi cập nhật trạng thái!");
       console.error(err);
+    } finally {
+      setConfirmState(null);
     }
   };
 
@@ -217,6 +225,19 @@ const AppointmentsAdminPage = () => {
           </table>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={Boolean(confirmState)}
+        title={confirmState ? `Xác nhận chuyển sang: ${confirmState.newStatus.toUpperCase()}?` : ""}
+        description="Thay đổi trạng thái sẽ ảnh hưởng trực tiếp đến luồng xử lý lịch hẹn của phòng khám."
+        badgeLabel="Appointment Admin"
+        tone={confirmState?.newStatus === "cancelled" ? "danger" : "info"}
+        confirmLabel={confirmState?.newStatus === "cancelled" ? "Xác nhận hủy" : "Xác nhận cập nhật"}
+        cancelLabel="Hủy"
+        closeLabel="Đóng"
+        onConfirm={confirmUpdateStatus}
+        onClose={() => setConfirmState(null)}
+      />
     </div>
   );
 };

@@ -15,6 +15,11 @@ const getBranchById = async (id) => {
   return response.data;
 };
 
+const getNextBranchCode = async () => {
+  const response = await api.get("/branches/next-code");
+  return response.data;
+};
+
 const createBranch = async (payload) => {
   const response = await api.post("/branches", payload);
   return response.data;
@@ -34,6 +39,7 @@ export default {
   getAllBranches,
   getMyBranches,
   getBranchById,
+  getNextBranchCode,
   createBranch,
   updateBranch,
   deleteBranch,

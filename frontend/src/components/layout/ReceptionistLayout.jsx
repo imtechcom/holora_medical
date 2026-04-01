@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -13,6 +13,7 @@ const ReceptionistLayout = ({ children }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t } = useTranslation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -28,7 +29,10 @@ const ReceptionistLayout = ({ children }) => {
     <div className="min-h-screen bg-bg-app dark:bg-slate-900 transition-colors duration-200">
       <div className="flex min-h-screen">
         {/* Sidebar */}
-        <aside className="w-64 bg-bg-surface dark:bg-slate-800 shadow-md flex flex-col border-r border-border-main">
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        )}
+        <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-bg-surface dark:bg-slate-800 shadow-md border-r border-border-main transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="border-b border-border-main px-6 py-5">
             <Link to="/receptionist" className="flex items-center gap-2">
               <Logo size="sm" />
@@ -39,7 +43,7 @@ const ReceptionistLayout = ({ children }) => {
             </Link>
           </div>
 
-          <nav className="flex-1 space-y-1 p-4">
+          <nav className="flex-1 space-y-1 overflow-y-auto p-4" onClick={() => setSidebarOpen(false)}>
             <NavLink to="/receptionist" end className={navClass}>
               <span>📋</span>
               <span>{t("receptionist.dashboard") || "Dashboard"}</span>
@@ -93,12 +97,17 @@ const ReceptionistLayout = ({ children }) => {
         {/* Main content */}
         <div className="flex flex-1 flex-col">
           {/* Topbar */}
-          <header className="flex items-center justify-between bg-bg-surface dark:bg-slate-800 px-6 py-4 shadow-sm border-b border-border-main">
-            <div>
-              <h1 className="text-xl font-semibold text-text-main">{t("receptionist.zone") || "Receptionist Zone"}</h1>
-              <p className="text-sm text-text-dim">
-                {t("admin.welcome")}, {user?.full_name || t("common.user")}
-              </p>
+          <header className="flex items-center justify-between bg-bg-surface dark:bg-slate-800 px-4 py-4 shadow-sm border-b border-border-main">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setSidebarOpen(v => !v)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 lg:hidden">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              </button>
+              <div>
+                <h1 className="text-xl font-semibold text-text-main">{t("receptionist.zone") || "Receptionist Zone"}</h1>
+                <p className="text-sm text-text-dim">
+                  {t("admin.welcome")}, {user?.full_name || t("common.user")}
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">

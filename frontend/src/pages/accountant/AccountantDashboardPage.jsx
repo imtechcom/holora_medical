@@ -54,49 +54,49 @@ const AccountantDashboardPage = () => {
     <div className="space-y-8">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-[#E06666] to-[#D85555] rounded-lg shadow-md p-8 text-white">
-        <h1 className="text-3xl font-bold mb-2">Welcome, {user?.full_name}! 💰</h1>
+        <h1 className="text-3xl font-bold mb-2">Welcome, {user?.full_name}!</h1>
         <p className="text-white/90 text-lg">Financial overview and accounting management dashboard.</p>
         <div className="mt-4 flex gap-3 text-sm text-white/80">
-          <span>📅 {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+          <span>{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
         </div>
       </div>
 
       {/* Financial Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+        <div className="bg-bg-surface dark:bg-slate-800 rounded-lg shadow-md p-6 border-l-4 border-blue-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Total Revenue</p>
+              <p className="text-text-dim text-sm font-medium">Total Revenue</p>
               <p className="text-2xl font-bold text-text-main mt-2">{formatCurrency(financialStats.totalRevenue)}</p>
             </div>
             <BarChart3 className="w-12 h-12 text-blue-500 opacity-20" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border-l-4 border-red-500">
+        <div className="bg-bg-surface dark:bg-slate-800 rounded-lg shadow-md p-6 border-l-4 border-red-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Total Expenses</p>
+              <p className="text-text-dim text-sm font-medium">Total Expenses</p>
               <p className="text-2xl font-bold text-text-main mt-2">{formatCurrency(financialStats.totalExpenses)}</p>
             </div>
             <DollarSign className="w-12 h-12 text-red-500 opacity-20" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border-l-4 border-green-500">
+        <div className="bg-bg-surface dark:bg-slate-800 rounded-lg shadow-md p-6 border-l-4 border-green-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Net Income</p>
+              <p className="text-text-dim text-sm font-medium">Net Income</p>
               <p className="text-2xl font-bold text-green-600 mt-2">{formatCurrency(financialStats.netIncome)}</p>
             </div>
             <TrendingUp className="w-12 h-12 text-green-500 opacity-20" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+        <div className="bg-bg-surface dark:bg-slate-800 rounded-lg shadow-md p-6 border-l-4 border-orange-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Pending Payments</p>
+              <p className="text-text-dim text-sm font-medium">Pending Payments</p>
               <p className="text-2xl font-bold text-text-main mt-2">{formatCurrency(financialStats.pendingPayments)}</p>
             </div>
             <FileText className="w-12 h-12 text-orange-500 opacity-20" />
@@ -112,7 +112,7 @@ const AccountantDashboardPage = () => {
             <Link
               key={index}
               to={link.link}
-              className="bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200 dark:border-slate-700 hover:border-[#E06666]/30"
+              className="bg-bg-surface dark:bg-slate-800 rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-border-main hover:border-[#E06666]/30"
             >
               <div className={`w-12 h-12 rounded-lg ${link.color} flex items-center justify-center mb-4`}>
                 {link.icon}
@@ -125,7 +125,7 @@ const AccountantDashboardPage = () => {
       </div>
 
       {/* Recent Transactions */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-slate-700">
+      <div className="bg-bg-surface dark:bg-slate-800 rounded-lg shadow-md p-6 border border-border-main">
         <h3 className="text-lg font-semibold text-text-main mb-4">Recent Transactions</h3>
         <div className="space-y-3">
           {[
@@ -133,7 +133,7 @@ const AccountantDashboardPage = () => {
             { desc: "Payroll Payment", amount: "-$8,500.00", time: "Yesterday" },
             { desc: "Supplies Purchase", amount: "-$350.00", time: "2 days ago" },
           ].map((tx, i) => (
-            <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-750 rounded-lg">
+            <div key={i} className="flex items-center justify-between rounded-lg bg-bg-app p-3 dark:bg-slate-700/50">
               <div>
                 <p className="font-medium text-text-main">{tx.desc}</p>
                 <p className="text-xs text-text-dim">{tx.time}</p>

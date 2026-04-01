@@ -1,10 +1,23 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import {
   getAllPatientsApi,
   deletePatientApi,
 } from "../../services/patientService";
+
+const STATUS_STYLES = {
+  active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  inactive: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  blocked: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+};
+
+const GENDER_STYLES = {
+  male: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
+  female: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300",
+  other: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+};
 
 const PatientsPage = () => {
   const { t } = useTranslation();
@@ -65,215 +78,168 @@ const PatientsPage = () => {
     );
   });
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800";
-      case "inactive":
-        return "bg-yellow-100 text-yellow-800";
-      case "blocked":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getGenderBadge = (gender) => {
-    const colors = {
-      male: "bg-blue-100 text-blue-800",
-      female: "bg-pink-100 text-pink-800",
-      other: "bg-purple-100 text-purple-800",
-    };
-    return colors[gender] || "bg-gray-100 text-gray-800";
-  };
-
-  if (loading) {
-    return (
-      <div className="rounded-2xl bg-white p-6 shadow-sm text-center">
-        <div className="animate-spin inline-block w-8 h-8 border-4 border-[#E06666] border-r-transparent rounded-full"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm">
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-[#E06666] mb-2">
-            {t("admin.patientsManagement")}
-          </h2>
-          <p className="text-gray-600">{t("admin.managePatientsAndRecords")}</p>
+          <h2 className="text-xl font-bold text-text-main">{t("admin.patientsManagement")}</h2>
+          <p className="mt-0.5 text-sm text-text-dim">{t("admin.managePatientsAndRecords")}</p>
         </div>
-        <button
-          onClick={handleAddClick}
-          className="px-4 py-2 bg-[#E06666] text-white rounded-lg hover:bg-red-600 transition"
-        >
-          + {t("admin.addNewPatient")}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchPatients}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border-main px-3 py-2 text-sm font-semibold text-text-main transition hover:bg-bg-app disabled:opacity-60"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            {t("common.refresh")}
+          </button>
+          <button
+            onClick={() => navigate("/admin/patients/new")}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#E06666] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#D55555]"
+          >
+            <Plus className="h-4 w-4" />
+            {t("admin.addNewPatient")}
+          </button>
+        </div>
       </div>
 
-      <div className="mb-4">
+      {/* Search */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-dim" />
         <input
           type="text"
           placeholder={t("admin.searchByName")}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]"
+          className="w-full rounded-xl border border-border-main bg-bg-app py-2.5 pl-9 pr-4 text-sm text-text-main outline-none transition focus:ring-2 focus:ring-[#E06666]/40 dark:bg-slate-900"
         />
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b-2 border-gray-200">
-              <th className="text-left p-3 font-semibold text-gray-700">
-                {t("admin.patientCode")}
-              </th>
-              <th className="text-left p-3 font-semibold text-gray-700">
-                {t("admin.fullName")}
-              </th>
-              <th className="text-left p-3 font-semibold text-gray-700">
-                {t("admin.phone")}
-              </th>
-              <th className="text-left p-3 font-semibold text-gray-700">
-                {t("admin.email")}
-              </th>
-              <th className="text-left p-3 font-semibold text-gray-700">
-                {t("admin.branches")}
-              </th>
-              <th className="text-left p-3 font-semibold text-gray-700">
-                {t("admin.gender")}
-              </th>
-              <th className="text-left p-3 font-semibold text-gray-700">
-                {t("admin.bloodGroup")}
-              </th>
-              <th className="text-left p-3 font-semibold text-gray-700">
-                {t("admin.status")}
-              </th>
-              <th className="text-center p-3 font-semibold text-gray-700">
-                {t("common.actions")}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredPatients.length === 0 ? (
-              <tr>
-                <td colSpan="9" className="text-center p-6 text-gray-500">
-                  {t("admin.noPatientsFound")}
-                </td>
+      {/* Table */}
+      <div className="overflow-hidden rounded-2xl border border-border-main bg-bg-surface shadow-sm dark:bg-slate-800">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead>
+              <tr className="border-b border-border-main bg-bg-app dark:bg-slate-900/60">
+                {[
+                  t("admin.patientCode"),
+                  t("admin.fullName"),
+                  t("admin.phone"),
+                  t("admin.email"),
+                  t("admin.branches"),
+                  t("admin.gender"),
+                  t("admin.bloodGroup"),
+                  t("admin.status"),
+                  t("common.actions"),
+                ].map((h, i) => (
+                  <th
+                    key={i}
+                    className={`px-4 py-3 text-xs font-semibold uppercase tracking-[0.07em] text-text-dim ${
+                      i >= 8 ? "text-center" : "text-left"
+                    }`}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ) : (
-              filteredPatients.map((patient) => (
-                <tr key={patient.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="p-3 text-sm">{patient.patient_code}</td>
-                  <td className="p-3 text-sm font-medium">{patient.full_name}</td>
-                  <td className="p-3 text-sm">{patient.phone}</td>
-                  <td className="p-3 text-sm">{patient.email}</td>
-                  <td className="p-3 text-sm">
-                    {patient.branch_names ? (
-                      <span className="text-gray-700">{patient.branch_names}</span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="p-3 text-sm">
-                    {patient.gender && (
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${getGenderBadge(
-                          patient.gender
-                        )}`}
-                      >
-                        {t(`admin.gender${patient.gender.charAt(0).toUpperCase()}${patient.gender.slice(1)}`)}
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-3 text-sm">
-                    {patient.blood_group && (
-                      <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold">
-                        {patient.blood_group}
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-3 text-sm">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-                        patient.status
-                      )}`}
-                    >
-                      {patient.status === "active"
-                        ? t("admin.statusActive")
-                        : patient.status === "inactive"
-                        ? t("admin.statusInactive")
-                        : "Blocked"}
+            </thead>
+            <tbody className="divide-y divide-border-main">
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center text-sm text-text-dim">
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t("common.loading")}
                     </span>
                   </td>
-                  <td className="p-3 text-center">
-                    <button
-                      onClick={() => handleEditClick(patient)}
-                      className="text-blue-600 hover:text-blue-800 mr-3"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(patient.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      🗑️
-                    </button>
+                </tr>
+              ) : filteredPatients.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center text-sm text-text-dim">
+                    {t("admin.noPatientsFound")}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filteredPatients.map((patient) => (
+                  <tr key={patient.id} className="hover:bg-bg-app dark:hover:bg-slate-900/40">
+                    <td className="px-4 py-3 text-sm font-mono text-text-dim">{patient.patient_code}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-text-main">{patient.full_name}</td>
+                    <td className="px-4 py-3 text-sm text-text-dim">{patient.phone}</td>
+                    <td className="px-4 py-3 text-sm text-text-dim">{patient.email}</td>
+                    <td className="px-4 py-3 text-sm text-text-main">{patient.branch_names || <span className="text-text-dim">—</span>}</td>
+                    <td className="px-4 py-3 text-sm">
+                      {patient.gender ? (
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                            GENDER_STYLES[patient.gender] || "bg-slate-100 text-slate-600 dark:bg-slate-700"
+                          }`}
+                        >
+                          {t(`admin.gender${patient.gender.charAt(0).toUpperCase()}${patient.gender.slice(1)}`)}
+                        </span>
+                      ) : <span className="text-text-dim">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {patient.blood_group ? (
+                        <span className="inline-flex rounded-full border border-border-main bg-bg-app px-3 py-1 text-xs font-semibold text-text-main dark:bg-slate-900">
+                          {patient.blood_group}
+                        </span>
+                      ) : <span className="text-text-dim">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          STATUS_STYLES[patient.status] || "bg-slate-100 text-slate-600 dark:bg-slate-700"
+                        }`}
+                      >
+                        {patient.status === "active"
+                          ? t("admin.statusActive")
+                          : patient.status === "inactive"
+                          ? t("admin.statusInactive")
+                          : patient.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => navigate(`/admin/patients/${patient.id}/edit`)}
+                          className="rounded-lg border border-border-main p-1.5 text-text-dim transition hover:border-[#E06666]/40 hover:text-[#E06666] dark:hover:bg-slate-700"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(patient.id)}
+                          className="rounded-lg border border-border-main p-1.5 text-text-dim transition hover:border-red-300 hover:text-red-600 dark:hover:bg-slate-700"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
+      {/* Delete confirm */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-80">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">
-              {t("admin.confirmDelete")}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {t("admin.deletePatientConfirmation")}
-            </p>
-            <div className="flex justify-end gap-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm overflow-hidden rounded-3xl border border-border-main bg-bg-surface p-6 shadow-2xl dark:bg-slate-900">
+            <h3 className="text-base font-bold text-text-main">{t("admin.confirmDelete")}</h3>
+            <p className="mt-2 text-sm text-text-dim">{t("admin.deletePatientConfirmation")}</p>
+            <div className="mt-5 flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                className="flex-1 rounded-xl border border-border-main py-2.5 text-sm font-semibold text-text-main transition hover:bg-bg-app"
               >
                 {t("common.cancel")}
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-              >
-                {t("common.delete")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-80">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">
-              {t("admin.confirmDelete")}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {t("admin.deletePatientConfirmation")}
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-bold text-white transition hover:bg-red-700"
               >
                 {t("common.delete")}
               </button>

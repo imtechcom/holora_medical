@@ -12,11 +12,13 @@ const ConsultationsPage = () => {
   const [selectedId, setSelectedId] = useState(null);
   const [detailData, setDetailData] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState("");
 
   // Chat/Response Form State
   const [replyText, setReplyText] = useState("");
   const [markComplete, setMarkComplete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
     fetchConsultations();
@@ -37,14 +39,14 @@ const ConsultationsPage = () => {
   const handleOpenDetail = async (id) => {
     setSelectedId(id);
     setDetailData(null);
+    setDetailError("");
     setLoadingDetail(true);
     try {
       const res = await consultationService.getConsultationDetails(id);
       setDetailData(res.data);
     } catch (err) {
       console.error("Lỗi fetch chi tiết y án:", err);
-      alert("Không thể tải chi tiết Y án.");
-      setSelectedId(null);
+      setDetailError("Không thể tải chi tiết Y án.");
     } finally {
       setLoadingDetail(false);
     }
@@ -53,6 +55,8 @@ const ConsultationsPage = () => {
   const handleCloseDetail = () => {
     setSelectedId(null);
     setDetailData(null);
+    setDetailError("");
+    setSubmitError("");
     setReplyText("");
     setMarkComplete(false);
   };
@@ -63,67 +67,64 @@ const ConsultationsPage = () => {
 
     try {
       setSubmitting(true);
+      setSubmitError("");
       await consultationService.addResponse(selectedId, {
         content: replyText,
         complete: markComplete,
       });
 
       setReplyText("");
-      
+
       if (markComplete) {
-        // Đã hoàn tất -> Đóng modal và tải lại master list
         handleCloseDetail();
         fetchConsultations();
       } else {
-        // Chat tiếp -> Chỉ tải lại Detail data
         const res = await consultationService.getConsultationDetails(selectedId);
         setDetailData(res.data);
       }
     } catch (err) {
       console.error("Lỗi phản hồi y án:", err);
-      alert("Đã xảy ra lỗi khi gửi chẩn đoán.");
+      setSubmitError("Đã xảy ra lỗi khi gửi chẩn đoán.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800">
-          🩺 Y Án Hội Chẩn (Consultations)
-        </h1>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-text-main">Y Án Hội Chẩn</h1>
         <button
           onClick={fetchConsultations}
-          className="rounded border bg-white px-3 py-1 text-sm font-medium shadow-sm hover:bg-gray-50"
+          className="rounded-lg border border-border-main bg-bg-surface px-3 py-2 text-sm font-medium text-text-dim hover:bg-bg-app dark:bg-slate-800 dark:hover:bg-slate-700 transition"
         >
-          ↻ Làm mới Master List
+          Làm mới
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-border-main bg-bg-surface shadow-sm dark:bg-slate-800">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border-main">
+            <thead className="bg-bg-app dark:bg-slate-900/60">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-dim">
                   Bệnh Nhân & Lý Do Khám
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-dim">
                   Thời gian ghi nhận
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Cấp thiết (Priority)
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-dim">
+                  Cấp thiết
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-dim">
                   Trạng Thái
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">
+                <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-text-dim">
                   Thao Tác
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
+            <tbody className="divide-y divide-border-main">
               {loading ? (
                 <tr>
                   <td colSpan="5" className="py-10 text-center text-gray-500">
@@ -138,38 +139,44 @@ const ConsultationsPage = () => {
                 </tr>
               ) : (
                 consultations.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
+                  <tr key={item.id} className="hover:bg-bg-app dark:hover:bg-slate-700/50 transition">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-bold text-gray-900">
+                      <div className="text-sm font-bold text-text-main">
                         {item.patient_name}
                       </div>
-                      <div className="mt-1 w-64 truncate text-xs font-medium text-gray-600" title={item.chief_complaint}>
+                      <div className="mt-1 w-64 truncate text-xs font-medium text-text-dim" title={item.chief_complaint}>
                         {item.chief_complaint}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-xs text-gray-500">
+                    <td className="px-6 py-4 text-xs text-text-dim">
                       {new Date(item.created_at).toLocaleString("vi-VN")}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold uppercase
-                        ${item.priority === "high" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}`}>
+                      <span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold uppercase ${
+                        item.priority === "high"
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          : "bg-bg-app text-text-dim dark:bg-slate-700"
+                      }`}>
                         {item.priority}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold uppercase
-                        ${item.status === 'pending' && 'bg-yellow-100 text-yellow-800'}
-                        ${item.status === 'in_progress' && 'bg-blue-100 text-blue-800'}
-                        ${item.status === 'completed' && 'bg-green-100 text-green-800'}`}>
+                      <span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold uppercase ${
+                        item.status === "pending"
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                          : item.status === "in_progress"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                      }`}>
                         {item.status}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                       <button
                         onClick={() => handleOpenDetail(item.id)}
-                        className="rounded bg-indigo-600 px-4 py-1.5 font-bold text-white shadow-sm hover:bg-indigo-700"
+                        className="rounded-lg bg-[#E06666] px-4 py-1.5 font-bold text-white shadow-sm hover:bg-[#D55555] transition"
                       >
-                        👁 Xem Hồ Sơ & Trả Lời
+                        Xem Hồ Sơ & Trả Lời
                       </button>
                     </td>
                   </tr>
@@ -183,38 +190,41 @@ const ConsultationsPage = () => {
       {/* MODAL / SLIDE OVER CHO DETAIL VIEW */}
       {selectedId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="flex h-[90vh] w-[95vw] max-w-6xl flex-col rounded-2xl bg-white shadow-2xl overflow-hidden md:flex-row">
+          <div className="flex h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden rounded-2xl border border-border-main bg-bg-surface shadow-2xl dark:bg-slate-800 md:flex-row">
             
             {loadingDetail ? (
-              <div className="flex h-full w-full items-center justify-center text-lg text-gray-500">
-                Đang bung hồ sơ Y án chi tiết...
+              <div className="flex h-full w-full items-center justify-center text-lg text-text-dim">
+                Đang tải hồ sơ chi tiết...
+              </div>
+            ) : detailError ? (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-8">
+                <p className="text-sm text-red-600 dark:text-red-400">{detailError}</p>
+                <button onClick={handleCloseDetail} className="rounded-lg border border-border-main px-4 py-2 text-sm text-text-main hover:bg-bg-app transition">Đóng</button>
               </div>
             ) : detailData ? (
               <>
                 {/* TRÁI: Hồ sơ tĩnh */}
-                <div className="w-full border-r border-gray-200 bg-slate-50 p-6 overflow-y-auto md:w-1/3">
+                <div className="w-full overflow-y-auto border-r border-border-main bg-bg-app p-6 dark:bg-slate-900/40 md:w-1/3">
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-xl font-bold text-gray-800">Thông Tin Tổng Quan</h3>
-                    {/* Nút đóng dành cho màn mobile */}
-                    <button onClick={handleCloseDetail} className="text-red-500 text-2xl font-bold hover:text-red-700 md:hidden">&times;</button>
+                    <h3 className="text-xl font-bold text-text-main">Thông Tin Tổng Quan</h3>
+                    <button onClick={handleCloseDetail} className="text-text-dim text-2xl font-bold hover:text-red-500 md:hidden">&times;</button>
                   </div>
                   
-                  <div className="rounded-xl bg-white p-4 shadow-sm border border-gray-100">
-                    <p className="text-sm text-gray-500">Bệnh nhân</p>
-                    <p className="font-bold text-lg text-indigo-700">{detailData.patient_name}</p>
-                    <p className="text-xs text-gray-500 mt-1">Giới tính: {detailData.gender} - Sinh ngày: {new Date(detailData.date_of_birth).toLocaleDateString('vi-VN')}</p>
+                  <div className="rounded-xl border border-border-main bg-bg-surface p-4 shadow-sm dark:bg-slate-800">
+                    <p className="text-sm text-text-dim">Bệnh nhân</p>
+                    <p className="font-bold text-lg text-[#E06666]">{detailData.patient_name}</p>
+                    <p className="text-xs text-text-dim mt-1">Giới tính: {detailData.gender} - Sinh ngày: {new Date(detailData.date_of_birth).toLocaleDateString('vi-VN')}</p>
                   </div>
 
-                  <div className="mt-4 rounded-xl bg-white p-4 shadow-sm border border-gray-100">
-                    <p className="text-sm font-bold text-gray-700">Lý do khám (Chief Complaint):</p>
-                    <p className="text-sm text-gray-800 mt-1">{detailData.chief_complaint}</p>
-                    
-                    <p className="text-sm font-bold text-gray-700 mt-4">Khai báo triệu chứng:</p>
-                    <p className="text-sm text-gray-800 mt-1 whitespace-pre-wrap">{detailData.symptoms}</p>
+                  <div className="mt-4 rounded-xl border border-border-main bg-bg-surface p-4 shadow-sm dark:bg-slate-800">
+                    <p className="text-sm font-bold text-text-main">Lý do khám:</p>
+                    <p className="text-sm text-text-dim mt-1">{detailData.chief_complaint}</p>
+                    <p className="text-sm font-bold text-text-main mt-4">Triệu chứng:</p>
+                    <p className="text-sm text-text-dim mt-1 whitespace-pre-wrap">{detailData.symptoms}</p>
                   </div>
 
-                  <div className="mt-4 rounded-xl bg-white p-4 shadow-sm border border-gray-100">
-                    <p className="text-sm font-bold text-gray-700 mb-2">Hình ảnh đính kèm ({detailData.images?.length || 0}):</p>
+                  <div className="mt-4 rounded-xl border border-border-main bg-bg-surface p-4 shadow-sm dark:bg-slate-800">
+                    <p className="text-sm font-bold text-text-main mb-2">Hình ảnh đính kèm ({detailData.images?.length || 0}):</p>
                     {detailData.images?.length > 0 ? (
                       <div className="grid grid-cols-2 gap-2">
                         {detailData.images.map((img, idx) => (
@@ -224,28 +234,25 @@ const ConsultationsPage = () => {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-400 italic">Bệnh nhân không gửi kèm ảnh chụp</p>
+                      <p className="text-xs text-text-dim italic">Bệnh nhân không gửi kèm ảnh chụp</p>
                     )}
                   </div>
                 </div>
 
                 {/* PHẢI: Khung Chat & Form Responses */}
                 <div className="flex w-full flex-col bg-white md:w-2/3">
-                  <div className="flex items-center justify-between border-b px-6 py-4 shadow-sm w-full">
-                    <h3 className="font-bold text-gray-800 flex items-center">
-                      <span className="mr-2 text-xl">💬</span>
-                      Lịch Sử Hội Chẩn & Kê Đơn
-                    </h3>
-                    <button onClick={handleCloseDetail} className="rounded-full bg-red-100 px-3 py-1 font-bold text-red-600 hover:bg-red-200 hidden md:block">
-                      Tắt hồ sơ X
+                  <div className="flex w-full items-center justify-between border-b border-border-main px-6 py-4">
+                    <h3 className="font-bold text-text-main">Lịch Sử Hội Chẩn & Kê Đơn</h3>
+                    <button onClick={handleCloseDetail} className="hidden rounded-lg border border-border-main px-3 py-1 text-sm font-medium text-text-dim hover:bg-bg-app dark:hover:bg-slate-700 transition md:block">
+                      Đóng ✕
                     </button>
                   </div>
 
                   {/* Message History */}
-                  <div className="flex-1 overflow-y-auto p-6 bg-gray-50 flex flex-col gap-4">
+                  <div className="flex flex-1 flex-col gap-4 overflow-y-auto bg-bg-app p-6 dark:bg-slate-900/30">
                      {detailData.responses?.length === 0 ? (
-                        <div className="flex h-full items-center justify-center text-gray-400 italic text-sm">
-                           Chưa có phản hồi hay trao đổi nào. Hãy là người đầu tiên gõ chẩn đoán.
+                        <div className="flex h-full items-center justify-center text-sm italic text-text-dim">
+                           Chưa có phản hồi hay trao đổi nào.
                         </div>
                      ) : (
                        detailData.responses?.map((msg) => {
@@ -266,12 +273,15 @@ const ConsultationsPage = () => {
 
                   {/* Input Bác Sĩ */}
                   {detailData.status !== 'completed' ? (
-                    <form onSubmit={handleSubmitResponse} className="border-t bg-white p-4">
+                    <form onSubmit={handleSubmitResponse} className="border-t border-border-main bg-bg-surface p-4 dark:bg-slate-800">
+                       {submitError && (
+                         <p className="mb-2 text-xs text-red-600 dark:text-red-400">{submitError}</p>
+                       )}
                        <textarea
                          value={replyText}
                          onChange={(e) => setReplyText(e.target.value)}
                          placeholder="Gõ chẩn đoán, toa thuốc hoặc yêu cầu bệnh nhân cung cấp thêm thông tin..."
-                         className="w-full resize-none rounded-xl border border-gray-300 p-3 text-sm focus:border-[#E06666] focus:ring-1 focus:ring-[#F7CACA] outline-none"
+                         className="w-full resize-none rounded-xl border border-border-main bg-bg-app p-3 text-sm text-text-main placeholder:text-text-dim focus:border-[#E06666] focus:outline-none focus:ring-1 focus:ring-[#E06666]/30 dark:bg-slate-700"
                          rows="3"
                          required
                        />
@@ -295,14 +305,14 @@ const ConsultationsPage = () => {
                        </div>
                     </form>
                   ) : (
-                    <div className="bg-gray-200 text-gray-500 italic p-4 text-center text-sm font-semibold">
+                    <div className="bg-bg-app p-4 text-center text-sm font-semibold italic text-text-dim dark:bg-slate-900/30">
                        — Y Án Này Đã Được Khóa Sổ Lịch Sử —
                     </div>
                   )}
                 </div>
               </>
             ) : (
-              <div className="p-10 text-center text-red-500">Lỗi không mong muốn. Dữ liệu null.</div>
+              <div className="p-10 text-center text-sm text-red-600 dark:text-red-400">Lỗi không mong muốn. Vui lòng thử lại.</div>
             )}
             
           </div>

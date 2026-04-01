@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { AlertCircle, CheckCircle2, GripVertical, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import specialtyService from "../../services/specialtyService";
 
 const SpecialtiesPage = () => {
@@ -192,201 +193,178 @@ const SpecialtiesPage = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">
-          {t("specialty.managementTitle")}
-        </h1>
-        <p className="text-gray-600 mt-2">{t("specialty.managementSubtitle")}</p>
-      </div>
-
-      {/* Success Message */}
-      {success && (
-        <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">
-          {success}
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {/* Toolbar */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="flex-1 w-full md:w-auto">
-            <input
-              type="text"
-              placeholder={t("common.search")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-text-main">{t("specialty.managementTitle")}</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchSpecialties}
+            disabled={loading}
+            className="flex items-center gap-1.5 rounded-lg border border-border-main bg-bg-surface px-3 py-2 text-sm text-text-dim hover:bg-bg-app dark:bg-slate-800 dark:hover:bg-slate-700 transition disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
           <button
             onClick={handleAddSpecialty}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+            className="flex items-center gap-1.5 rounded-lg bg-[#E06666] px-4 py-2 text-sm font-medium text-white hover:bg-[#D55555] transition"
           >
-            + {t("specialty.addNew")}
+            <Plus className="h-4 w-4" />
+            {t("specialty.addNew")}
           </button>
         </div>
       </div>
 
+      {/* Alerts */}
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-900/20 dark:text-red-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-400">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          {success}
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="relative">
+        <input
+          type="text"
+          placeholder={t("common.search")}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full rounded-xl border border-border-main bg-bg-app px-4 py-2.5 text-sm text-text-main placeholder:text-text-dim focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 dark:bg-slate-800/60"
+        />
+      </div>
+
+      {/* Root drop zone */}
       <div
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDropToRoot}
-        className={`mb-4 rounded-lg border-2 border-dashed px-4 py-3 text-sm transition ${
+        className={`rounded-xl border-2 border-dashed px-4 py-3 text-sm transition ${
           draggingId
-            ? "border-blue-400 bg-blue-50 text-blue-700"
-            : "border-gray-300 bg-gray-50 text-gray-500"
+            ? "border-[#E06666]/50 bg-[#FFF5F5] text-[#E06666] dark:bg-[#E06666]/10"
+            : "border-border-main bg-bg-app text-text-dim dark:bg-slate-800/40"
         }`}
       >
-        Drop here to move specialty to root level
+        {t("specialty.dropToRoot") || "Drop here to move specialty to root level"}
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center text-gray-500">
-            {t("common.loading")}...
-          </div>
-        ) : treeRows.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            {t("specialty.noSpecialties")}
-          </div>
-        ) : (
-          <table className="w-full">
-            <thead className="bg-gray-100 border-b border-gray-200">
+      <div className="overflow-hidden rounded-2xl border border-border-main bg-bg-surface shadow-sm dark:bg-slate-800">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="border-b border-border-main bg-bg-app dark:bg-slate-900/60">
               <tr>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  {t("specialty.name")}
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  Parent
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  {t("specialty.code")}
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  {t("specialty.description")}
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  {t("specialty.doctorCount")}
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  {t("specialty.status")}
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                  {t("common.actions")}
-                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-dim">{t("specialty.name")}</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-dim">Parent</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-dim">{t("specialty.code")}</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-dim">{t("specialty.description")}</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-dim">{t("specialty.doctorCount")}</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-dim">{t("specialty.status")}</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-dim">{t("common.actions")}</th>
               </tr>
             </thead>
-            <tbody>
-              {treeRows.map((specialty) => (
-                <tr
-                  key={specialty.id}
-                  draggable={!isDropping}
-                  onDragStart={() => setDraggingId(specialty.id)}
-                  onDragEnd={() => {
-                    setDraggingId(null);
-                    setDropTargetId(null);
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDropTargetId(specialty.id);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    handleDropOnSpecialty(specialty.id);
-                  }}
-                  className={`border-b transition ${
-                    dropTargetId === specialty.id ? "bg-blue-50" : "hover:bg-gray-50"
-                  } ${draggingId === specialty.id ? "opacity-50" : ""}`}
-                >
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    <div
-                      style={{ paddingLeft: `${specialty.depth * 20}px` }}
-                      className="flex items-center gap-2"
-                    >
-                      <span className="text-gray-400 cursor-grab">⋮⋮</span>
-                      {specialty.depth > 0 ? <span className="text-gray-400">└</span> : <span className="text-gray-400">•</span>}
-                      <span>{specialty.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {specialty.parent_name || "-"}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    <code className="bg-gray-100 px-2 py-1 rounded">
-                      {specialty.code}
-                    </code>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {specialty.description || "-"}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">
-                      {specialty.doctor_count || 0}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      specialty.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}>
-                      {specialty.status === "active"
-                        ? t("common.active")
-                        : t("common.inactive")}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm flex gap-2">
-                    <button
-                      onClick={() => handleEditSpecialty(specialty)}
-                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                      title={t("common.edit")}
-                    >
-                      {t("common.edit")}
-                    </button>
-                    <button
-                      onClick={() => setShowDeleteConfirm(specialty.id)}
-                      className="px-3 py-1 text-white rounded transition-colors bg-red-500 hover:bg-red-600"
-                      title={t("common.delete")}
-                    >
-                      {t("common.delete")}
-                    </button>
-                  </td>
+            <tbody className="divide-y divide-border-main">
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="py-12 text-center text-text-dim">{t("common.loading")}…</td>
                 </tr>
-              ))}
+              ) : treeRows.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="py-12 text-center text-text-dim">{t("specialty.noSpecialties")}</td>
+                </tr>
+              ) : (
+                treeRows.map((specialty) => (
+                  <tr
+                    key={specialty.id}
+                    draggable={!isDropping}
+                    onDragStart={() => setDraggingId(specialty.id)}
+                    onDragEnd={() => { setDraggingId(null); setDropTargetId(null); }}
+                    onDragOver={(e) => { e.preventDefault(); setDropTargetId(specialty.id); }}
+                    onDrop={(e) => { e.preventDefault(); handleDropOnSpecialty(specialty.id); }}
+                    className={`transition ${
+                      dropTargetId === specialty.id
+                        ? "bg-[#FFF5F5] dark:bg-[#E06666]/10"
+                        : "hover:bg-bg-app dark:hover:bg-slate-700/50"
+                    } ${draggingId === specialty.id ? "opacity-50" : ""}`}
+                  >
+                    <td className="px-5 py-4 text-sm font-medium text-text-main">
+                      <div style={{ paddingLeft: `${specialty.depth * 20}px` }} className="flex items-center gap-2">
+                        <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-text-dim" />
+                        {specialty.depth > 0
+                          ? <span className="text-text-dim">└</span>
+                          : <span className="text-text-dim">•</span>}
+                        <span>{specialty.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-sm text-text-dim">{specialty.parent_name || "—"}</td>
+                    <td className="px-5 py-4 text-sm">
+                      <code className="rounded bg-bg-app px-2 py-0.5 font-mono text-xs text-text-dim dark:bg-slate-700">
+                        {specialty.code}
+                      </code>
+                    </td>
+                    <td className="max-w-[180px] truncate px-5 py-4 text-sm text-text-dim">{specialty.description || "—"}</td>
+                    <td className="px-5 py-4 text-sm">
+                      <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                        {specialty.doctor_count || 0}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-sm">
+                      <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+                        specialty.status === "active"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          : "bg-bg-app text-text-dim dark:bg-slate-700"
+                      }`}>
+                        {specialty.status === "active" ? t("common.active") : t("common.inactive")}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleEditSpecialty(specialty)}
+                          title={t("common.edit")}
+                          className="rounded-lg border border-border-main p-1.5 text-text-dim hover:border-[#E06666]/50 hover:bg-[#E06666]/10 hover:text-[#E06666] transition"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setShowDeleteConfirm(specialty.id)}
+                          title={t("common.delete")}
+                          className="rounded-lg border border-border-main p-1.5 text-text-dim hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-        )}
+        </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirm Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              {t("specialty.confirmDelete")}
-            </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded-3xl border border-border-main bg-bg-surface p-6 shadow-2xl dark:bg-slate-800">
+            <h3 className="mb-4 text-lg font-bold text-text-main">{t("specialty.confirmDelete")}</h3>
 
             {deleteSuggestion && (
-              <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+              <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-700/40 dark:bg-amber-900/20 dark:text-amber-400">
                 <p className="font-semibold">This specialty has {deleteSuggestion.doctorCount} doctor(s).</p>
                 <p className="mt-1">Please move doctors to another leaf specialty before deleting.</p>
-
-                <label className="block mt-3 mb-1 text-xs font-semibold uppercase tracking-wide">
+                <label className="mt-3 block text-xs font-semibold uppercase tracking-wide">
                   Suggested target leaf specialty
                 </label>
                 <select
                   value={reassignTargetId}
                   onChange={(e) => setReassignTargetId(e.target.value)}
-                  className="w-full rounded border border-amber-300 bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main dark:bg-slate-700"
                 >
                   {deleteSuggestion.suggestions.map((item) => (
                     <option key={item.id} value={item.id}>
@@ -397,30 +375,20 @@ const SpecialtiesPage = () => {
               </div>
             )}
 
-            <div className="flex gap-3 justify-end">
+            <div className="flex justify-end gap-3">
               <button
-                onClick={() => {
-                  setShowDeleteConfirm(null);
-                  setDeleteSuggestion(null);
-                  setReassignTargetId("");
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={() => { setShowDeleteConfirm(null); setDeleteSuggestion(null); setReassignTargetId(""); }}
+                className="rounded-xl border border-border-main px-4 py-2 text-sm text-text-main hover:bg-bg-app dark:hover:bg-slate-700 transition"
               >
                 {t("common.cancel")}
               </button>
               <button
                 onClick={() => {
-                  if (deleteSuggestion) {
-                    handleReassignAndDelete();
-                    return;
-                  }
-
-                  const specialty = specialties.find(
-                    (s) => s.id === showDeleteConfirm
-                  );
+                  if (deleteSuggestion) { handleReassignAndDelete(); return; }
+                  const specialty = specialties.find((s) => s.id === showDeleteConfirm);
                   handleDeleteSpecialty(showDeleteConfirm, specialty?.doctor_count);
                 }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition"
               >
                 {deleteSuggestion ? "Transfer & Delete" : t("common.delete")}
               </button>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -10,6 +10,7 @@ const AdminLayout = ({ children }) => {
   const { user, role, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t } = useTranslation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -39,7 +40,10 @@ const AdminLayout = ({ children }) => {
     <div className="min-h-screen bg-bg-app transition-colors duration-200">
       <div className="flex min-h-screen">
         {/* Sidebar */}
-        <aside className="w-64 bg-bg-surface border-r border-border-main shadow-md z-10">
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        )}
+        <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-bg-surface border-r border-border-main shadow-md transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="border-b border-border-main px-6 py-5">
             <Link to="/admin" className="text-2xl font-bold text-[#E06666]">
               Holora Admin
@@ -47,7 +51,7 @@ const AdminLayout = ({ children }) => {
             <p className="mt-1 text-sm text-text-dim">{t("admin.medicalDashboard")}</p>
           </div>
 
-          <nav className="space-y-2 p-4">
+          <nav className="space-y-2 p-4 overflow-y-auto flex-1" onClick={() => setSidebarOpen(false)}>
             <NavLink to="/admin" end className={navClass}>
               {t("admin.dashboard")}
             </NavLink>
@@ -97,12 +101,11 @@ const AdminLayout = ({ children }) => {
             {canViewAppointments && (
               <NavLink to="/admin/appointments" className={navClass}>
                 {t("admin.appointments")}
-
-                          {canViewDoctorAppointments && (
-                            <NavLink to="/doctor/appointments" className={navClass}>
-                              📅 Lịch Hẹn Của Tôi
-                            </NavLink>
-                          )}
+              </NavLink>
+            )}
+            {canViewDoctorAppointments && (
+              <NavLink to="/doctor/appointments" className={navClass}>
+                📅 Lịch Hẹn Của Tôi
               </NavLink>
             )}
 
@@ -129,15 +132,19 @@ const AdminLayout = ({ children }) => {
         {/* Main content */}
         <div className="flex flex-1 flex-col">
           {/* Topbar */}
-          {/* Topbar */}
-          <header className="flex items-center justify-between bg-bg-surface px-6 py-4 shadow-sm border-b border-border-main">
-            <div>
-              <h1 className="text-xl font-semibold text-text-main">
-                {t("admin.adminDashboard")}
-              </h1>
-              <p className="text-sm text-text-dim">
-                {t("admin.welcome")}, {user?.full_name || t("common.user")} ({role})
-              </p>
+          <header className="flex items-center justify-between bg-bg-surface px-4 py-4 shadow-sm border-b border-border-main">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setSidebarOpen(v => !v)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 lg:hidden">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              </button>
+              <div>
+                <h1 className="text-xl font-semibold text-text-main">
+                  {t("admin.adminDashboard")}
+                </h1>
+                <p className="text-sm text-text-dim">
+                  {t("admin.welcome")}, {user?.full_name || t("common.user")} ({role})
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">

@@ -1,11 +1,22 @@
 # Local dependencies
 backend/node_modules/
+frontend/node_modules/
 
 # VS Code local workspace settings
 backend/.vscode/
+frontend/.vscode/
+
+# Environment files (contain secrets - never commit)
+backend/.env
+frontend/.env
+.env
 
 # Generated uploads
 backend/public/uploads/
+
+# Logs
+backend/backend.log
+backend/*.log
 
 # Local planning notes
 planing.txt

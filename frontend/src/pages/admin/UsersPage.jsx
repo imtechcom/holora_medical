@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Pencil, ShieldEllipsis, Trash2 } from "lucide-react";
 import {
   getAllUsersApi,
   deleteUserApi,
@@ -201,25 +202,25 @@ const UsersPage = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm">
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => handleManageRoles(user)}
-                        className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors text-xs font-medium"
                         title="Assign or manage roles for this user"
+                        className="rounded-lg border border-border-main p-1.5 text-text-dim hover:border-purple-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 transition"
                       >
-                        🔐 {t("admin.roles")}
+                        <ShieldEllipsis className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => handleEditClick(user)}
-                        className="px-3 py-1 bg-[#E06666] text-white rounded hover:bg-[#D55555] transition-colors text-xs font-medium"
+                        className="rounded-lg border border-border-main p-1.5 text-text-dim hover:border-[#E06666]/50 hover:bg-[#E06666]/10 hover:text-[#E06666] transition"
                       >
-                        {t("admin.edit")}
+                        <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteClick(user)}
-                        className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs font-medium"
+                        className="rounded-lg border border-border-main p-1.5 text-text-dim hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition"
                       >
-                        {t("admin.delete")}
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </td>

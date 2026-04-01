@@ -139,20 +139,20 @@ const SpecialtyFormPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#E06666]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6">
+    <div>
       <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-bg-surface rounded-2xl shadow-sm p-6 dark:bg-slate-800">
           {/* Header */}
-          <h1 className="text-2xl font-bold text-gray-800 mb-1">
+          <h1 className="text-2xl font-bold text-[#E06666] mb-1">
             {isEditMode ? t('specialty.editTitle') : t('specialty.addTitle')}
           </h1>
-          <p className="text-gray-600 text-sm mb-6">
+          <p className="text-text-dim text-sm mb-6">
             {isEditMode ? t('specialty.editSubtitle') : t('specialty.addSubtitle')}
           </p>
 
@@ -160,8 +160,8 @@ const SpecialtyFormPage = () => {
           {message && (
             <div className={`p-3 mb-4 rounded-md text-sm ${
               message.includes('success') || message.includes('Success')
-                ? 'bg-green-100 text-green-800'
-                : 'bg-red-100 text-red-800'
+                ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-400'
+                : 'border border-red-200 bg-red-50 text-red-700 dark:border-red-800/40 dark:bg-red-900/20 dark:text-red-400'
             }`}>
               {message}
             </div>
@@ -170,14 +170,14 @@ const SpecialtyFormPage = () => {
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Section 1: Basic Information */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-text-main mb-4 pb-2 border-b border-border-main">
                 {t('specialty.basicInfo')}
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-text-main mb-2">
                     {t('specialty.name')} <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -186,8 +186,8 @@ const SpecialtyFormPage = () => {
                     value={formData.name}
                     onChange={handleChange}
                     placeholder={t('specialty.namePlaceholder')}
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 bg-bg-app dark:bg-slate-700 ${
+                      errors.name ? 'border-red-500' : 'border-border-main'
                     }`}
                   />
                   {errors.name && (
@@ -197,7 +197,7 @@ const SpecialtyFormPage = () => {
 
                 {/* Code */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-text-main mb-2">
                     {t('specialty.code')} <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -207,9 +207,9 @@ const SpecialtyFormPage = () => {
                     onChange={handleChange}
                     placeholder={t('specialty.codePlaceholder')}
                     disabled={isEditMode}
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.code ? 'border-red-500' : 'border-gray-300'
-                    } ${isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 bg-bg-app dark:bg-slate-700 ${
+                      errors.code ? 'border-red-500' : 'border-border-main'
+                    } ${isEditMode ? 'opacity-60 cursor-not-allowed' : ''}`}
                   />
                   {errors.code && (
                     <p className="text-red-500 text-sm mt-1">{errors.code}</p>
@@ -218,14 +218,14 @@ const SpecialtyFormPage = () => {
 
                 {/* Status */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-text-main mb-2">
                     {t('specialty.status')}
                   </label>
                   <select
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 dark:bg-slate-700"
                   >
                     <option value="active">{t('common.active')}</option>
                     <option value="inactive">{t('common.inactive')}</option>
@@ -233,14 +233,14 @@ const SpecialtyFormPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-text-main mb-2">
                     Parent Specialty
                   </label>
                   <select
                     name="parent_id"
                     value={formData.parent_id}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 dark:bg-slate-700"
                   >
                     <option value="">None (Root specialty)</option>
                     {allSpecialties
@@ -257,12 +257,12 @@ const SpecialtyFormPage = () => {
 
             {/* Section 2: Description */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-text-main mb-4 pb-2 border-b border-border-main">
                 {t('specialty.description')}
               </h2>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-text-main mb-2">
                   {t('specialty.descriptionLabel')}
                 </label>
                 <textarea
@@ -271,17 +271,17 @@ const SpecialtyFormPage = () => {
                   onChange={handleChange}
                   placeholder={t('specialty.descriptionPlaceholder')}
                   rows="4"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 dark:bg-slate-700"
                 />
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-6 border-t border-gray-200">
+            <div className="flex gap-3 pt-6 border-t border-border-main">
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition"
+                className="flex-1 bg-[#E06666] hover:bg-[#D55555] disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg transition"
               >
                 {saving ? t('common.saving') : (isEditMode ? t('common.update') : t('common.create'))}
               </button>
@@ -289,7 +289,7 @@ const SpecialtyFormPage = () => {
                 type="button"
                 onClick={handleCancel}
                 disabled={saving}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-800 font-medium py-2 px-4 rounded-lg transition"
+                className="flex-1 border border-border-main text-text-main hover:bg-bg-app disabled:opacity-50 font-medium py-2 px-4 rounded-lg transition dark:hover:bg-slate-700"
               >
                 {t('common.cancel')}
               </button>

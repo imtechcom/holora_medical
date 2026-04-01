@@ -33,7 +33,31 @@ const LoginPage = () => {
           user: data.user,
         });
 
-        navigate("/");
+        // Redirect to appropriate zone based on role
+        const userRole = data.user?.role;
+        switch (userRole) {
+          case "patient":
+            navigate("/patient");
+            break;
+          case "doctor":
+            navigate("/doctor");
+            break;
+          case "clinic_owner":
+            navigate("/clinic-owner");
+            break;
+            case "receptionist":
+              navigate("/receptionist");
+              break;
+            case "accountant":
+              navigate("/accountant");
+              break;
+          case "admin":
+          case "super_admin":
+            navigate("/admin");
+            break;
+          default:
+            navigate("/");
+        }
       } catch (error) {
         setErrorMessage(error?.response?.data?.message || t("auth.googleAuthFailed"));
       } finally {
@@ -86,11 +110,30 @@ const LoginPage = () => {
         user: data.user,
       });
 
+      // Redirect to appropriate zone based on role
       const userRole = data.user?.role;
-      if (userRole === "clinic_owner") {
-        navigate("/clinic-owner");
-      } else {
-        navigate("/");
+      switch (userRole) {
+        case "patient":
+          navigate("/patient");
+          break;
+        case "doctor":
+          navigate("/doctor");
+          break;
+        case "clinic_owner":
+          navigate("/clinic-owner");
+          break;
+          case "receptionist":
+            navigate("/receptionist");
+            break;
+          case "accountant":
+            navigate("/accountant");
+            break;
+        case "admin":
+        case "super_admin":
+          navigate("/admin");
+          break;
+        default:
+          navigate("/");
       }
     } catch (error) {
       setErrorMessage(error?.response?.data?.message || t("auth.loginFailed"));

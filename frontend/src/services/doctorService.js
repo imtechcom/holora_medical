@@ -6,9 +6,47 @@ export const getAllDoctorsApi = async () => {
   return response.data;
 };
 
+// Search doctors with filters + pagination
+export const searchDoctorsApi = async ({
+  q = "",
+  specialty_id,
+  branch_id,
+  status,
+  page = 1,
+  limit = 20,
+} = {}) => {
+  const params = { q, page, limit };
+  if (specialty_id) params.specialty_id = specialty_id;
+  if (branch_id) params.branch_id = branch_id;
+  if (status) params.status = status;
+
+  const response = await api.get("/doctors/search", { params });
+  return response.data;
+};
+
 // Get doctor by ID
 export const getDoctorByIdApi = async (id) => {
   const response = await api.get(`/doctors/${id}`);
+  return response.data;
+};
+
+export const getMyDoctorProfileApi = async () => {
+  const response = await api.get("/doctors/me");
+  return response.data;
+};
+
+export const updateMyDoctorProfileApi = async (payload) => {
+  const response = await api.put("/doctors/me", payload);
+  return response.data;
+};
+
+export const getMyDoctorPatientsApi = async () => {
+  const response = await api.get("/doctors/me/patients");
+  return response.data;
+};
+
+export const getNextDoctorCodeApi = async () => {
+  const response = await api.get("/doctors/next-code");
   return response.data;
 };
 

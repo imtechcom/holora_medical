@@ -38,13 +38,13 @@ const PatientDashboardPage = () => {
         console.error("Error fetching stats:", err);
         console.error("Error response:", err?.response);
         console.error("Error message:", err?.message);
-        setError(err?.response?.data?.message || err.message || "Failed to load dashboard stats");
+        setError(err?.response?.data?.message || err.message || t("patient.dashboardPage.loadError"));
       } finally {
         setLoading(false);
       }
     };
     fetchStats();
-  }, []);
+  }, [t]);
 
   const quickLinks = [
     {
@@ -79,7 +79,7 @@ const PatientDashboardPage = () => {
      return (
        <div className="max-w-4xl mx-auto">
          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 p-6 rounded-2xl">
-           <h2 className="text-lg font-bold text-red-800 dark:text-red-300 mb-2">Error Loading Dashboard</h2>
+           <h2 className="text-lg font-bold text-red-800 dark:text-red-300 mb-2">{t("patient.dashboardPage.errorTitle")}</h2>
            <p className="text-red-700 dark:text-red-400">{error}</p>
          </div>
        </div>
@@ -141,7 +141,7 @@ const PatientDashboardPage = () => {
               <h3 className="text-lg font-bold text-text-main mb-1">{item.title}</h3>
               <p className="text-sm text-text-dim mb-4">{item.description}</p>
               <div className="flex items-center text-sm font-semibold text-[#E06666] group-hover:gap-2 transition-all">
-                {t("common.details") || "View Details"} <ArrowRight className="w-4 h-4" />
+                {t("common.details")} <ArrowRight className="w-4 h-4" />
               </div>
             </Link>
           ))}
@@ -217,7 +217,7 @@ const PatientDashboardPage = () => {
               to="/patient/profile"
               className="w-full py-3 bg-gray-100 dark:bg-slate-700 text-center rounded-xl font-bold text-text-main hover:bg-[#E06666] hover:text-white transition-all shadow-sm"
             >
-              {t("common.editProfile") || "Go to Profile"}
+              {t("common.editProfile")}
             </Link>
          </div>
       </div>

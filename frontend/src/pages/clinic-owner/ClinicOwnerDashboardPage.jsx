@@ -43,21 +43,25 @@ const ClinicOwnerDashboardPage = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {t("clinicOwner.welcomeTitle") || "Welcome back"}, {user?.full_name || "Provider"}!
+      {/* Welcome Banner */}
+      <div className="bg-gradient-to-r from-[#E06666] to-[#D85555] rounded-xl shadow-md p-8 text-white">
+        <h1 className="text-3xl font-bold mb-1">
+          {t("clinicOwner.welcomeTitle") || "Welcome back"}, {user?.full_name || "Provider"}! 🏥
         </h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <p className="text-white/85 text-base mt-1">
           {t("clinicOwner.welcomeSubtitle") || "Manage your branches and doctors from here."}
+        </p>
+        <p className="mt-3 text-white/65 text-sm">
+          📅 {new Date().toLocaleDateString("vi-VN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
         </p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="bg-bg-surface dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-border-main">
           <div className="flex items-center justify-between mb-4">
             <span className="text-3xl">🏥</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-dim">
               {t("clinicOwner.totalBranches") || "Branches"}
             </span>
           </div>
@@ -72,10 +76,10 @@ const ClinicOwnerDashboardPage = () => {
           </Link>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="bg-bg-surface dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-border-main">
           <div className="flex items-center justify-between mb-4">
             <span className="text-3xl">👨‍⚕️</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-dim">
               {t("clinicOwner.totalDoctors") || "Doctors"}
             </span>
           </div>
@@ -90,31 +94,31 @@ const ClinicOwnerDashboardPage = () => {
           </Link>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="bg-bg-surface dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-border-main">
           <div className="flex items-center justify-between mb-4">
             <span className="text-3xl">💳</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-dim">
               {t("clinicOwner.subscription") || "Subscription"}
             </span>
           </div>
           <p className="text-lg font-bold text-[#E06666] capitalize">
             {subscriptionSummary?.status || "none"}
           </p>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-text-dim">
             {subscriptionSummary?.plan_name || "No active plan yet"}
           </p>
           <Link
             to="/clinic-owner/subscription"
             className="mt-3 inline-block text-sm text-[#E06666] hover:underline"
           >
-            Manage subscription →
+            {t("clinicOwner.manageSubscription") || "Manage subscription →"}
           </Link>
         </div>
       </div>
 
       {/* Quick actions */}
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-        <h2 className="text-base font-semibold text-gray-800 mb-4">
+      <div className="bg-bg-surface dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-border-main">
+        <h2 className="text-base font-semibold text-text-main mb-4">
           {t("clinicOwner.quickActions") || "Quick Actions"}
         </h2>
         <div className="flex flex-wrap gap-3">
@@ -126,13 +130,13 @@ const ClinicOwnerDashboardPage = () => {
           </Link>
           <Link
             to="/clinic-owner/doctors/new"
-            className="border border-[#E06666] text-[#E06666] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#FFF5F5] transition"
+            className="border border-[#E06666] text-[#E06666] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#FFF5F5] dark:hover:bg-slate-700 transition"
           >
             + {t("admin.addNewDoctor") || "Add Doctor"}
           </Link>
           <Link
             to="/clinic-owner/subscription"
-            className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+            className="border border-border-main text-text-main px-4 py-2 rounded-lg text-sm font-medium hover:bg-bg-app dark:hover:bg-slate-700 transition"
           >
             {t("clinicOwner.subscription") || "Subscription"}
           </Link>

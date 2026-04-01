@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   getPatientByIdApi,
+  getNextPatientCodeApi,
   createPatientApi,
   updatePatientApi,
 } from "../../services/patientService";
@@ -19,9 +20,9 @@ const PatientFormPage = () => {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [branches, setBranches] = useState([]);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const [formData, setFormData] = useState({
-    user_id: "",
     patient_code: "",
     branch_ids: [],
     full_name: "",
@@ -58,7 +59,6 @@ const PatientFormPage = () => {
           const patient = res.data;
           if (patient) {
             setFormData({
-              user_id: patient.user_id || "",
               patient_code: patient.patient_code || "",
               branch_ids: patient.branch_ids || [],
               full_name: patient.full_name || "",
@@ -85,6 +85,27 @@ const PatientFormPage = () => {
         }
       };
       fetchPatient();
+    } else {
+      const fetchNextPatientCode = async () => {
+        try {
+          const res = await getNextPatientCodeApi();
+          setFormData((prev) => ({
+            ...prev,
+            patient_code: res?.data?.code || "",
+          }));
+        } catch (err) {
+          console.error("Error fetching next patient code:", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchNextPatientCode();
+      return;
+    }
+
+    if (!isEdit) {
+      setLoading(false);
     }
   }, [patientId, isEdit, t]);
 
@@ -159,340 +180,565 @@ const PatientFormPage = () => {
     });
   };
 
+  const validateStep = (step) => {
+    if (step === 1) {
+      if (!formData.full_name?.trim()) {
+        setError(t("admin.fullNameRequired"));
+        return false;
+      }
+      if (!formData.phone?.trim()) {
+        setError(t("admin.phoneRequired"));
+        return false;
+      }
+      if (!formData.branch_ids.length) {
+        setError(t("admin.branchRequired"));
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleNextStep = () => {
+    setError("");
+    if (!validateStep(currentStep)) {
+      return;
+    }
+    setCurrentStep((prev) => Math.min(prev + 1, 3));
+  };
+
+  const handlePreviousStep = () => {
+    setError("");
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+  };
+
+  const stepItems = [
+    {
+      id: 1,
+      title: t("admin.basicInformation"),
+      description: "Identity, contact details, and branch access.",
+    },
+    {
+      id: 2,
+      title: t("admin.medicalInformation"),
+      description: "Medical profile and patient status.",
+    },
+    {
+      id: 3,
+      title: t("admin.emergencyContact"),
+      description: "Emergency contact and final review.",
+    },
+  ];
+  const inputClassName =
+    "w-full rounded-xl border border-border-main bg-bg-app dark:bg-slate-900 px-4 py-3 text-sm text-text-main placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-[#E06666]";
+  const cardClassName =
+    "rounded-2xl border border-border-main bg-bg-surface dark:bg-slate-800 shadow-sm";
+
   if (loading) {
     return (
-      <div className="rounded-2xl bg-white p-6 shadow-sm text-center">
-        <div className="animate-spin inline-block w-8 h-8 border-4 border-[#E06666] border-r-transparent rounded-full"></div>
+      <div className="rounded-2xl border border-border-main bg-bg-surface dark:bg-slate-800 p-8 text-center shadow-sm">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#E06666] border-r-transparent"></div>
+        <p className="mt-4 text-sm text-text-dim">
+          {t("admin.loading", { defaultValue: "Loading patient form..." })}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-white p-8 shadow-sm">
-      {/* Header */}
-      <div className="border-b pb-6 mb-6">
-        <h2 className="text-3xl font-bold text-[#E06666] mb-2">
-          {isEdit ? t("admin.editPatient") : t("admin.addNewPatient")}
-        </h2>
-        <p className="text-gray-600">
-          {isEdit
-            ? t("admin.updatePatientInfo")
-            : t("admin.fillFormToAddPatient")}
-        </p>
+    <div className="space-y-6">
+      <div className="overflow-hidden rounded-[28px] border border-[#f0c9c2] bg-[linear-gradient(135deg,#fff7f2_0%,#ffe6dc_52%,#fff0ea_100%)] p-6 shadow-sm dark:border-[#7a3d3b] dark:bg-[linear-gradient(135deg,rgba(127,29,29,0.30)_0%,rgba(51,65,85,0.92)_56%,rgba(15,23,42,1)_100%)] lg:p-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#B85757] dark:text-[#F2B4A8]">
+              Patient onboarding
+            </p>
+            <h1 className="mt-3 text-3xl font-bold text-text-main lg:text-4xl">
+              {isEdit ? t("admin.editPatient") : t("admin.addNewPatient")}
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-text-dim lg:text-base">
+              {isEdit
+                ? t("admin.updatePatientInfo")
+                : "A guided 3-step flow so the operator only sees the information needed at each moment."}
+            </p>
+          </div>
+          <div className="min-w-[280px] rounded-2xl border border-white/60 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/50">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-text-dim">
+              {t("admin.patientCode")}
+            </p>
+            <p className="mt-3 break-all font-mono text-lg font-semibold text-text-main">
+              {formData.patient_code || "HLR_MED_ddmmyyyy_PT0001"}
+            </p>
+            <p className="mt-3 text-sm text-text-dim">
+              {isEdit
+                ? "Patient code stays fixed after creation."
+                : "Code is reserved automatically before the record is saved."}
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Success Message */}
       {successMessage && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-start gap-3">
-          <span className="text-xl flex-shrink-0">✅</span>
+        <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
           <div>
             <p className="font-semibold">{t("common.success")}</p>
-            <p className="text-sm">{successMessage}</p>
+            <p className="mt-1 text-sm">{successMessage}</p>
           </div>
         </div>
       )}
 
-      {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start gap-3">
-          <span className="text-xl flex-shrink-0">⚠️</span>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           <div>
             <p className="font-semibold">{t("common.error")}</p>
-            <p className="text-sm">{error}</p>
+            <p className="mt-1 text-sm">{error}</p>
           </div>
         </div>
       )}
 
-      {/* Form */}
-      <form onSubmit={handleSubmit}>
-        {/* Section 1: Basic Information */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
-              1
-            </span>
-            {t("admin.basicInformation")}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.fullName")} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="full_name"
-                value={formData.full_name}
-                onChange={handleInputChange}
-                placeholder="John Doe"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <section className={`${cardClassName} p-4 lg:p-6`}>
+            <div className="grid gap-3 md:grid-cols-3">
+              {stepItems.map((step) => {
+                const isActive = currentStep === step.id;
+                const isDone = currentStep > step.id;
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.patientCode")} {!isEdit && <span className="text-red-500">*</span>}
-              </label>
-              <input
-                type="text"
-                name="patient_code"
-                value={formData.patient_code}
-                onChange={handleInputChange}
-                disabled={isEdit}
-                placeholder="PAT000001"
-                className={`w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition ${
-                  isEdit ? "bg-gray-100 cursor-not-allowed" : ""
-                }`}
-              />
+                return (
+                  <button
+                    key={step.id}
+                    type="button"
+                    onClick={() => {
+                      if (step.id <= currentStep) {
+                        setError("");
+                        setCurrentStep(step.id);
+                      }
+                    }}
+                    className={`rounded-2xl border px-4 py-4 text-left transition ${
+                      isActive
+                        ? "border-[#E06666] bg-[#fff4f2] dark:bg-red-950/20"
+                        : isDone
+                          ? "border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+                          : "border-border-main bg-bg-app dark:bg-slate-900"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold ${
+                          isActive
+                            ? "bg-[#E06666] text-white"
+                            : isDone
+                              ? "bg-green-600 text-white"
+                              : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
+                        }`}
+                      >
+                        {isDone ? "✓" : step.id}
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-text-main">{step.title}</p>
+                        <p className="mt-1 text-xs text-text-dim">{step.description}</p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+          </section>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.email")}
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="patient@example.com"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.phone")} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                placeholder="+84 812 345 6789"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.gender")}
-              </label>
-              <select
-                name="gender"
-                value={formData.gender}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition bg-white"
-              >
-                <option value="">Select Gender</option>
-                <option value="male">{t("admin.genderMale")}</option>
-                <option value="female">{t("admin.genderFemale")}</option>
-                <option value="other">{t("admin.genderOther")}</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.dateOfBirth")}
-              </label>
-              <input
-                type="date"
-                name="date_of_birth"
-                value={formData.date_of_birth}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.address")}
-              </label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                placeholder="123 Main Street"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.branches")} <span className="text-red-500">*</span>
-              </label>
-              {branches.length === 0 ? (
-                <p className="text-sm text-gray-500">{t("admin.noBranchesAvailable")}</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 border border-gray-300 rounded-lg">
-                  {branches.map((branch) => {
-                    const checked = formData.branch_ids.includes(branch.id);
-                    return (
-                      <label key={branch.id} className="flex items-center gap-2 text-sm text-gray-700">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => handleBranchToggle(branch.id)}
-                          className="w-4 h-4 text-[#E06666] border-gray-300 rounded focus:ring-[#E06666]"
-                        />
-                        <span>
-                          {branch.name}
-                          {branch.code ? ` (${branch.code})` : ""}
-                        </span>
-                      </label>
-                    );
-                  })}
+          {currentStep === 1 && (
+            <section className={cardClassName}>
+              <div className="border-b border-border-main px-6 py-5">
+                <h2 className="text-lg font-semibold text-text-main">{t("admin.basicInformation")}</h2>
+                <p className="mt-1 text-sm text-text-dim">
+                  Focus only on the essential contact details first.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-5 px-6 py-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-text-main">
+                    {t("admin.fullName")} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="full_name"
+                    value={formData.full_name}
+                    onChange={handleInputChange}
+                    placeholder="John Doe"
+                    className={inputClassName}
+                  />
                 </div>
-              )}
-              <p className="text-xs text-gray-500 mt-1">{t("admin.selectPatientBranchesHelp")}</p>
-            </div>
-          </div>
-        </div>
 
-        {/* Section 2: Medical Information */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
-              2
-            </span>
-            {t("admin.medicalInformation")}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.bloodGroup")}
-              </label>
-              <select
-                name="blood_group"
-                value={formData.blood_group}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition bg-white"
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-text-main">
+                    {t("admin.patientCode")}
+                  </label>
+                  <input
+                    type="text"
+                    name="patient_code"
+                    value={formData.patient_code}
+                    readOnly
+                    disabled
+                    className="w-full rounded-xl border border-border-main bg-bg-app px-4 py-3 font-mono text-sm text-text-dim cursor-not-allowed dark:bg-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-text-main">
+                    {t("admin.phone")} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="+84 812 345 6789"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-text-main">
+                    {t("admin.email")}
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="patient@example.com"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-text-main">
+                    {t("admin.gender")}
+                  </label>
+                  <select
+                    name="gender"
+                    value={formData.gender}
+                    onChange={handleInputChange}
+                    className={inputClassName}
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="male">{t("admin.genderMale")}</option>
+                    <option value="female">{t("admin.genderFemale")}</option>
+                    <option value="other">{t("admin.genderOther")}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-text-main">
+                    {t("admin.dateOfBirth")}
+                  </label>
+                  <input
+                    type="date"
+                    name="date_of_birth"
+                    value={formData.date_of_birth}
+                    onChange={handleInputChange}
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-semibold text-text-main">
+                    {t("admin.address")}
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    placeholder="123 Main Street"
+                    className={inputClassName}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <label className="block text-sm font-semibold text-text-main">
+                      {t("admin.branches")} <span className="text-red-500">*</span>
+                    </label>
+                    <span className="text-xs text-text-dim">
+                      {formData.branch_ids.length > 0
+                        ? `${formData.branch_ids.length} selected`
+                        : "Choose at least one branch"}
+                    </span>
+                  </div>
+                  {branches.length === 0 ? (
+                    <p className="text-sm text-text-dim">{t("admin.noBranchesAvailable")}</p>
+                  ) : (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {branches.map((branch) => {
+                        const checked = formData.branch_ids.includes(branch.id);
+                        return (
+                          <label
+                            key={branch.id}
+                            className={`cursor-pointer rounded-2xl border p-4 transition ${
+                              checked
+                                ? "border-[#E06666] bg-[#fff4f2] dark:bg-red-950/20"
+                                : "border-border-main bg-bg-app dark:bg-slate-900"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => handleBranchToggle(branch.id)}
+                                className="mt-1 h-4 w-4 rounded border-border-main text-[#E06666] focus:ring-[#E06666]"
+                              />
+                              <div>
+                                <p className="text-sm font-semibold text-text-main">{branch.name}</p>
+                                <p className="mt-1 text-xs text-text-dim">{branch.code || "No branch code"}</p>
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <p className="mt-3 text-xs text-text-dim">{t("admin.selectPatientBranchesHelp")}</p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {currentStep === 2 && (
+            <section className={cardClassName}>
+              <div className="border-b border-border-main px-6 py-5">
+                <h2 className="text-lg font-semibold text-text-main">{t("admin.medicalInformation")}</h2>
+                <p className="mt-1 text-sm text-text-dim">
+                  Capture medical context after the basic patient shell is ready.
+                </p>
+              </div>
+              <div className="space-y-5 px-6 py-6">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-text-main">
+                      {t("admin.bloodGroup")}
+                    </label>
+                    <select
+                      name="blood_group"
+                      value={formData.blood_group}
+                      onChange={handleInputChange}
+                      className={inputClassName}
+                    >
+                      <option value="">Select Blood Group</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-text-main">
+                      {t("admin.status")}
+                    </label>
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                      className={inputClassName}
+                    >
+                      <option value="active">{t("admin.statusActive")}</option>
+                      <option value="inactive">{t("admin.statusInactive")}</option>
+                      <option value="blocked">Blocked</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-text-main">
+                    {t("admin.allergies")}
+                  </label>
+                  <textarea
+                    name="allergies"
+                    value={formData.allergies}
+                    onChange={handleInputChange}
+                    placeholder={t("admin.allergiesPlaceholder")}
+                    rows="4"
+                    className={`${inputClassName} resize-none`}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-text-main">
+                    {t("admin.medicalHistory")}
+                  </label>
+                  <textarea
+                    name="medical_history"
+                    value={formData.medical_history}
+                    onChange={handleInputChange}
+                    placeholder={t("admin.medicalHistoryPlaceholder")}
+                    rows="4"
+                    className={`${inputClassName} resize-none`}
+                  />
+                </div>
+              </div>
+            </section>
+          )}
+
+          {currentStep === 3 && (
+            <section className={cardClassName}>
+              <div className="border-b border-border-main px-6 py-5">
+                <h2 className="text-lg font-semibold text-text-main">{t("admin.emergencyContact")}</h2>
+                <p className="mt-1 text-sm text-text-dim">
+                  Final safety contact details and a quick review before saving.
+                </p>
+              </div>
+              <div className="space-y-6 px-6 py-6">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-text-main">
+                      {t("admin.emergencyContactName")}
+                    </label>
+                    <input
+                      type="text"
+                      name="emergency_contact_name"
+                      value={formData.emergency_contact_name}
+                      onChange={handleInputChange}
+                      placeholder="John Smith"
+                      className={inputClassName}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-text-main">
+                      {t("admin.emergencyContactPhone")}
+                    </label>
+                    <input
+                      type="tel"
+                      name="emergency_contact_phone"
+                      value={formData.emergency_contact_phone}
+                      onChange={handleInputChange}
+                      placeholder="+84 812 345 6789"
+                      className={inputClassName}
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-border-main bg-bg-app p-5 dark:bg-slate-900">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-text-dim">
+                    Final review
+                  </h3>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-text-dim">Patient</p>
+                      <p className="mt-1 font-medium text-text-main">{formData.full_name || "-"}</p>
+                      <p className="mt-1 text-sm text-text-dim">{formData.phone || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-text-dim">Branches</p>
+                      <p className="mt-1 font-medium text-text-main">
+                        {branches
+                          .filter((branch) => formData.branch_ids.includes(branch.id))
+                          .map((branch) => branch.name)
+                          .join(", ") || "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-text-dim">Medical</p>
+                      <p className="mt-1 font-medium text-text-main">
+                        {formData.blood_group || "No blood group set"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-text-dim">Emergency</p>
+                      <p className="mt-1 font-medium text-text-main">
+                        {formData.emergency_contact_name || "No emergency contact yet"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          <section className={`${cardClassName} p-5`}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={() => navigate("/admin/patients")}
+                disabled={submitting}
+                className="rounded-xl border border-border-main px-5 py-3 text-sm font-medium text-text-main transition hover:bg-bg-app dark:hover:bg-slate-700 disabled:opacity-50"
               >
-                <option value="">Select Blood Group</option>
-                <option value="O+">O+</option>
-                <option value="O-">O-</option>
-                <option value="A+">A+</option>
-                <option value="A-">A-</option>
-                <option value="B+">B+</option>
-                <option value="B-">B-</option>
-                <option value="AB+">AB+</option>
-                <option value="AB-">AB-</option>
-              </select>
+                {t("common.cancel")}
+              </button>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                {currentStep > 1 && (
+                  <button
+                    type="button"
+                    onClick={handlePreviousStep}
+                    className="rounded-xl border border-border-main px-5 py-3 text-sm font-medium text-text-main transition hover:bg-bg-app dark:hover:bg-slate-700"
+                  >
+                    {t("common.previous", { defaultValue: "Previous" })}
+                  </button>
+                )}
+                {currentStep < 3 ? (
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="rounded-xl bg-[#E06666] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#D55555]"
+                  >
+                    {t("common.next", { defaultValue: "Next step" })}
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-[#E06666] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#D55555] disabled:bg-gray-400"
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                        {t("common.saving")}
+                      </>
+                    ) : isEdit ? (
+                      t("common.update")
+                    ) : (
+                      t("common.save")
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
+          </section>
+        </form>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.status")}
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition bg-white"
-              >
-                <option value="active">{t("admin.statusActive")}</option>
-                <option value="inactive">{t("admin.statusInactive")}</option>
-                <option value="blocked">Blocked</option>
-              </select>
+        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <section className={`${cardClassName} p-6`}>
+            <h2 className="text-base font-semibold text-text-main">Why this flow</h2>
+            <p className="mt-2 text-sm text-text-dim">
+              The form is split into smaller decisions so operators can finish the critical patient shell first, then enrich medical and emergency details without overload.
+            </p>
+          </section>
+
+          <section className={`${cardClassName} p-6`}>
+            <h2 className="text-base font-semibold text-text-main">Current progress</h2>
+            <div className="mt-4 space-y-4 text-sm">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-text-dim">Step</p>
+                <p className="mt-1 font-medium text-text-main">{currentStep} / 3</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-text-dim">Selected branches</p>
+                <p className="mt-1 font-medium text-text-main">{formData.branch_ids.length}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-text-dim">Emergency contact</p>
+                <p className="mt-1 font-medium text-text-main">
+                  {formData.emergency_contact_name || "Not set yet"}
+                </p>
+              </div>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 mt-4">
-              {t("admin.allergies")}
-            </label>
-            <textarea
-              name="allergies"
-              value={formData.allergies}
-              onChange={handleInputChange}
-              placeholder={t("admin.allergiesPlaceholder")}
-              rows="3"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 mt-4">
-              {t("admin.medicalHistory")}
-            </label>
-            <textarea
-              name="medical_history"
-              value={formData.medical_history}
-              onChange={handleInputChange}
-              placeholder={t("admin.medicalHistoryPlaceholder")}
-              rows="3"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition resize-none"
-            />
-          </div>
-        </div>
-
-        {/* Section 3: Emergency Contact */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
-              3
-            </span>
-            {t("admin.emergencyContact")}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.emergencyContactName")}
-              </label>
-              <input
-                type="text"
-                name="emergency_contact_name"
-                value={formData.emergency_contact_name}
-                onChange={handleInputChange}
-                placeholder="John Smith"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t("admin.emergencyContactPhone")}
-              </label>
-              <input
-                type="tel"
-                name="emergency_contact_phone"
-                value={formData.emergency_contact_phone}
-                onChange={handleInputChange}
-                placeholder="+84 812 345 6789"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="border-t pt-6 flex justify-end gap-4">
-          <button
-            type="button"
-            onClick={() => navigate("/admin/patients")}
-            disabled={submitting}
-            className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-          >
-            {t("common.cancel")}
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-6 py-2.5 bg-[#E06666] text-white rounded-lg hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
-          >
-            {submitting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-r-transparent rounded-full animate-spin"></div>
-                {t("common.saving")}
-              </>
-            ) : (
-              <>
-                ✓ {isEdit ? t("common.update") : t("common.save")}
-              </>
-            )}
-          </button>
-        </div>
-      </form>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 };

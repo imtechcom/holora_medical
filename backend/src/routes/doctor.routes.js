@@ -2,8 +2,13 @@ const express = require("express");
 const router = express.Router();
 const {
   getAllDoctors,
+  searchDoctors,
   getDoctorById,
   getDoctorsByOwnerBranches,
+  getMyProfile,
+  updateMyProfile,
+  getMyPatients,
+  getNextDoctorCode,
   createDoctor,
   updateDoctor,
   deleteDoctor,
@@ -18,9 +23,16 @@ const {
 
 // Get all doctors
 router.get("/", getAllDoctors);
+router.get("/search", searchDoctors);
+router.get("/next-code", getNextDoctorCode);
 
 // Get doctors in branches owned by the authenticated clinic_owner
 router.get("/my-branches", authenticateToken, requireProviderRole, getDoctorsByOwnerBranches);
+
+// Doctor self-service profile and data (more specific routes first)
+router.get("/me/patients", authenticateToken, getMyPatients);
+router.get("/me", authenticateToken, getMyProfile);
+router.put("/me", authenticateToken, updateMyProfile);
 
 // Get doctor by ID
 router.get("/:id", getDoctorById);

@@ -67,7 +67,7 @@ const PatientConsultationRequestPage = () => {
 
       const res = await consultationService.createRequest(payload);
       alert("Gửi yêu cầu thành công!");
-      navigate(`/doctor/consultations/${res.consultation_id}`); 
+      navigate(`/patient/consultations`); 
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Đã xảy ra lỗi");
     } finally {

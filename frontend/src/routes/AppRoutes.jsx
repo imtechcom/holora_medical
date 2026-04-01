@@ -1,14 +1,25 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+﻿import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
+// Layouts
 import MainLayout from "../components/layout/MainLayout";
 import AdminLayout from "../components/layout/AdminLayout";
+import PatientLayout from "../components/layout/PatientLayout";
+import DoctorLayout from "../components/layout/DoctorLayout";
 import ClinicOwnerLayout from "../components/layout/ClinicOwnerLayout";
+import ReceptionistLayout from "../components/layout/ReceptionistLayout";
+import AccountantLayout from "../components/layout/AccountantLayout";
 
+// Public Pages
 import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import PricingPage from "../pages/PricingPage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/ResetPasswordPage";
+import DoctorInviteSetupPage from "../pages/DoctorInviteSetupPage";
+
+// Main Layout Pages (used in multiple zones)
 import AppointmentPage from "../pages/AppointmentPage";
 import DoctorsPage from "../pages/DoctorsPage";
 import PatientConsultationHistoryPage from "../pages/PatientConsultationHistoryPage";
@@ -18,13 +29,22 @@ import PatientBranchesPage from "../pages/PatientBranchesPage";
 import PatientBranchDetailPage from "../pages/PatientBranchDetailPage";
 import DoctorPublicDetailPage from "../pages/DoctorPublicDetailPage";
 import HoloraMindPage from "../pages/HoloraMindPage";
-import DoctorInviteSetupPage from "../pages/DoctorInviteSetupPage";
 
-import DashboardPage from "../pages/admin/DashboardPage";
-import PatientConsultationRequestPage from "../pages/PatientConsultationRequestPage";
-import DoctorRequestsListPage from "../pages/DoctorRequestsListPage";
+// Patient Zone Pages
+import PatientDashboardPage from "../pages/patient/PatientDashboardPage";
+
+// Doctor Zone Pages
+import DoctorDashboardPage from "../pages/doctor/DoctorDashboardPage";
 import DoctorConsultationDetailPage from "../pages/DoctorConsultationDetailPage";
+import DoctorConsultationHistoryPage from "../pages/DoctorConsultationHistoryPage";
+import DoctorAppointmentsPage from "../pages/DoctorAppointmentsPage";
+import DoctorAppointmentDetailPage from "../pages/DoctorAppointmentDetailPage";
+import DoctorPatientsPage from "../pages/DoctorPatientsPage";
+import PatientConsultationRequestPage from "../pages/PatientConsultationRequestPage";
+import DoctorProfilePage from "../pages/DoctorProfilePage";
 
+// Admin Zone Pages
+import DashboardPage from "../pages/admin/DashboardPage";
 import UsersPage from "../pages/admin/UsersPage";
 import UserFormPage from "../pages/admin/UserFormPage";
 import RolesPage from "../pages/admin/RolesPage";
@@ -41,24 +61,66 @@ import SpecialtyFormPage from "../pages/admin/SpecialtyFormPage";
 import BranchesPage from "../pages/admin/BranchesPage";
 import BranchFormPage from "../pages/admin/BranchFormPage";
 import AppointmentsAdminPage from "../pages/admin/AppointmentsAdminPage";
-import DoctorAppointmentsPage from "../pages/DoctorAppointmentsPage";
 import DoctorSchedulePage from "../pages/admin/DoctorSchedulePage";
 import ConsultationsPage from "../pages/admin/ConsultationsPage";
 
+// Clinic Owner Zone Pages
 import ClinicOwnerDashboardPage from "../pages/clinic-owner/ClinicOwnerDashboardPage";
 import MyBranchesPage from "../pages/clinic-owner/MyBranchesPage";
 import MyDoctorsPage from "../pages/clinic-owner/MyDoctorsPage";
+import MyPatientsPage from "../pages/clinic-owner/MyPatientsPage";
 import SubscriptionPage from "../pages/clinic-owner/SubscriptionPage";
 
+// Receptionist Zone Pages
+import ReceptionistDashboardPage from "../pages/receptionist/ReceptionistDashboardPage";
+
+// Accountant Zone Pages
+import AccountantDashboardPage from "../pages/accountant/AccountantDashboardPage";
+
+// Route Guards
 import ProtectedRoute from "./ProtectedRoute";
 import AdminRoute from "./AdminRoute";
+import PatientRoute from "./PatientRoute";
+import DoctorRoute from "./DoctorRoute";
 import ClinicOwnerRoute from "./ClinicOwnerRoute";
+import ReceptionistRoute from "./ReceptionistRoute";
+import AccountantRoute from "./AccountantRoute";
+
+// Role-based home redirect
+const HomeRedirect = () => {
+  const { user, role } = useAuth();
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  switch (role) {
+    case "patient":
+      return <Navigate to="/patient" replace />;
+    case "doctor":
+      return <Navigate to="/doctor" replace />;
+    case "clinic_owner":
+      return <Navigate to="/clinic-owner" replace />;
+      case "receptionist":
+        return <Navigate to="/receptionist" replace />;
+      case "accountant":
+        return <Navigate to="/accountant" replace />;
+    case "admin":
+    case "super_admin":
+      return <Navigate to="/admin" replace />;
+    default:
+      return <Navigate to="/" replace />;
+  }
+};
+
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* PUBLIC ZONE - No authentication required */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
         <Route
           path="/"
           element={
@@ -68,11 +130,49 @@ const AppRoutes = () => {
           }
         />
 
+        <Route path="/home-redirect" element={<HomeRedirect />} />
+
         <Route
           path="/pricing"
           element={
             <MainLayout>
               <PricingPage />
+            </MainLayout>
+          }
+        />
+
+        <Route
+          path="/doctors"
+          element={
+            <MainLayout>
+              <DoctorsPage />
+            </MainLayout>
+          }
+        />
+
+        <Route
+          path="/doctors/:id"
+          element={
+            <MainLayout>
+              <DoctorPublicDetailPage />
+            </MainLayout>
+          }
+        />
+
+        <Route
+          path="/branches"
+          element={
+            <MainLayout>
+              <PatientBranchesPage />
+            </MainLayout>
+          }
+        />
+
+        <Route
+          path="/branches/:id"
+          element={
+            <MainLayout>
+              <PatientBranchDetailPage />
             </MainLayout>
           }
         />
@@ -131,139 +231,332 @@ const AppRoutes = () => {
           }
         />
 
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* PATIENT ZONE - Only patient role */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
         <Route
-          path="/appointments"
+          path="/patient"
           element={
-            <ProtectedRoute>
-              <MainLayout>
-                <AppointmentPage />
-              </MainLayout>
-            </ProtectedRoute>
+            <PatientRoute>
+              <PatientLayout>
+                <PatientDashboardPage />
+              </PatientLayout>
+            </PatientRoute>
           }
         />
 
         <Route
-          path="/doctors"
+          path="/patient/branches"
           element={
-            <ProtectedRoute>
-              <MainLayout>
-                <DoctorsPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/doctors/:id"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <DoctorPublicDetailPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/branches"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
+            <PatientRoute>
+              <PatientLayout>
                 <PatientBranchesPage />
-              </MainLayout>
-            </ProtectedRoute>
+              </PatientLayout>
+            </PatientRoute>
           }
         />
 
         <Route
-          path="/branches/:id"
+          path="/patient/branches/:id"
           element={
-            <ProtectedRoute>
-              <MainLayout>
+            <PatientRoute>
+              <PatientLayout>
                 <PatientBranchDetailPage />
-              </MainLayout>
-            </ProtectedRoute>
+              </PatientLayout>
+            </PatientRoute>
           }
         />
 
         <Route
-          path="/appointments/:id/room"
+          path="/patient/doctors"
           element={
-            <ProtectedRoute>
-              <VideoConsultationPage />
-            </ProtectedRoute>
+            <PatientRoute>
+              <PatientLayout>
+                <DoctorsPage />
+              </PatientLayout>
+            </PatientRoute>
           }
         />
 
         <Route
-          path="/consultations/history"
+          path="/patient/doctors/:id"
           element={
-            <ProtectedRoute>
-              <MainLayout>
+            <PatientRoute>
+              <PatientLayout>
+                <DoctorPublicDetailPage />
+              </PatientLayout>
+            </PatientRoute>
+          }
+        />
+
+        <Route
+          path="/patient/appointments"
+          element={
+            <PatientRoute>
+              <PatientLayout>
+                <AppointmentPage />
+              </PatientLayout>
+            </PatientRoute>
+          }
+        />
+
+        <Route
+          path="/patient/consultations"
+          element={
+            <PatientRoute>
+              <PatientLayout>
                 <PatientConsultationHistoryPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/holoramind"
-          element={
-            <ProtectedRoute>
-              <HoloraMindPage />
-            </ProtectedRoute>
-          }
-        />
- 
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <PatientProfilePage />
-              </MainLayout>
-            </ProtectedRoute>
+              </PatientLayout>
+            </PatientRoute>
           }
         />
 
         <Route
           path="/patient/consultations/new"
           element={
-            <ProtectedRoute>
-              <MainLayout>
+            <PatientRoute>
+              <PatientLayout>
                 <PatientConsultationRequestPage />
-              </MainLayout>
-            </ProtectedRoute>
+              </PatientLayout>
+            </PatientRoute>
           }
         />
 
         <Route
-          path="/doctor/consultations/:id"
+          path="/patient/holoramind"
           element={
-            <ProtectedRoute>
-              <MainLayout>
-                <DoctorConsultationDetailPage />
-              </MainLayout>
-            </ProtectedRoute>
+            <PatientRoute>
+              <HoloraMindPage />
+            </PatientRoute>
+          }
+        />
+
+        <Route
+          path="/patient/profile"
+          element={
+            <PatientRoute>
+              <PatientLayout>
+                <PatientProfilePage />
+              </PatientLayout>
+            </PatientRoute>
+          }
+        />
+
+        <Route
+          path="/patient/appointments/:id/room"
+          element={
+            <PatientRoute>
+              <VideoConsultationPage />
+            </PatientRoute>
+          }
+        />
+
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* DOCTOR ZONE - Only doctor role */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        <Route
+          path="/doctor"
+          element={
+            <DoctorRoute>
+              <DoctorLayout>
+                <DoctorDashboardPage />
+              </DoctorLayout>
+            </DoctorRoute>
+          }
+        />
+
+        <Route
+          path="/doctor/appointments"
+          element={
+            <DoctorRoute>
+              <DoctorLayout>
+                <DoctorAppointmentsPage />
+              </DoctorLayout>
+            </DoctorRoute>
+          }
+        />
+
+        <Route
+          path="/doctor/appointments/:id"
+          element={
+            <DoctorRoute>
+              <DoctorLayout>
+                <DoctorAppointmentDetailPage />
+              </DoctorLayout>
+            </DoctorRoute>
           }
         />
 
         <Route
           path="/doctor/consultations"
           element={
-            <AdminRoute allowedRoles={["doctor", "admin", "super_admin"]}>
-              <AdminLayout>
-                <DoctorRequestsListPage />
-              </AdminLayout>
-            </AdminRoute>
+            <DoctorRoute>
+              <DoctorLayout>
+                <DoctorConsultationHistoryPage />
+              </DoctorLayout>
+            </DoctorRoute>
           }
         />
 
-        {/* Admin */}
+        <Route
+          path="/doctor/consultations/:id"
+          element={
+            <DoctorRoute>
+              <DoctorLayout>
+                <DoctorConsultationDetailPage />
+              </DoctorLayout>
+            </DoctorRoute>
+          }
+        />
+
+        <Route
+          path="/doctor/schedule"
+          element={
+            <DoctorRoute>
+              <DoctorLayout>
+                <DoctorSchedulePage />
+              </DoctorLayout>
+            </DoctorRoute>
+          }
+        />
+
+        <Route
+          path="/doctor/patients"
+          element={
+            <DoctorRoute>
+              <DoctorLayout>
+                <DoctorPatientsPage />
+              </DoctorLayout>
+            </DoctorRoute>
+          }
+        />
+
+        <Route
+          path="/doctor/profile"
+          element={
+            <DoctorRoute>
+              <DoctorLayout>
+                <DoctorProfilePage />
+              </DoctorLayout>
+            </DoctorRoute>
+          }
+        />
+
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* CLINIC OWNER ZONE - Only clinic_owner role */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        <Route
+          path="/clinic-owner"
+          element={
+            <ClinicOwnerRoute>
+              <ClinicOwnerLayout>
+                <ClinicOwnerDashboardPage />
+              </ClinicOwnerLayout>
+            </ClinicOwnerRoute>
+          }
+        />
+
+        <Route
+          path="/clinic-owner/branches"
+          element={
+            <ClinicOwnerRoute>
+              <ClinicOwnerLayout>
+                <MyBranchesPage />
+              </ClinicOwnerLayout>
+            </ClinicOwnerRoute>
+          }
+        />
+
+        <Route
+          path="/clinic-owner/branches/new"
+          element={
+            <ClinicOwnerRoute>
+              <ClinicOwnerLayout>
+                <BranchFormPage returnPath="/clinic-owner/branches" />
+              </ClinicOwnerLayout>
+            </ClinicOwnerRoute>
+          }
+        />
+
+        <Route
+          path="/clinic-owner/branches/:branchId/edit"
+          element={
+            <ClinicOwnerRoute>
+              <ClinicOwnerLayout>
+                <BranchFormPage returnPath="/clinic-owner/branches" />
+              </ClinicOwnerLayout>
+            </ClinicOwnerRoute>
+          }
+        />
+
+        <Route
+          path="/clinic-owner/doctors"
+          element={
+            <ClinicOwnerRoute>
+              <ClinicOwnerLayout>
+                <MyDoctorsPage />
+              </ClinicOwnerLayout>
+            </ClinicOwnerRoute>
+          }
+        />
+
+        <Route
+          path="/clinic-owner/doctors/new"
+          element={
+            <ClinicOwnerRoute>
+              <ClinicOwnerLayout>
+                <DoctorFormPage
+                  returnPath="/clinic-owner/doctors"
+                  fetchBranchesUrl="/branches/my"
+                />
+              </ClinicOwnerLayout>
+            </ClinicOwnerRoute>
+          }
+        />
+
+        <Route
+          path="/clinic-owner/doctors/:doctorId/edit"
+          element={
+            <ClinicOwnerRoute>
+              <ClinicOwnerLayout>
+                <DoctorFormPage
+                  returnPath="/clinic-owner/doctors"
+                  fetchBranchesUrl="/branches/my"
+                />
+              </ClinicOwnerLayout>
+            </ClinicOwnerRoute>
+          }
+        />
+
+        <Route
+          path="/clinic-owner/patients"
+          element={
+            <ClinicOwnerRoute>
+              <ClinicOwnerLayout>
+                <MyPatientsPage />
+              </ClinicOwnerLayout>
+            </ClinicOwnerRoute>
+          }
+        />
+
+        <Route
+          path="/clinic-owner/subscription"
+          element={
+            <ClinicOwnerRoute>
+              <ClinicOwnerLayout>
+                <SubscriptionPage />
+              </ClinicOwnerLayout>
+            </ClinicOwnerRoute>
+          }
+        />
+
+        {/* ═══════════════════════════════════════════════════════════════ */}
+        {/* ADMIN ZONE - admin & super_admin roles */}
+        {/* ═══════════════════════════════════════════════════════════════ */}
         <Route
           path="/admin"
           element={
-            <AdminRoute allowedRoles={["super_admin", "admin", "doctor"]}>
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <DashboardPage />
               </AdminLayout>
@@ -384,9 +677,9 @@ const AppRoutes = () => {
         <Route
           path="/admin/doctors"
           element={
-            <AdminRoute allowedRoles={["super_admin", "admin", "doctor"]}>
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
-                <DoctorsPage />
+                <AdminDoctorsPage />
               </AdminLayout>
             </AdminRoute>
           }
@@ -395,7 +688,7 @@ const AppRoutes = () => {
         <Route
           path="/admin/doctors/new"
           element={
-            <AdminRoute allowedRoles={["super_admin", "admin", "doctor"]}>
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <DoctorFormPage />
               </AdminLayout>
@@ -406,7 +699,7 @@ const AppRoutes = () => {
         <Route
           path="/admin/doctors/:doctorId/edit"
           element={
-            <AdminRoute allowedRoles={["super_admin", "admin", "doctor"]}>
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <DoctorFormPage />
               </AdminLayout>
@@ -417,7 +710,7 @@ const AppRoutes = () => {
         <Route
           path="/admin/patients"
           element={
-            <AdminRoute allowedRoles={["super_admin", "admin", "doctor"]}>
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <PatientsPage />
               </AdminLayout>
@@ -483,7 +776,7 @@ const AppRoutes = () => {
         <Route
           path="/admin/branches"
           element={
-            <AdminRoute allowedRoles={["super_admin", "admin", "doctor"]}>
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <BranchesPage />
               </AdminLayout>
@@ -494,7 +787,7 @@ const AppRoutes = () => {
         <Route
           path="/admin/branches/new"
           element={
-            <AdminRoute allowedRoles={["super_admin", "admin", "doctor"]}>
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <BranchFormPage />
               </AdminLayout>
@@ -505,7 +798,7 @@ const AppRoutes = () => {
         <Route
           path="/admin/branches/:branchId/edit"
           element={
-            <AdminRoute allowedRoles={["super_admin", "admin", "doctor"]}>
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <BranchFormPage />
               </AdminLayout>
@@ -519,17 +812,6 @@ const AppRoutes = () => {
             <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <AppointmentsAdminPage />
-
-                      <Route
-                        path="/doctor/appointments"
-                        element={
-                          <AdminRoute allowedRoles={["doctor"]}>
-                            <AdminLayout>
-                              <DoctorAppointmentsPage />
-                            </AdminLayout>
-                          </AdminRoute>
-                        }
-                      />
               </AdminLayout>
             </AdminRoute>
           }
@@ -538,7 +820,7 @@ const AppRoutes = () => {
         <Route
           path="/admin/schedules"
           element={
-            <AdminRoute allowedRoles={["super_admin", "admin", "doctor"]}>
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <DoctorSchedulePage />
               </AdminLayout>
@@ -549,7 +831,7 @@ const AppRoutes = () => {
         <Route
           path="/admin/consultations"
           element={
-            <AdminRoute allowedRoles={["super_admin", "admin", "doctor"]}>
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <ConsultationsPage />
               </AdminLayout>
@@ -557,100 +839,36 @@ const AppRoutes = () => {
           }
         />
 
-        {/* ── Clinic Owner Portal ── */}
-        <Route
-          path="/clinic-owner"
-          element={
-            <ClinicOwnerRoute>
-              <ClinicOwnerLayout>
-                <ClinicOwnerDashboardPage />
-              </ClinicOwnerLayout>
-            </ClinicOwnerRoute>
-          }
-        />
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* RECEPTIONIST ZONE - Only receptionist role */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          <Route
+            path="/receptionist"
+            element={
+              <ReceptionistRoute>
+                <ReceptionistLayout>
+                  <ReceptionistDashboardPage />
+                </ReceptionistLayout>
+              </ReceptionistRoute>
+            }
+          />
 
-        <Route
-          path="/clinic-owner/branches"
-          element={
-            <ClinicOwnerRoute>
-              <ClinicOwnerLayout>
-                <MyBranchesPage />
-              </ClinicOwnerLayout>
-            </ClinicOwnerRoute>
-          }
-        />
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* ACCOUNTANT ZONE - Only accountant role */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          <Route
+            path="/accountant"
+            element={
+              <AccountantRoute>
+                <AccountantLayout>
+                  <AccountantDashboardPage />
+                </AccountantLayout>
+              </AccountantRoute>
+            }
+          />
 
-        <Route
-          path="/clinic-owner/branches/new"
-          element={
-            <ClinicOwnerRoute>
-              <ClinicOwnerLayout>
-                <BranchFormPage returnPath="/clinic-owner/branches" />
-              </ClinicOwnerLayout>
-            </ClinicOwnerRoute>
-          }
-        />
-
-        <Route
-          path="/clinic-owner/branches/:branchId/edit"
-          element={
-            <ClinicOwnerRoute>
-              <ClinicOwnerLayout>
-                <BranchFormPage returnPath="/clinic-owner/branches" />
-              </ClinicOwnerLayout>
-            </ClinicOwnerRoute>
-          }
-        />
-
-        <Route
-          path="/clinic-owner/doctors"
-          element={
-            <ClinicOwnerRoute>
-              <ClinicOwnerLayout>
-                <MyDoctorsPage />
-              </ClinicOwnerLayout>
-            </ClinicOwnerRoute>
-          }
-        />
-
-        <Route
-          path="/clinic-owner/subscription"
-          element={
-            <ClinicOwnerRoute>
-              <ClinicOwnerLayout>
-                <SubscriptionPage />
-              </ClinicOwnerLayout>
-            </ClinicOwnerRoute>
-          }
-        />
-
-        <Route
-          path="/clinic-owner/doctors/new"
-          element={
-            <ClinicOwnerRoute>
-              <ClinicOwnerLayout>
-                <DoctorFormPage
-                  returnPath="/clinic-owner/doctors"
-                  fetchBranchesUrl="/branches/my"
-                />
-              </ClinicOwnerLayout>
-            </ClinicOwnerRoute>
-          }
-        />
-
-        <Route
-          path="/clinic-owner/doctors/:doctorId/edit"
-          element={
-            <ClinicOwnerRoute>
-              <ClinicOwnerLayout>
-                <DoctorFormPage
-                  returnPath="/clinic-owner/doctors"
-                  fetchBranchesUrl="/branches/my"
-                />
-              </ClinicOwnerLayout>
-            </ClinicOwnerRoute>
-          }
-        />
+        {/* Fallback - redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

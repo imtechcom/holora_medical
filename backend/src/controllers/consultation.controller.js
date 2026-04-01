@@ -133,11 +133,9 @@ const getConsultationDetails = (req, res) => {
 
       // Lấy phản hồi (lịch sử chat/chẩn đoán)
       const respSql = `
-        SELECT cr.*, u.full_name as responder_name, r.code as responder_role
+        SELECT cr.*, u.full_name as responder_name
         FROM consultation_response cr
         JOIN users u ON cr.responder_user_id = u.id
-        JOIN user_role ur ON u.id = ur.user_id
-        JOIN role r ON ur.role_id = r.id
         WHERE cr.consultation_id = ?
         ORDER BY cr.created_at ASC
       `;
@@ -164,6 +162,10 @@ const addConsultationResponse = (req, res) => {
     return res.status(400).json({ message: "Nội dung phản hồi không được để trống." });
   }
 
+  // Validate response_type - only allow known types, default to 'message'
+  const VALID_RESPONSE_TYPES = ['message', 'diagnosis', 'prescription', 'recommendation'];
+  const finalResponseType = (response_type && VALID_RESPONSE_TYPES.includes(response_type)) ? response_type : 'message';
+
   // Nếu là bác sĩ, ta lấy doctor_id để update người trực tiếp phụ trách ca này
   const getDoctorSql = "SELECT id FROM doctor WHERE user_id = ? LIMIT 1";
   db.query(getDoctorSql, [userId], (err, dResults) => {
@@ -174,7 +176,6 @@ const addConsultationResponse = (req, res) => {
     const doctorId = isDoctor ? dResults[0].id : null;
 
     const newStatus = complete ? 'completed' : 'in_progress';
-    const finalResponseType = response_type || 'message';
 
     db.beginTransaction((err) => {
       if (err) return res.status(500).json({ error: err.message });

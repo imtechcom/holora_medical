@@ -1,34 +1,81 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  AlertCircle,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  Edit3,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Save,
+  Trash2,
+  X,
+} from "lucide-react";
 import { scheduleService } from "../../services/appointmentService";
 import { useAuth } from "../../context/AuthContext";
+import { useTranslation } from "react-i18next";
+import ConfirmModal from "../../components/ConfirmModal";
+
+const STATUS_STYLES = {
+  active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  inactive: "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300",
+};
+
+const getMinDate = () => new Date().toISOString().slice(0, 10);
+
+const formatDate = (value, locale) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale === "vi" ? "vi-VN" : "en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+};
+
+const formatTime = (value) => {
+  if (!value) return "-";
+  return `${value}`.slice(0, 5);
+};
 
 const DoctorSchedulePage = () => {
-  const { role, id: userId, doctor_id } = useAuth(); // Nếu role = doctor, doctor_id được gán
+  const { role, user } = useAuth();
+  const authDoctorId = user?.doctor_id || user?.doctorId || null;
+  const { t, i18n } = useTranslation();
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  // Form State
   const [editId, setEditId] = useState(null);
   const [workDate, setWorkDate] = useState("");
   const [startTime, setStartTime] = useState("08:00");
   const [endTime, setEndTime] = useState("12:00");
   const [slotDuration, setSlotDuration] = useState(30);
-
-  useEffect(() => {
-    fetchSchedules();
-  }, [role]);
+  const [deleteId, setDeleteId] = useState(null);
 
   const fetchSchedules = async () => {
     try {
       setLoading(true);
-      const data = await scheduleService.getDoctorSchedules(doctor_id, "", "");
-      setSchedules(data);
+      setError("");
+      const data = await scheduleService.getDoctorSchedules(authDoctorId, "", "");
+      setSchedules(data || []);
     } catch (err) {
       console.error(err);
+      setError(err?.response?.data?.message || err?.response?.data?.error || t("doctor.schedulePage.loadError"));
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (role === "doctor") {
+      fetchSchedules();
+    }
+  }, [authDoctorId, role]);
 
   const resetForm = () => {
     setEditId(null);
@@ -39,176 +86,354 @@ const DoctorSchedulePage = () => {
   };
 
   const handleEditClick = (shift) => {
+    setSuccessMessage("");
+    setError("");
     setEditId(shift.id);
-    // Format YYYY-MM-DD
-    const dateStr = new Date(shift.work_date).toISOString().split('T')[0];
-    setWorkDate(dateStr);
-    setStartTime(shift.start_time.substring(0, 5));
-    setEndTime(shift.end_time.substring(0, 5));
+    setWorkDate(new Date(shift.work_date).toISOString().split("T")[0]);
+    setStartTime(formatTime(shift.start_time));
+    setEndTime(formatTime(shift.end_time));
     setSlotDuration(shift.slot_duration);
   };
 
-  const handleSubmitSchedule = async (e) => {
-    e.preventDefault();
-    if (!doctor_id) {
-       return alert("Lỗi: Tài khoản của bạn không được liên kết với ID Bác Sĩ.");
+  const handleSubmitSchedule = async (event) => {
+    event.preventDefault();
+    setError("");
+    setSuccessMessage("");
+
+    if (!workDate || !startTime || !endTime) {
+      setError(t("doctor.schedulePage.validationMissing"));
+      return;
     }
-    
+
+    if (startTime >= endTime) {
+      setError(t("doctor.schedulePage.validationRange"));
+      return;
+    }
+
     try {
+      setSubmitting(true);
       if (editId) {
-        // Mode UPDATE (Edit)
         await scheduleService.updateSchedule(editId, {
-          work_date: workDate, 
-          start_time: startTime, 
-          end_time: endTime, 
+          work_date: workDate,
+          start_time: startTime,
+          end_time: endTime,
           slot_duration: slotDuration,
-          status: 'active'
+          status: "active",
         });
-        alert("✅ Đã Cập Nhật Ca làm việc thành công!");
+        setSuccessMessage(t("doctor.schedulePage.updateSuccess"));
       } else {
-        // Mode CREATE
         await scheduleService.createSchedule({
-          doctor_id: doctor_id,
+          ...(authDoctorId ? { doctor_id: authDoctorId } : {}),
           schedules: [
-            { work_date: workDate, start_time: startTime, end_time: endTime, slot_duration: slotDuration }
-          ]
+            {
+              work_date: workDate,
+              start_time: startTime,
+              end_time: endTime,
+              slot_duration: slotDuration,
+            },
+          ],
         });
-        alert("✅ Đã Mở Ca làm việc thành công!");
+        setSuccessMessage(t("doctor.schedulePage.createSuccess"));
       }
+
       resetForm();
-      fetchSchedules();
+      await fetchSchedules();
     } catch (err) {
-      alert("Lỗi lưu trữ ca làm việc!");
       console.error(err);
+      setError(err?.response?.data?.message || err?.response?.data?.error || t("doctor.schedulePage.saveError"));
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xoá/đóng Ca làm việc này? Khách sẽ không thể đặt lịch vào ngày này nữa.")) return;
     try {
+      setError("");
+      setSuccessMessage("");
       await scheduleService.deleteSchedule(id);
       if (editId === id) resetForm();
-      fetchSchedules();
+      setSuccessMessage(t("doctor.schedulePage.deleteSuccess"));
+      await fetchSchedules();
     } catch (err) {
-      alert("Lỗi khi xoá ca.");
+      console.error(err);
+      setError(err?.response?.data?.message || err?.response?.data?.error || t("doctor.schedulePage.deleteError"));
+    } finally {
+      setDeleteId(null);
     }
   };
 
-  return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-6 border-b pb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">🗓️ Thiết Lập Phân Ca Làm Việc (Doctor Shifts)</h1>
-          <p className="text-gray-500 text-sm mt-1">Giúp Bệnh Nhân biết được lúc nào bạn Rảnh để Đặt lịch tương tác.</p>
-        </div>
-      </div>
+  const stats = useMemo(() => {
+    const activeCount = schedules.filter((shift) => shift.status === "active").length;
+    const totalBlocks = schedules.reduce((sum, shift) => {
+      const start = formatTime(shift.start_time);
+      const end = formatTime(shift.end_time);
+      const [startHour, startMinute] = start.split(":").map(Number);
+      const [endHour, endMinute] = end.split(":").map(Number);
+      const duration = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+      return sum + Math.max(0, Math.floor(duration / Number(shift.slot_duration || 30)));
+    }, 0);
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Khung Tạo/Sửa Ca Mới */}
-        <div className={`col-span-1 p-5 rounded-lg shadow-sm border h-fit transition-colors ${editId ? 'bg-yellow-50 border-yellow-300' : 'bg-white border-gray-200'}`}>
-          <div className="flex justify-between items-center mb-4">
-             <h2 className={`text-lg font-bold flex items-center gap-2 ${editId ? 'text-yellow-800' : 'text-gray-800'}`}>
-                <span className="text-xl">{editId ? '✏️' : '➕'}</span> 
-                {editId ? 'Chỉnh Sửa Ca' : 'Mở Ca Mới'}
-             </h2>
-             {editId && (
-               <button onClick={resetForm} className="text-xs text-red-600 hover:text-red-800 font-medium">HUỶ SỬA</button>
-             )}
+    return {
+      total: schedules.length,
+      active: activeCount,
+      blocks: totalBlocks,
+    };
+  }, [schedules]);
+
+  const inputClassName =
+    "w-full rounded-xl border border-border-main bg-bg-app px-4 py-3 text-sm text-text-main outline-none transition focus:ring-2 focus:ring-[#E06666] dark:bg-slate-900";
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-6">
+      <section className="overflow-hidden rounded-[28px] bg-gradient-to-br from-[#E06666] to-[#C04444] p-8 text-white shadow-lg md:p-10">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-end">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/75">{t("doctor.zone")}</p>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
+              {t("doctor.schedulePage.title")}
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/85 md:text-base">
+              {t("doctor.schedulePage.description")}
+            </p>
           </div>
 
-          <form onSubmit={handleSubmitSchedule} className="space-y-4">
-             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ngày làm việc</label>
-                <input 
-                  type="date" required 
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full border-gray-300 rounded p-2 focus:ring-indigo-500" 
-                  value={workDate} onChange={e => setWorkDate(e.target.value)} 
+          <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/70">{t("doctor.schedulePage.summaryTitle")}</p>
+            <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-xs text-white/70">{t("doctor.schedulePage.totalLabel")}</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.active}</p>
+                <p className="text-xs text-white/70">{t("doctor.schedulePage.activeLabel")}</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.blocks}</p>
+                <p className="text-xs text-white/70">{t("doctor.schedulePage.blocksLabel")}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {successMessage && (
+        <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5" />
+            <span className="font-medium">{successMessage}</span>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5" />
+            <span className="font-medium">{error}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <aside className="rounded-3xl border border-border-main bg-bg-surface p-6 shadow-sm dark:bg-slate-800">
+          <div className="flex items-center justify-between gap-3 border-b border-border-main pb-4">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-bold text-text-main">
+                {editId ? <Edit3 className="h-5 w-5 text-[#E06666]" /> : <Plus className="h-5 w-5 text-[#E06666]" />}
+                {editId ? t("doctor.schedulePage.editFormTitle") : t("doctor.schedulePage.createFormTitle")}
+              </h2>
+              <p className="mt-1 text-sm text-text-dim">
+                {t("doctor.schedulePage.formDescription")}
+              </p>
+            </div>
+
+            {editId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="inline-flex items-center gap-1 rounded-xl border border-border-main px-3 py-2 text-xs font-semibold text-text-main transition hover:bg-bg-app dark:hover:bg-slate-700"
+              >
+                <X className="h-3.5 w-3.5" /> {t("common.cancel")}
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={handleSubmitSchedule} className="mt-6 space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-text-main">{t("doctor.schedulePage.workDate")}</label>
+              <input
+                type="date"
+                required
+                min={getMinDate()}
+                className={inputClassName}
+                value={workDate}
+                onChange={(event) => setWorkDate(event.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-text-main">{t("doctor.schedulePage.startTime")}</label>
+                <input
+                  type="time"
+                  required
+                  className={inputClassName}
+                  value={startTime}
+                  onChange={(event) => setStartTime(event.target.value)}
                 />
-             </div>
-             <div className="grid grid-cols-2 gap-3">
-                <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Từ Giờ</label>
-                   <input 
-                     type="time" required 
-                     className="w-full border-gray-300 rounded p-2 focus:ring-indigo-500" 
-                     value={startTime} onChange={e => setStartTime(e.target.value)} 
-                   />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-text-main">{t("doctor.schedulePage.endTime")}</label>
+                <input
+                  type="time"
+                  required
+                  className={inputClassName}
+                  value={endTime}
+                  onChange={(event) => setEndTime(event.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-text-main">{t("doctor.schedulePage.slotDuration")}</label>
+              <select
+                className={inputClassName}
+                value={slotDuration}
+                onChange={(event) => setSlotDuration(Number.parseInt(event.target.value, 10))}
+              >
+                <option value={30}>{t("doctor.schedulePage.slot30Minutes")}</option>
+                <option value={60}>{t("doctor.schedulePage.slot60Minutes")}</option>
+              </select>
+            </div>
+
+            <div className="rounded-2xl border border-border-main bg-bg-app p-4 dark:bg-slate-900">
+              <p className="text-xs uppercase tracking-[0.2em] text-text-dim">{t("doctor.schedulePage.previewTitle")}</p>
+              <div className="mt-3 space-y-2 text-sm text-text-main">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-[#E06666]" />
+                  {workDate ? formatDate(workDate, i18n.language) : t("doctor.schedulePage.noDateSelected")}
                 </div>
-                <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Đến Giờ</label>
-                   <input 
-                     type="time" required 
-                     className="w-full border-gray-300 rounded p-2 focus:ring-indigo-500" 
-                     value={endTime} onChange={e => setEndTime(e.target.value)} 
-                   />
+                <div className="flex items-center gap-2">
+                  <Clock3 className="h-4 w-4 text-[#E06666]" />
+                  {startTime} - {endTime}
                 </div>
-             </div>
-             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Thời lượng 1 Block tiêu chuẩn</label>
-                <select 
-                   className="w-full border-gray-300 rounded p-2 focus:ring-indigo-500"
-                   value={slotDuration} onChange={e => setSlotDuration(parseInt(e.target.value))}
-                >
-                   <option value={30}>30 Phút</option>
-                   <option value={60}>60 Phút</option>
-                </select>
-             </div>
-             <button type="submit" className={`w-full font-medium py-2 rounded-md transition-colors mt-2 text-white shadow-sm ${editId ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
-                {editId ? 'Lưu Thay Đổi (Update)' : 'Xuất Bản Lên Hệ Thống'}
-             </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                editId ? "bg-amber-600 hover:bg-amber-700" : "bg-[#E06666] hover:bg-[#D55555]"
+              }`}
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {editId ? t("doctor.schedulePage.saveChanges") : t("doctor.schedulePage.publishAction")}
+            </button>
           </form>
-        </div>
+        </aside>
 
-        {/* Khung Danh sách Ca (Nhật ký) */}
-        <div className="col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-           <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
-             <h2 className="text-base font-bold text-gray-700">Lịch Trình Tương Lai (Active Shifts)</h2>
-             <button onClick={fetchSchedules} className="text-indigo-600 text-xs hover:text-indigo-800">↻ Refresh</button>
-           </div>
-           
-           <div className="p-5 h-[500px] overflow-y-auto">
-              {loading ? (
-                 <p className="text-center text-gray-400 py-10">Đang đồng bộ lịch...</p>
-              ) : schedules.length === 0 ? (
-                 <div className="text-center py-10 flex flex-col items-center">
-                    <span className="text-5xl mb-3 opacity-50">💤</span>
-                    <p className="text-gray-500">Bạn chưa thiết lập bất kỳ ca làm việc nào.</p>
-                    <p className="text-xs text-gray-400 max-w-xs mt-1">Hệ thống Đặt Lịch sẽ khoá Bệnh Nhân lại nếu bạn không có khung giờ rảnh.</p>
-                 </div>
-              ) : (
-                 <div className="space-y-3">
-                    {schedules.map(shift => (
-                       <div key={shift.id} className={`flex justify-between items-center p-3 sm:p-4 rounded border transition-shadow relative overflow-hidden ${editId === shift.id ? 'bg-yellow-50 border-yellow-300 shadow' : 'bg-white hover:shadow-md'}`}>
-                          {/* Dấu viền màu chỉ thị Active */}
-                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${shift.status==='active' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                          
-                          <div className="ml-2 flex-1">
-                             <h3 className="font-bold text-gray-800 text-lg">Ngày: {new Date(shift.work_date).toLocaleDateString('vi-VN')}</h3>
-                             <p className="text-sm text-gray-600 font-medium">Khung giờ: <span className="text-indigo-700 font-bold">{shift.start_time.substring(0,5)} - {shift.end_time.substring(0,5)}</span></p>
-                             <div className="flex gap-2 mt-1">
-                               <span className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-100">Slot {shift.slot_duration}m</span>
-                               <span className="text-[10px] bg-green-50 text-green-700 px-2 py-0.5 rounded border border-green-100">{shift.status.toUpperCase()}</span>
-                             </div>
-                          </div>
+        <section className="overflow-hidden rounded-3xl border border-border-main bg-bg-surface shadow-sm dark:bg-slate-800">
+          <div className="flex items-center justify-between gap-3 border-b border-border-main bg-bg-app px-6 py-4 dark:bg-slate-900">
+            <div>
+              <h2 className="text-base font-bold text-text-main">{t("doctor.schedulePage.listTitle")}</h2>
+              <p className="mt-1 text-sm text-text-dim">{t("doctor.schedulePage.listDescription")}</p>
+            </div>
 
-                          <div className="flex flex-col gap-2">
-                             <button onClick={() => handleEditClick(shift)} className="text-yellow-600 hover:text-yellow-800 hover:bg-yellow-100 text-xs font-semibold px-3 py-1.5 border border-yellow-200 rounded transition-colors" title="Chỉnh Sửa Ca">
-                               ✏️ Sửa Lịch
-                             </button>
-                             <button onClick={() => handleDelete(shift.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50 text-xs font-semibold px-3 py-1.5 border border-red-200 rounded transition-colors" title="Tuỷ/Huỷ Ca rảnh">
-                               🗑️ Đóng Ca
-                             </button>
-                          </div>
-                       </div>
-                    ))}
-                 </div>
-              )}
-           </div>
-        </div>
+            <button
+              type="button"
+              onClick={fetchSchedules}
+              className="inline-flex items-center gap-2 rounded-xl border border-border-main px-3 py-2 text-xs font-semibold text-text-main transition hover:bg-bg-surface dark:hover:bg-slate-800"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> {t("common.refresh")}
+            </button>
+          </div>
 
+          <div className="max-h-[620px] overflow-y-auto p-6">
+            {loading ? (
+              <div className="flex items-center justify-center py-16 text-sm text-text-dim">
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t("doctor.schedulePage.syncing")}
+                </span>
+              </div>
+            ) : schedules.length === 0 ? (
+              <div className="flex flex-col items-center rounded-2xl border border-dashed border-border-main bg-bg-app px-6 py-14 text-center dark:bg-slate-900">
+                <CalendarDays className="h-12 w-12 text-text-dim" />
+                <p className="mt-4 text-sm font-medium text-text-main">{t("doctor.schedulePage.emptyTitle")}</p>
+                <p className="mt-1 max-w-sm text-sm text-text-dim">
+                  {t("doctor.schedulePage.emptyDescription")}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {schedules.map((shift) => (
+                  <article
+                    key={shift.id}
+                    className={`relative overflow-hidden rounded-2xl border p-5 transition ${
+                      editId === shift.id
+                        ? "border-amber-300 bg-amber-50 shadow-sm dark:border-amber-700 dark:bg-amber-950/20"
+                        : "border-border-main bg-bg-surface hover:shadow-sm dark:bg-slate-800"
+                    }`}
+                  >
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${shift.status === "active" ? "bg-emerald-500" : "bg-slate-400"}`} />
+
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="ml-2 space-y-3">
+                        <div>
+                          <h3 className="text-lg font-bold text-text-main">{formatDate(shift.work_date, i18n.language)}</h3>
+                          <p className="mt-1 text-sm text-text-dim">
+                            {t("doctor.schedulePage.timeRangeLabel")}: <span className="font-semibold text-text-main">{formatTime(shift.start_time)} - {formatTime(shift.end_time)}</span>
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <span className="rounded-full bg-[#fff4f2] px-3 py-1 text-xs font-semibold text-[#E06666] dark:bg-red-950/20">
+                            Slot {shift.slot_duration}m
+                          </span>
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${STATUS_STYLES[shift.status] || STATUS_STYLES.inactive}`}>
+                            {shift.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 lg:flex-col">
+                        <button
+                          type="button"
+                          onClick={() => handleEditClick(shift)}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200 px-4 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-950/20"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" /> {t("doctor.schedulePage.editAction")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteId(shift.id)}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/20"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> {t("doctor.schedulePage.deleteAction")}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
+
+      <ConfirmModal
+        isOpen={Boolean(deleteId)}
+        title={t("doctor.schedulePage.confirmDelete")}
+        description={t("doctor.schedulePage.emptyDescription")}
+        badgeLabel={t("doctor.zone")}
+        tone="danger"
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        closeLabel={t("common.close")}
+        onConfirm={() => handleDelete(deleteId)}
+        onClose={() => setDeleteId(null)}
+      />
     </div>
   );
 };

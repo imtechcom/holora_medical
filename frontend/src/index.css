@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Định nghĩa các biến layout cơ bản cho Dark mode hỗ trợ */
   --color-bg-app: var(--bg-app);

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import branchService from "../../services/branchService";
 import subscriptionService from "../../services/subscriptionService";
 import PaymentModal from "../../components/PaymentModal";
+import ConfirmModal from "../../components/ConfirmModal";
 
 const STATUS_STYLE = {
   active:   { label: "Đang hoạt động",       cls: "sub-badge sub-badge--active" },
@@ -26,6 +27,7 @@ const SubscriptionPage = () => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [confirmDowngradeOpen, setConfirmDowngradeOpen] = useState(false);
 
   // Static plan metadata for the payment modal (matches DB values)
   const PLUS_PLAN = { code: "HOLORA_PLUS", name: "Holora Plus", price_cents: 299000, currency: "VND" };
@@ -74,7 +76,11 @@ const SubscriptionPage = () => {
     }
 
     // Downgrade to Free — no payment required
-    if (!window.confirm("Hạ xuống Holora Free? Giới hạn 3 chi nhánh và 3 bác sĩ/chi nhánh sẽ được áp dụng.")) return;
+    setConfirmDowngradeOpen(true);
+  };
+
+  const confirmDowngrade = async () => {
+    const targetCode = "HOLORA_FREE";
     setUpgrading(true);
     setMessage("");
     setError("");
@@ -90,6 +96,7 @@ const SubscriptionPage = () => {
       setError(err?.response?.data?.message || "Thao tác thất bại");
     } finally {
       setUpgrading(false);
+      setConfirmDowngradeOpen(false);
     }
   };
 
@@ -99,87 +106,134 @@ const SubscriptionPage = () => {
     await loadData();
   };
 
-  if (loading) return <div className="sub-page"><p style={{ color: "#94a3b8", padding: "48px 0" }}>Đang tải...</p></div>;
+  if (loading) return (
+    <div className="flex justify-center py-20">
+      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#E06666]"></div>
+    </div>
+  );
 
   return (
-    <div className="sub-page">
-      <div className="sub-header">
-        <h1 className="sub-header__title">Gói dịch vụ</h1>
-        <p className="sub-header__subtitle">Quản lý gói Holora của bạn</p>
+    <div className="max-w-2xl space-y-6">
+      {/* Page header */}
+      <div>
+        <h1 className="text-2xl font-bold text-text-main">Gói dịch vụ</h1>
+        <p className="text-text-dim text-sm mt-1">Quản lý gói Holora của bạn</p>
       </div>
 
-      {message && <div className="sub-alert sub-alert--ok">{message}</div>}
-      {error && <div className="sub-alert sub-alert--err">{error}</div>}
+      {message && (
+        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-green-700 dark:text-green-400 text-sm">
+          {message}
+        </div>
+      )}
+      {error && (
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">
+          {error}
+        </div>
+      )}
 
       {/* Active plan summary */}
-      <div className="sub-plan-card" style={{ "--plan-color": meta.color }}>
-        <div className="sub-plan-card__left">
-          <span className="sub-plan-card__icon" role="img" aria-label="plan">{meta.icon}</span>
+      <div
+        className="bg-bg-surface dark:bg-slate-800 rounded-xl border-2 p-5 flex items-center justify-between gap-4"
+        style={{ borderColor: meta.color }}
+      >
+        <div className="flex items-center gap-4">
+          <span className="text-4xl leading-none" role="img" aria-label="plan">{meta.icon}</span>
           <div>
-            <div className="sub-plan-card__name">{accountSub?.plan_name || "Holora Free"}</div>
-            <div className="sub-plan-card__tagline">{meta.tagline}</div>
+            <div className="text-lg font-bold text-text-main">{accountSub?.plan_name || "Holora Free"}</div>
+            <div className="text-sm text-text-dim">{meta.tagline}</div>
           </div>
         </div>
-        <span className={(accountSub && STATUS_STYLE[accountSub.status]?.cls) || "sub-badge sub-badge--active"}>
-          {(accountSub && STATUS_STYLE[accountSub.status]?.label) || "Đang hoạt động"}
-        </span>
+        {(() => {
+          const s = accountSub?.status;
+          const badgeCls = {
+            active:    "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+            trialing:  "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",
+            past_due:  "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400",
+            cancelled: "bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400",
+            expired:   "bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400",
+          };
+          const badgeLabel  = STATUS_STYLE[s]?.label || "Đang hoạt động";
+          const badgeClass  = badgeCls[s] || badgeCls.active;
+          return (
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${badgeClass}`}>
+              {badgeLabel}
+            </span>
+          );
+        })()}
       </div>
 
       {/* Usage (only for Free tier) */}
       {!isPlus && (
-        <div className="sub-usage">
-          <h2 className="sub-usage__title">Mức sử dụng</h2>
-          <div className="sub-usage__row">
-            <span className="sub-usage__label">Chi nhánh</span>
-            <div className="sub-usage__bar-wrap">
+        <div className="bg-bg-surface dark:bg-slate-800 border border-border-main rounded-xl p-5">
+          <h2 className="text-base font-semibold text-text-main mb-4">Mức sử dụng</h2>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-sm text-text-dim w-20 flex-shrink-0">Chi nhánh</span>
+            <div className="flex-1 h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
               <div
-                className="sub-usage__bar-fill"
+                className="h-2 rounded-full transition-all duration-500"
                 style={{
                   width: `${usagePercent}%`,
                   background: branchUsed >= branchLimit ? "#ef4444" : meta.color,
                 }}
               />
             </div>
-            <span className="sub-usage__count">{branchUsed} / {branchLimit}</span>
+            <span className="text-xs font-semibold text-text-main w-12 text-right">{branchUsed} / {branchLimit}</span>
           </div>
-          <p className="sub-usage__note">Giới hạn bác sĩ: 3 bác sĩ / chi nhánh</p>
+          <p className="text-xs text-text-dim">Giới hạn bác sĩ: 3 bác sĩ / chi nhánh</p>
         </div>
       )}
 
       {/* Plan comparison */}
       <div>
-        <h2 className="sub-compare__title">Các gói dịch vụ</h2>
-        <div className="sub-compare__cards">
+        <h2 className="text-lg font-bold text-text-main mb-4">Các gói dịch vụ</h2>
+        <div className="flex gap-4 flex-wrap">
 
           {/* FREE */}
-          <div className={`sub-cmp-card${!isPlus ? " sub-cmp-card--active" : ""}`}>
-            {!isPlus && <div className="sub-cmp-card__cur">Gói hiện tại</div>}
-            <div className="sub-cmp-card__name">🏥 Holora Free</div>
-            <div className="sub-cmp-card__price">Miễn phí</div>
-            <ul className="sub-cmp-card__features">
+          <div className={`relative flex-1 min-w-[220px] flex flex-col gap-3 rounded-xl p-6 pt-7 border-2 transition ${!isPlus ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30" : "border-border-main bg-bg-surface dark:bg-slate-800"}`}>
+            {!isPlus && (
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs font-bold px-4 py-0.5 rounded-full whitespace-nowrap">
+                Gói hiện tại
+              </div>
+            )}
+            <div className="text-base font-bold text-text-main">🏥 Holora Free</div>
+            <div className="text-2xl font-extrabold text-text-main">Miễn phí</div>
+            <ul className="flex-1 space-y-2 text-sm text-text-dim">
               <li>✅ Tối đa 3 chi nhánh</li>
               <li>✅ Tối đa 3 bác sĩ / chi nhánh</li>
               <li>✅ Quản lý lịch hẹn</li>
               <li>✅ Hồ sơ bệnh nhân</li>
-              <li>❌ Chi nhánh không giới hạn</li>
-              <li>❌ Bác sĩ không giới hạn</li>
+              <li className="opacity-50">❌ Chi nhánh không giới hạn</li>
+              <li className="opacity-50">❌ Bác sĩ không giới hạn</li>
             </ul>
             {isPlus && (
-              <button type="button" className="sub-cmp-card__btn sub-cmp-card__btn--sec" onClick={() => switchPlan("HOLORA_FREE")} disabled={upgrading}>
+              <button
+                type="button"
+                onClick={() => switchPlan("HOLORA_FREE")}
+                disabled={upgrading}
+                className="w-full mt-auto border border-border-main rounded-lg py-2.5 text-sm font-semibold text-text-dim hover:bg-bg-app dark:hover:bg-slate-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
                 Hạ xuống Free
               </button>
             )}
           </div>
 
           {/* PLUS */}
-          <div className={`sub-cmp-card sub-cmp-card--plus${isPlus ? " sub-cmp-card--active" : ""}`}>
-            {isPlus && <div className="sub-cmp-card__cur">Gói hiện tại</div>}
-            {!isPlus && <div className="sub-cmp-card__pop">Phổ biến nhất</div>}
-            <div className="sub-cmp-card__name">⭐ Holora Plus</div>
-            <div className="sub-cmp-card__price">
-              299.000 ₫<span className="sub-cmp-card__price-suf"> / tháng</span>
+          <div className={`relative flex-1 min-w-[220px] flex flex-col gap-3 rounded-xl p-6 pt-7 border-2 transition ${isPlus ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30" : "border-border-main bg-bg-surface dark:bg-slate-800"}`}>
+            {isPlus && (
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs font-bold px-4 py-0.5 rounded-full whitespace-nowrap">
+                Gói hiện tại
+              </div>
+            )}
+            {!isPlus && (
+              <div className="absolute -top-3 right-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-[10px] font-bold px-3 py-0.5 rounded-full whitespace-nowrap">
+                Phổ biến nhất
+              </div>
+            )}
+            <div className="text-base font-bold text-text-main">⭐ Holora Plus</div>
+            <div className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">
+              299.000 ₫ <span className="text-sm font-normal text-text-dim">/ tháng</span>
             </div>
-            <ul className="sub-cmp-card__features">
+            <ul className="flex-1 space-y-2 text-sm text-text-dim">
               <li>✅ Chi nhánh không giới hạn</li>
               <li>✅ Bác sĩ không giới hạn</li>
               <li>✅ Quản lý lịch hẹn</li>
@@ -188,97 +242,27 @@ const SubscriptionPage = () => {
               <li>✅ Hỗ trợ ưu tiên 24/7</li>
             </ul>
             {!isPlus && (
-              <button type="button" className="sub-cmp-card__btn sub-cmp-card__btn--pri" onClick={() => switchPlan("HOLORA_PLUS")} disabled={upgrading}>
+              <button
+                type="button"
+                onClick={() => switchPlan("HOLORA_PLUS")}
+                disabled={upgrading}
+                className="w-full mt-auto bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white rounded-lg py-2.5 text-sm font-semibold transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
                 {upgrading ? "Đang xử lý..." : "Nâng cấp ngay"}
               </button>
             )}
           </div>
         </div>
 
-        <p className="sub-pricing-link">
+        <p className="text-sm text-text-dim mt-4">
           Xem chi tiết tại{" "}
-          <button type="button" className="sub-link" onClick={() => navigate("/pricing")}>
+          <button type="button" onClick={() => navigate("/pricing")} className="text-blue-500 hover:text-blue-700 underline bg-transparent border-none p-0 cursor-pointer">
             trang bảng giá
           </button>
         </p>
       </div>
 
-      <style>{`
-        .sub-page { display:flex; flex-direction:column; gap:24px; max-width:680px; }
-        .sub-header__title { font-size:24px; font-weight:700; color:#1e293b; margin:0 0 4px; }
-        .sub-header__subtitle { font-size:14px; color:#64748b; margin:0; }
-
-        .sub-alert { padding:12px 16px; border-radius:10px; font-size:14px; }
-        .sub-alert--ok { background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; }
-        .sub-alert--err { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; }
-
-        .sub-plan-card {
-          background:linear-gradient(135deg,#f8fafc,#fff);
-          border:2px solid var(--plan-color,#3b82f6);
-          border-radius:16px; padding:20px 24px;
-          display:flex; align-items:center; justify-content:space-between; gap:16px;
-        }
-        .sub-plan-card__left { display:flex; align-items:center; gap:16px; }
-        .sub-plan-card__icon { font-size:36px; line-height:1; }
-        .sub-plan-card__name { font-size:20px; font-weight:700; color:#1e293b; }
-        .sub-plan-card__tagline { font-size:13px; color:#64748b; }
-
-        .sub-badge { display:inline-flex; align-items:center; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:600; }
-        .sub-badge--active { background:#dcfce7; color:#15803d; }
-        .sub-badge--trial  { background:#fef9c3; color:#a16207; }
-        .sub-badge--warn   { background:#ffedd5; color:#c2410c; }
-        .sub-badge--off    { background:#f1f5f9; color:#64748b; }
-
-        .sub-usage { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:20px 24px; }
-        .sub-usage__title { font-size:16px; font-weight:600; color:#1e293b; margin:0 0 16px; }
-        .sub-usage__row { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
-        .sub-usage__label { font-size:14px; color:#64748b; width:80px; flex-shrink:0; }
-        .sub-usage__bar-wrap { flex:1; height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
-        .sub-usage__bar-fill { height:100%; border-radius:999px; transition:width .4s ease; }
-        .sub-usage__count { font-size:13px; font-weight:600; color:#374151; width:48px; text-align:right; }
-        .sub-usage__note { font-size:13px; color:#94a3b8; }
-
-        .sub-compare__title { font-size:18px; font-weight:700; color:#1e293b; margin:0 0 16px; }
-        .sub-compare__cards { display:flex; gap:20px; flex-wrap:wrap; }
-
-        .sub-cmp-card {
-          position:relative; flex:1; min-width:220px;
-          background:#f8fafc; border:2px solid #e2e8f0;
-          border-radius:16px; padding:28px 20px 20px;
-          display:flex; flex-direction:column; gap:12px;
-        }
-        .sub-cmp-card--active { border-color:#3b82f6; background:#eff6ff; }
-        .sub-cmp-card--plus.sub-cmp-card--active { border-color:#6366f1; background:#eef2ff; }
-        .sub-cmp-card__cur {
-          position:absolute; top:-12px; left:50%; transform:translateX(-50%);
-          background:#3b82f6; color:#fff; font-size:11px; font-weight:700;
-          padding:3px 14px; border-radius:999px; white-space:nowrap;
-        }
-        .sub-cmp-card--plus .sub-cmp-card__cur { background:#6366f1; }
-        .sub-cmp-card__pop {
-          position:absolute; top:-12px; right:16px;
-          background:linear-gradient(90deg,#3b82f6,#6366f1);
-          color:#fff; font-size:10px; font-weight:700;
-          padding:3px 12px; border-radius:999px; white-space:nowrap;
-        }
-        .sub-cmp-card__name { font-size:17px; font-weight:700; color:#1e293b; }
-        .sub-cmp-card__price { font-size:22px; font-weight:800; color:#1e293b; }
-        .sub-cmp-card--plus .sub-cmp-card__price { color:#4f46e5; }
-        .sub-cmp-card__price-suf { font-size:13px; font-weight:400; color:#94a3b8; }
-        .sub-cmp-card__features { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; font-size:14px; color:#374151; flex:1; }
-        .sub-cmp-card__btn { width:100%; padding:10px 0; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; border:none; margin-top:auto; }
-        .sub-cmp-card__btn--pri { background:linear-gradient(90deg,#3b82f6,#6366f1); color:#fff; }
-        .sub-cmp-card__btn--pri:hover { opacity:.9; }
-        .sub-cmp-card__btn--pri:disabled { opacity:.6; cursor:not-allowed; }
-        .sub-cmp-card__btn--sec { background:transparent; border:1.5px solid #94a3b8; color:#64748b; }
-        .sub-cmp-card__btn--sec:hover { background:#f1f5f9; }
-
-        .sub-pricing-link { font-size:13px; color:#64748b; margin:16px 0 0; }
-        .sub-link { background:none; border:none; padding:0; cursor:pointer; color:#3b82f6; font-size:inherit; text-decoration:underline; }
-        .sub-link:hover { color:#1d4ed8; }
-      `}</style>
-
-      {/* Payment modal — rendered outside the card flow */}
+      {/* Payment modal */}
       {showPaymentModal && (
         <PaymentModal
           plan={PLUS_PLAN}
@@ -287,6 +271,19 @@ const SubscriptionPage = () => {
           onClose={() => setShowPaymentModal(false)}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmDowngradeOpen}
+        title="Hạ xuống Holora Free?"
+        description="Giới hạn 3 chi nhánh và 3 bác sĩ mỗi chi nhánh sẽ được áp dụng ngay sau khi chuyển gói."
+        badgeLabel="Subscription"
+        tone="danger"
+        confirmLabel="Xác nhận hạ gói"
+        cancelLabel="Hủy"
+        closeLabel="Đóng"
+        onConfirm={confirmDowngrade}
+        onClose={() => setConfirmDowngradeOpen(false)}
+      />
     </div>
   );
 };

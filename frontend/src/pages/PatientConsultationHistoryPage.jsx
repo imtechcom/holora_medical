@@ -10,6 +10,7 @@ import {
   Sparkles,
   Stethoscope,
 } from "lucide-react";
+import { resolveApiUrl } from "../services/api";
 import { consultationService } from "../services/consultationService";
 
 const STATUS_STYLES = {
@@ -296,8 +297,8 @@ const PatientConsultationHistoryPage = () => {
                     {detailData.images?.length > 0 ? (
                       <div className="grid grid-cols-2 gap-2">
                         {detailData.images.map((img, idx) => (
-                          <a key={idx} href={img.image_url.startsWith("http") ? img.image_url : `http://localhost:5000${img.image_url}`} target="_blank" rel="noreferrer">
-                            <img src={img.image_url.startsWith("http") ? img.image_url : `http://localhost:5000${img.image_url}`} alt="symptom" className="h-24 w-full cursor-pointer rounded-lg border border-border-main object-cover transition hover:opacity-80" />
+                          <a key={idx} href={resolveApiUrl(img.image_url)} target="_blank" rel="noreferrer">
+                            <img src={resolveApiUrl(img.image_url)} alt="symptom" className="h-24 w-full cursor-pointer rounded-lg border border-border-main object-cover transition hover:opacity-80" />
                           </a>
                         ))}
                       </div>

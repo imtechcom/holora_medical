@@ -1,56 +1,79 @@
-version: "3.9"
-
 services:
   mysql:
     image: mysql:8.0
-    container_name: holora_medical_mysql
-    restart: always
+    restart: unless-stopped
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: holora_medical
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-holora_medical}
+      MYSQL_USER: ${MYSQL_USER:-holora_app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3307:3306"
+      - "127.0.0.1:${MYSQL_PORT:-3307}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ../holora_medical.sql:/docker-entrypoint-initdb.d/01-holora_medical.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: holora_medical_phpmyadmin
-    restart: always
+    image: phpmyadmin:5-apache
+    restart: unless-stopped
     ports:
-      - "8080:80"
+      - "${PHPMYADMIN_PORT:-8080}:80"
     environment:
       PMA_HOST: mysql
-      MYSQL_ROOT_PASSWORD: root
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      UPLOAD_LIMIT: 64M
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
 
   backend:
     build:
       context: ../backend
-    container_name: holora_medical_backend
-    restart: always
+    restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "${BACKEND_PORT:-5000}:5000"
     environment:
+      PORT: 5000
+      NODE_ENV: production
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_NAME: holora_medical
-      DB_USER: root
-      DB_PASSWORD: root
-      JWT_SECRET: holora_secret
+      DB_NAME: ${MYSQL_DATABASE:-holora_medical}
+      DB_USER: ${MYSQL_USER:-holora_app}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+      DOCTOR_INVITE_REDIRECT_URL: ${DOCTOR_INVITE_REDIRECT_URL:-http://localhost/doctor/invite-setup}
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ../backend/public/uploads:/app/public/uploads
 
   frontend:
     build:
       context: ../frontend
-    container_name: holora_medical_frontend
-    restart: always
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "${FRONTEND_PORT:-80}:5173"
     depends_on:
-      - backend
+      backend:
+        condition: service_started
 
 volumes:
   mysql_data:

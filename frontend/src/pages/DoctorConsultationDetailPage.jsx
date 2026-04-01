@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { consultationService } from "../services/consultationService";
 import { aiService } from "../services/aiService";
 import { useAuth } from "../context/AuthContext";
+import ConfirmModal from "../components/ConfirmModal";
 
 const DoctorConsultationDetailPage = () => {
   const { id } = useParams();
@@ -17,6 +18,7 @@ const DoctorConsultationDetailPage = () => {
   
   // Trạng thái nút bấm gửi yêu cầu
   const [requestAILoading, setRequestAILoading] = useState(null);
+  const [confirmAiImageId, setConfirmAiImageId] = useState(null);
 
   useEffect(() => {
     fetchDetail();
@@ -44,9 +46,7 @@ const DoctorConsultationDetailPage = () => {
     }
   };
 
-  const handleRequestAI = async (imageId) => {
-    if (!window.confirm("Gửi ảnh này cho Holora AI phân tích? (Có thể mất vài giây do gọi sang Model API)")) return;
-    
+  const startRequestAI = async (imageId) => {
     setRequestAILoading(imageId);
     try {
       await aiService.requestImageAnalysis(id, imageId);
@@ -71,7 +71,12 @@ const DoctorConsultationDetailPage = () => {
       alert("Lỗi khi yêu cầu AI: " + (err.response?.data?.message || err.message));
     } finally {
       setRequestAILoading(null);
+      setConfirmAiImageId(null);
     }
+  };
+
+  const handleRequestAI = (imageId) => {
+    setConfirmAiImageId(imageId);
   };
 
   const handleReplySubmit = async (e, markComplete = false) => {
@@ -115,34 +120,34 @@ const DoctorConsultationDetailPage = () => {
       
       {/* Khung bên Trái: Thông tin Bệnh nhân & Hồ sơ (UC13) */}
       <div className="w-full md:w-5/12 space-y-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-bg-surface p-6 rounded-2xl shadow-sm border border-border-main dark:bg-slate-800">
           <div className="flex justify-between items-start mb-4">
-            <h2 className="text-xl font-bold text-gray-800">Chi tiết Ca Tư Vấn #{data.id}</h2>
+            <h2 className="text-xl font-bold text-text-main">Chi tiết Ca Tư Vấn #{data.id}</h2>
             <span className={`px-2 py-1 rounded text-xs font-semibold ${data.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
               Trạng thái: {data.status}
             </span>
           </div>
 
           <div className="space-y-3 text-sm">
-            <p><span className="font-medium text-gray-500 w-32 inline-block">Bệnh nhân:</span> {data.patient_name}</p>
-            <p><span className="font-medium text-gray-500 w-32 inline-block">Tuổi/Giới tính:</span> {new Date().getFullYear() - new Date(data.date_of_birth).getFullYear() || '--'} tuổi / {data.gender || '--'}</p>
-            <p><span className="font-medium text-gray-500 w-32 inline-block">Tiền sử bệnh:</span> {data.medical_history || "Không rõ."}</p>
-            <p><span className="font-medium text-gray-500 w-32 inline-block">Dị ứng:</span> {data.allergies || "Không rõ."}</p>
+            <p><span className="font-medium text-text-dim w-32 inline-block">Bệnh nhân:</span> {data.patient_name}</p>
+            <p><span className="font-medium text-text-dim w-32 inline-block">Tuổi/Giới tính:</span> {new Date().getFullYear() - new Date(data.date_of_birth).getFullYear() || '--'} tuổi / {data.gender || '--'}</p>
+            <p><span className="font-medium text-text-dim w-32 inline-block">Tiền sử bệnh:</span> {data.medical_history || "Không rõ."}</p>
+            <p><span className="font-medium text-text-dim w-32 inline-block">Dị ứng:</span> {data.allergies || "Không rõ."}</p>
           </div>
           
           <hr className="my-5" />
 
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Triệu Chứng</h3>
+            <h3 className="text-lg font-semibold text-text-main mb-2">Triệu Chứng</h3>
             <p className="font-medium text-red-600 border-l-4 border-red-500 pl-3 mb-2">{data.chief_complaint}</p>
-            <p className="text-gray-700 bg-gray-50 p-3 rounded">{data.symptoms}</p>
+            <p className="text-text-main bg-bg-app p-3 rounded dark:bg-slate-700">{data.symptoms}</p>
           </div>
         </div>
 
         {/* Khung Ảnh đính kèm & Tương tác AI (UC06) */}
         {data.images && data.images.length > 0 && (
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <div className="bg-bg-surface p-6 rounded-2xl shadow-sm border border-border-main dark:bg-slate-800">
+            <h3 className="text-lg font-semibold text-text-main mb-4 flex items-center gap-2">
                Hình Ảnh Cận Lâm Sàng & Phân Tích
             </h3>
             <div className="grid grid-cols-2 gap-4">
@@ -153,7 +158,7 @@ const DoctorConsultationDetailPage = () => {
                 const isFailed = aiResult?.request_status === 'failed';
 
                 return (
-                  <div key={idx} className="relative aspect-square border-2 border-dashed border-gray-300 rounded-md overflow-hidden bg-gray-100 flex flex-col group">
+                    <div key={idx} className="relative aspect-square border-2 border-dashed border-border-main rounded-md overflow-hidden bg-bg-app flex flex-col group dark:bg-slate-700">
                     <img src={img.image_url} alt="Medical" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     
                     {/* Thanh đáy chứa tác vụ AI */}
@@ -184,7 +189,7 @@ const DoctorConsultationDetailPage = () => {
                             {requestAILoading === img.id ? "Đơn đợi..." : "✨ Gửi AI Phân Tích"}
                           </button>
                         ) : (
-                          <span className="text-xs text-gray-500">Chưa được y/c quét AI</span>
+                        <span className="text-xs text-text-dim">Chưa được y/c quét AI</span>
                         )
                       )}
                     </div>
@@ -219,13 +224,13 @@ const DoctorConsultationDetailPage = () => {
                {aiData.filter(a => a.request_status === 'completed').map((res, i) => (
                  <div key={i} className="bg-white/70 p-4 rounded border border-white/50 shadow-sm text-sm">
                    <div className="flex justify-between items-center mb-2">
-                     <span className="font-semibold text-gray-800">Ảnh ID #{res.consultation_image_id}</span>
+                   <span className="font-semibold text-text-main">Ảnh ID #{res.consultation_image_id}</span>
                      <div className="flex items-center gap-2">
-                       <span className="text-xs font-semibold text-gray-500">Rate: {res.confidence_score}%</span>
+                   <span className="text-xs font-semibold text-text-dim">Rate: {res.confidence_score}%</span>
                        {getRiskBadge(res.risk_level)}
                      </div>
                    </div>
-                   <p className="text-gray-700 mb-2 leading-relaxed"><strong>Nhận định:</strong> {res.result_summary}</p>
+                   <p className="text-text-main mb-2 leading-relaxed"><strong>Nhận định:</strong> {res.result_summary}</p>
                    <p className="text-indigo-800 bg-indigo-50 p-2 rounded leading-relaxed border border-indigo-100"><strong>Gợi ý:</strong> {res.recommendation}</p>
                  </div>
                ))}
@@ -235,21 +240,21 @@ const DoctorConsultationDetailPage = () => {
 
 
         {/* --- KHUNG CHAT TRAO ĐỔI VỚI BÁC SĨ --- */}
-        <div className="flex flex-col flex-1 bg-white rounded-lg shadow-sm border border-gray-200 min-h-[500px]">
-          <div className="p-4 border-b bg-gray-50 rounded-t-lg">
-            <h3 className="font-bold text-gray-800">Lịch sử Chẩn đoán & Tư vấn</h3>
+        <div className="flex flex-col flex-1 bg-bg-surface rounded-2xl shadow-sm border border-border-main min-h-[500px] dark:bg-slate-800">
+          <div className="p-4 border-b border-border-main bg-bg-app rounded-t-2xl dark:bg-slate-900">
+            <h3 className="font-bold text-text-main">Lịch sử Chẩn đoán & Tư vấn</h3>
           </div>
 
           <div className="flex-1 p-4 overflow-y-auto space-y-6 max-h-[500px]">
             {data.responses && data.responses.length > 0 ? (
               data.responses.map((resp) => (
                 <div key={resp.id} className={`flex flex-col max-w-[85%] ${resp.responder_role === 'doctor' || resp.responder_role === 'admin' ? 'ml-auto items-end' : 'items-start'}`}>
-                  <span className="text-xs text-gray-500 mb-1 font-medium">{resp.responder_name} - {new Date(resp.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                  <span className="text-xs text-text-dim mb-1 font-medium">{resp.responder_name} - {new Date(resp.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                   <div className={`
                     p-3 rounded-lg text-sm
                     ${(resp.responder_role === 'doctor' || resp.responder_role === 'admin')
                       ? resp.response_type === 'diagnosis' ? 'bg-indigo-600 text-white shadow-md' : 'bg-blue-600 text-white' 
-                      : 'bg-gray-100 text-gray-800'}
+                      : 'bg-bg-app text-text-main dark:bg-slate-700'}
                   `}>
                     {resp.response_type === 'diagnosis' && <div className="text-xs font-bold uppercase mb-1 flex items-center gap-1">⚡ KẾT LUẬN Y KHOA</div>}
                     {resp.response_type === 'recommendation' && <div className="text-xs font-bold uppercase mb-1">📋 LỜI KHUYÊN</div>}
@@ -259,7 +264,7 @@ const DoctorConsultationDetailPage = () => {
                 </div>
               ))
             ) : (
-              <div className="h-full flex items-center justify-center flex-col text-gray-400">
+              <div className="h-full flex items-center justify-center flex-col text-text-dim">
                 <span className="text-4xl mb-2">💬</span>
                 <p>Chưa có trao đổi nào.</p>
               </div>
@@ -268,13 +273,13 @@ const DoctorConsultationDetailPage = () => {
 
           {/* Form Reply - Chỉ admin/doctor hoặc bệnh nhân rep nếu ca chưa hoàn thành */}
           {data.status !== 'completed' && (
-            <form className="p-4 border-t bg-gray-50 rounded-b-lg">
+            <form className="p-4 border-t border-border-main bg-bg-app rounded-b-2xl dark:bg-slate-900">
               {(role === 'doctor' || role === 'super_admin' || role === 'admin') && (
                 <div className="mb-3">
                   <select 
                     value={replyType} 
                     onChange={(e) => setReplyType(e.target.value)}
-                    className="text-sm border-gray-300 rounded focus:ring-blue-500 p-2"
+                    className="text-sm border-border-main bg-bg-app rounded focus:ring-[#E06666]/30 p-2 dark:bg-slate-700"
                   >
                     <option value="message">Gửi tin nhắn (Trao đổi phụ)</option>
                     <option value="diagnosis">Đưa ra Chẩn Đoán (Kết luận)</option>
@@ -287,7 +292,7 @@ const DoctorConsultationDetailPage = () => {
               <textarea
                 required
                 rows="3"
-                className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="w-full border border-border-main bg-bg-app rounded-md p-3 focus:ring-[#E06666]/30 focus:border-[#E06666] text-sm text-text-main dark:bg-slate-700"
                 placeholder={role === 'patient' ? "Nhập câu hỏi thêm cho bác sĩ..." : "Nhập nội dung phản hồi của bác sĩ..."}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
@@ -307,7 +312,7 @@ const DoctorConsultationDetailPage = () => {
 
                 <button
                   type="button"
-                  className="px-5 py-2 bg-blue-600 text-white font-medium rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+                  className="px-5 py-2 bg-[#E06666] text-white font-medium rounded text-sm hover:bg-[#D55555] disabled:opacity-50"
                   onClick={(e) => handleReplySubmit(e, false)}
                   disabled={isSubmitting || !replyText.trim()}
                 >
@@ -326,6 +331,18 @@ const DoctorConsultationDetailPage = () => {
 
       </div>
 
+      <ConfirmModal
+        isOpen={confirmAiImageId !== null}
+        title="Gửi ảnh này cho Holora AI phân tích?"
+        description="Tác vụ này có thể mất vài giây do hệ thống sẽ gửi ảnh sang dịch vụ model để xử lý."
+        badgeLabel="Holora AI"
+        tone="info"
+        confirmLabel="Gửi phân tích"
+        cancelLabel="Hủy"
+        closeLabel="Đóng"
+        onConfirm={() => startRequestAI(confirmAiImageId)}
+        onClose={() => setConfirmAiImageId(null)}
+      />
     </div>
   );
 };

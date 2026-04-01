@@ -13,6 +13,12 @@ export const consultationService = {
     return response.data;
   },
 
+  // Patient gets list
+  getPatientHistory: async () => {
+    const response = await api.get("/consultations/my-history");
+    return response.data;
+  },
+
   // Get details
   getConsultationDetails: async (id) => {
     const response = await api.get(`/consultations/${id}`);

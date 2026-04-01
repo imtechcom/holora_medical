@@ -1,11 +1,77 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import {
-  getMyProfileApi,
-  updateMyProfileApi,
-} from "../services/patientService";
+  AlertCircle,
+  AlertTriangle,
+  Calendar,
+  CheckCircle2,
+  ClipboardList,
+  Contact,
+  Droplets,
+  Edit3,
+  HeartPulse,
+  Mail,
+  MapPin,
+  Phone,
+  Save,
+  Shield,
+  User,
+  X,
+} from "lucide-react";
+import { getMyProfileApi, updateMyProfileApi } from "../services/patientService";
+
+const EMPTY_VALUE = "-";
+
+const normalizeDateInput = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") {
+    return value.includes("T") ? value.slice(0, 10) : value.slice(0, 10);
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+};
+
+const formatDateDisplay = (value) => {
+  if (!value) return EMPTY_VALUE;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+};
+
+const getGenderLabel = (gender, t) => {
+  if (gender === "male") return t("admin.genderMale");
+  if (gender === "female") return t("admin.genderFemale");
+  if (gender === "other") return t("admin.genderOther");
+  return EMPTY_VALUE;
+};
+
+const getProfileCompletion = (profileData) => {
+  const fields = [
+    "full_name",
+    "phone",
+    "email",
+    "gender",
+    "date_of_birth",
+    "address",
+    "blood_group",
+    "allergies",
+    "medical_history",
+    "emergency_contact_name",
+    "emergency_contact_phone",
+  ];
+  const filled = fields.filter((field) => `${profileData[field] || ""}`.trim()).length;
+  return Math.round((filled / fields.length) * 100);
+};
 
 const PatientProfilePage = () => {
   const { t } = useTranslation();
@@ -17,7 +83,6 @@ const PatientProfilePage = () => {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-
   const [profileData, setProfileData] = useState({
     full_name: "",
     phone: "",
@@ -36,13 +101,14 @@ const PatientProfilePage = () => {
     try {
       setLoading(true);
       const res = await getMyProfileApi();
+
       if (res.data) {
         setProfileData({
           full_name: res.data.full_name || "",
           phone: res.data.phone || "",
           email: res.data.email || "",
           gender: res.data.gender || "",
-          date_of_birth: res.data.date_of_birth || "",
+          date_of_birth: normalizeDateInput(res.data.date_of_birth),
           address: res.data.address || "",
           blood_group: res.data.blood_group || "",
           allergies: res.data.allergies || "",
@@ -51,18 +117,16 @@ const PatientProfilePage = () => {
           emergency_contact_phone: res.data.emergency_contact_phone || "",
         });
       }
+
       setError("");
     } catch (err) {
       console.error("Error fetching profile:", err);
-      setError(
-        err?.response?.data?.message || t("patient.errorLoadingProfile")
-      );
+      setError(err?.response?.data?.message || t("patient.errorLoadingProfile"));
     } finally {
       setLoading(false);
     }
   }, [t]);
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
@@ -75,10 +139,10 @@ const PatientProfilePage = () => {
     }
 
     fetchProfile();
-  }, [isAuthenticated, role, navigate, fetchProfile]);
+  }, [fetchProfile, isAuthenticated, navigate, role]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
     setProfileData((prev) => ({
       ...prev,
       [name]: value,
@@ -86,399 +150,495 @@ const PatientProfilePage = () => {
   };
 
   const validateForm = () => {
-    if (!profileData.full_name?.trim()) {
-      setError(t("admin.fullNameRequired"));
+    if (!profileData.full_name.trim()) {
+      setError(t("auth.fullNameRequired"));
       return false;
     }
-    if (!profileData.phone?.trim()) {
+
+    if (!profileData.phone.trim()) {
       setError(t("admin.phoneRequired"));
       return false;
     }
+
     return true;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleCancelEdit = async () => {
+    setIsEditing(false);
+    setError("");
+    setSuccessMessage("");
+    await fetchProfile();
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
     setSuccessMessage("");
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       setSubmitting(true);
       await updateMyProfileApi(profileData);
       setSuccessMessage(t("patient.profileUpdatedSuccess"));
       setIsEditing(false);
-      // Refresh profile data
       await fetchProfile();
     } catch (err) {
-      const errorMsg =
-        err?.response?.data?.message || t("patient.errorUpdatingProfile");
-      setError(errorMsg);
-      console.error("Error updating profile:", err);
+      setError(err?.response?.data?.message || t("patient.errorUpdatingProfile"));
     } finally {
       setSubmitting(false);
     }
   };
 
+  const completion = useMemo(() => getProfileCompletion(profileData), [profileData]);
+  const profileName = profileData.full_name || t("common.user");
+  const badgeItems = [
+    t("common.patient"),
+    profileData.blood_group || null,
+    getGenderLabel(profileData.gender, t) !== EMPTY_VALUE ? getGenderLabel(profileData.gender, t) : null,
+  ].filter(Boolean);
+
+  const personalItems = [
+    {
+      label: t("admin.fullName"),
+      icon: User,
+      name: "full_name",
+      value: profileData.full_name,
+      placeholder: "Nguyen Van A",
+    },
+    {
+      label: t("admin.phone"),
+      icon: Phone,
+      name: "phone",
+      value: profileData.phone,
+      placeholder: "+84 ...",
+    },
+    {
+      label: t("admin.email"),
+      icon: Mail,
+      name: "email",
+      value: profileData.email,
+      placeholder: "patient@example.com",
+      type: "email",
+    },
+    {
+      label: t("patient.dateOfBirth"),
+      icon: Calendar,
+      name: "date_of_birth",
+      value: profileData.date_of_birth,
+      type: "date",
+      formatter: formatDateDisplay,
+    },
+    {
+      label: t("patient.gender"),
+      icon: User,
+      name: "gender",
+      value: profileData.gender,
+      formatter: (value) => getGenderLabel(value, t),
+      options: [
+        { val: "male", label: t("admin.genderMale") },
+        { val: "female", label: t("admin.genderFemale") },
+        { val: "other", label: t("admin.genderOther") },
+      ],
+    },
+    {
+      label: t("patient.address"),
+      icon: MapPin,
+      name: "address",
+      value: profileData.address,
+      placeholder: "123 Main Street",
+    },
+  ];
+
+  const medicalFields = [
+    {
+      label: t("admin.bloodGroup"),
+      icon: Droplets,
+      name: "blood_group",
+      value: profileData.blood_group,
+      options: ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"].map((value) => ({
+        val: value,
+        label: value,
+      })),
+    },
+    {
+      label: t("admin.allergies"),
+      icon: AlertTriangle,
+      name: "allergies",
+      value: profileData.allergies,
+      placeholder: t("admin.allergiesPlaceholder"),
+      multiline: true,
+    },
+    {
+      label: t("admin.medicalHistory"),
+      icon: ClipboardList,
+      name: "medical_history",
+      value: profileData.medical_history,
+      placeholder: t("admin.medicalHistoryPlaceholder"),
+      multiline: true,
+    },
+  ];
+
+  const emergencyFields = [
+    {
+      label: t("patient.emergencyContactName"),
+      icon: User,
+      name: "emergency_contact_name",
+      value: profileData.emergency_contact_name,
+      placeholder: "Emergency contact name",
+    },
+    {
+      label: t("patient.emergencyContactPhone"),
+      icon: Phone,
+      name: "emergency_contact_phone",
+      value: profileData.emergency_contact_phone,
+      placeholder: "+84 ...",
+    },
+  ];
+
+  const inputClassName =
+    "w-full rounded-2xl border border-border-main bg-bg-app dark:bg-slate-900 px-4 py-3 text-sm text-text-main placeholder-text-dim outline-none transition focus:ring-2 focus:ring-[#E06666]";
+
+  const renderField = ({
+    label,
+    icon,
+    name,
+    value,
+    placeholder,
+    type = "text",
+    options,
+    formatter,
+    multiline,
+  }) => {
+    const FieldIcon = icon;
+    const displayValue = formatter ? formatter(value) : value || EMPTY_VALUE;
+
+    return (
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-sm font-semibold text-text-main">
+          <FieldIcon className="h-4 w-4 text-[#E06666]" />
+          {label}
+        </label>
+
+        {isEditing ? (
+          options ? (
+            <select name={name} value={value} onChange={handleInputChange} className={inputClassName}>
+              <option value="">{t("common.selectOne") || "Select one"}</option>
+              {options.map((option) => (
+                <option key={option.val} value={option.val}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          ) : multiline ? (
+            <textarea
+              name={name}
+              value={value}
+              onChange={handleInputChange}
+              placeholder={placeholder}
+              rows="4"
+              className={`${inputClassName} resize-none`}
+            />
+          ) : (
+            <input
+              type={type}
+              name={name}
+              value={value}
+              onChange={handleInputChange}
+              placeholder={placeholder}
+              className={inputClassName}
+            />
+          )
+        ) : multiline ? (
+          <div className="min-h-[104px] rounded-2xl border border-border-main bg-bg-app dark:bg-slate-900 px-4 py-3 text-sm leading-6 text-text-main whitespace-pre-wrap">
+            {displayValue}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-border-main bg-bg-app dark:bg-slate-900 px-4 py-3 text-sm font-medium text-text-main">
+            {displayValue}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mx-auto rounded-2xl bg-white p-6 shadow-sm text-center">
-          <div className="animate-spin inline-block w-8 h-8 border-4 border-[#E06666] border-r-transparent rounded-full"></div>
+      <div className="mx-auto max-w-6xl space-y-6">
+        <div className="overflow-hidden rounded-[28px] border border-[#f0c9c2] bg-[linear-gradient(135deg,#fff7f2_0%,#ffe6dc_52%,#fff0ea_100%)] p-8 shadow-sm dark:border-[#7a3d3b] dark:bg-[linear-gradient(135deg,rgba(127,29,29,0.30)_0%,rgba(51,65,85,0.92)_56%,rgba(15,23,42,1)_100%)]">
+          <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-[#E06666] border-r-transparent"></div>
+          <p className="mt-4 text-sm text-text-dim">
+            {t("patient.profilePage.loadingProfile")}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated || role !== "patient") {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="rounded-2xl bg-white p-8 shadow-sm">
-          {/* Header */}
-          <div className="border-b pb-6 mb-6">
-            <h1 className="text-3xl font-bold text-[#E06666] mb-2">
-              {t("patient.myProfile")}
-            </h1>
-            <p className="text-gray-600">
-              {t("patient.profileDescription")}
-            </p>
+    <div className="mx-auto max-w-6xl space-y-6 pb-12 animate-in fade-in duration-500">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <section className="overflow-hidden rounded-[28px] bg-gradient-to-br from-[#E06666] to-[#C04444] p-8 text-white shadow-lg md:p-10">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-start gap-5">
+                <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/15 backdrop-blur text-white shadow-lg shadow-black/10">
+                  <User className="h-10 w-10" />
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">
+                      {t("patient.myProfile")}
+                    </p>
+                    <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">{profileName}</h1>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80 md:text-base">
+                      {t("patient.profilePage.heroDescription")}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {badgeItems.map((item) => (
+                      <span
+                        key={item}
+                        className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4 backdrop-blur">
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/65">{t("admin.phone")}</p>
+                  <p className="mt-2 text-sm font-semibold">{profileData.phone || EMPTY_VALUE}</p>
+                </div>
+                <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4 backdrop-blur">
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/65">{t("admin.email")}</p>
+                  <p className="mt-2 text-sm font-semibold break-all">{profileData.email || EMPTY_VALUE}</p>
+                </div>
+                <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4 backdrop-blur">
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/65">{t("patient.dateOfBirth")}</p>
+                  <p className="mt-2 text-sm font-semibold">{formatDateDisplay(profileData.date_of_birth)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[24px] border border-white/15 bg-black/10 p-5 backdrop-blur">
+              <div className="flex items-center gap-2 text-sm font-semibold text-white/75">
+                <Shield className="h-4 w-4" />
+                {t("patient.profilePage.statusCardTitle")}
+              </div>
+
+              <div className="mt-5">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-white/60">{t("patient.profilePage.completionTitle")}</p>
+                    <p className="mt-2 text-3xl font-bold">{completion}%</p>
+                  </div>
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
+                    {completion >= 80 ? t("patient.profilePage.statusReady") : t("patient.profilePage.statusNeedsUpdate")}
+                  </span>
+                </div>
+
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/15">
+                  <div className="h-full rounded-full bg-white" style={{ width: `${completion}%` }} />
+                </div>
+
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {!isEditing ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError("");
+                        setSuccessMessage("");
+                        setIsEditing(true);
+                      }}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#E06666] transition hover:bg-white/90"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                      {t("common.edit")}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/15"
+                      >
+                        <X className="h-4 w-4" />
+                        {t("common.cancel")}
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#E06666] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {submitting ? (
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#E06666] border-r-transparent" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
+                        {t("common.save")}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
+        </section>
 
-          {/* Success Message */}
-          {successMessage && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-start gap-3">
-              <span className="text-xl flex-shrink-0">✅</span>
-              <div>
-                <p className="font-semibold">{t("common.success")}</p>
-                <p className="text-sm">{successMessage}</p>
-              </div>
+        {successMessage && (
+          <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5" />
+              <span className="font-medium">{successMessage}</span>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start gap-3">
-              <span className="text-xl flex-shrink-0">⚠️</span>
-              <div>
-                <p className="font-semibold">{t("common.error")}</p>
-                <p className="text-sm">{error}</p>
-              </div>
+        {error && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-5 w-5" />
+              <span className="font-medium">{error}</span>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Profile Form */}
-          <form onSubmit={handleSubmit}>
-            {/* Section 1: Personal Information */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
-                  1
-                </span>
-                {t("patient.personalInformation")}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("admin.fullName")}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="full_name"
-                      value={profileData.full_name}
-                      onChange={handleInputChange}
-                      placeholder="John Doe"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-                    />
-                  ) : (
-                    <p className="px-4 py-2.5 text-gray-700">
-                      {profileData.full_name || "-"}
-                    </p>
-                  )}
+        <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            <section className="rounded-3xl border border-border-main bg-bg-surface p-6 shadow-sm dark:bg-slate-800">
+              <h2 className="text-base font-semibold text-text-main">{t("patient.profilePage.snapshotTitle")}</h2>
+              <div className="mt-5 space-y-4">
+                <div className="rounded-2xl border border-border-main bg-bg-app p-4 dark:bg-slate-900">
+                  <p className="text-xs uppercase tracking-[0.2em] text-text-dim">{t("patient.address")}</p>
+                  <p className="mt-2 text-sm font-medium text-text-main">{profileData.address || EMPTY_VALUE}</p>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("admin.phone")}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={profileData.phone}
-                      onChange={handleInputChange}
-                      placeholder="+84 812 345 6789"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-                    />
-                  ) : (
-                    <p className="px-4 py-2.5 text-gray-700">
-                      {profileData.phone || "-"}
-                    </p>
-                  )}
+                <div className="rounded-2xl border border-border-main bg-bg-app p-4 dark:bg-slate-900">
+                  <p className="text-xs uppercase tracking-[0.2em] text-text-dim">{t("admin.bloodGroup")}</p>
+                  <p className="mt-2 text-sm font-medium text-text-main">{profileData.blood_group || EMPTY_VALUE}</p>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("admin.email")}
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="email"
-                      name="email"
-                      value={profileData.email}
-                      onChange={handleInputChange}
-                      placeholder="patient@example.com"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-                    />
-                  ) : (
-                    <p className="px-4 py-2.5 text-gray-700">
-                      {profileData.email || "-"}
-                    </p>
-                  )}
+                <div className="rounded-2xl border border-border-main bg-bg-app p-4 dark:bg-slate-900">
+                  <p className="text-xs uppercase tracking-[0.2em] text-text-dim">{t("patient.emergencyContact")}</p>
+                  <p className="mt-2 text-sm font-medium text-text-main">{profileData.emergency_contact_name || EMPTY_VALUE}</p>
+                  <p className="mt-1 text-sm text-text-dim">{profileData.emergency_contact_phone || EMPTY_VALUE}</p>
                 </div>
+              </div>
+            </section>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("patient.gender")}
-                  </label>
-                  {isEditing ? (
-                    <select
-                      name="gender"
-                      value={profileData.gender}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition bg-white"
+            <section className="rounded-3xl border border-border-main bg-slate-900 p-6 text-white shadow-sm">
+              <div className="flex items-center gap-2 text-sm font-semibold text-white/80">
+                <HeartPulse className="h-5 w-5 text-[#E06666]" />
+                {t("patient.profilePage.healthReadinessTitle")}
+              </div>
+              <p className="mt-4 text-sm leading-6 text-slate-300">
+                {t("patient.profilePage.healthReadinessDescription")}
+              </p>
+              <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/90">
+                {profileData.allergies || profileData.medical_history
+                  ? t("patient.profilePage.healthReadinessReady")
+                  : t("patient.profilePage.healthReadinessEmpty")}
+              </div>
+            </section>
+          </aside>
+
+          <div className="space-y-6">
+            <section className="rounded-3xl border border-border-main bg-bg-surface p-6 shadow-sm dark:bg-slate-800 md:p-8">
+              <div className="border-b border-border-main pb-4">
+                <h2 className="flex items-center gap-3 text-lg font-bold text-text-main">
+                  <User className="h-5 w-5 text-[#E06666]" />
+                  {t("patient.personalInformation")}
+                </h2>
+                <p className="mt-2 text-sm text-text-dim">
+                  {t("patient.profilePage.personalSectionDescription")}
+                </p>
+              </div>
+
+              <div className="mt-6 grid gap-5 md:grid-cols-2">
+                {personalItems.map((field) => (
+                  <React.Fragment key={field.name}>{renderField(field)}</React.Fragment>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-border-main bg-bg-surface p-6 shadow-sm dark:bg-slate-800 md:p-8">
+              <div className="border-b border-border-main pb-4">
+                <h2 className="flex items-center gap-3 text-lg font-bold text-text-main">
+                  <ClipboardList className="h-5 w-5 text-[#E06666]" />
+                  {t("patient.medicalInformation")}
+                </h2>
+                <p className="mt-2 text-sm text-text-dim">
+                  {t("patient.profilePage.medicalSectionDescription")}
+                </p>
+              </div>
+
+              <div className="mt-6 grid gap-5 md:grid-cols-2">
+                <div className="md:col-span-2">{renderField(medicalFields[0])}</div>
+                <div className="md:col-span-2">{renderField(medicalFields[1])}</div>
+                <div className="md:col-span-2">{renderField(medicalFields[2])}</div>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-border-main bg-bg-surface p-6 shadow-sm dark:bg-slate-800 md:p-8">
+              <div className="border-b border-border-main pb-4">
+                <h2 className="flex items-center gap-3 text-lg font-bold text-text-main">
+                  <Contact className="h-5 w-5 text-[#E06666]" />
+                  {t("patient.emergencyContact")}
+                </h2>
+                <p className="mt-2 text-sm text-text-dim">
+                  {t("patient.profilePage.emergencySectionDescription")}
+                </p>
+              </div>
+
+              <div className="mt-6 grid gap-5 md:grid-cols-2">
+                {emergencyFields.map((field) => (
+                  <React.Fragment key={field.name}>{renderField(field)}</React.Fragment>
+                ))}
+              </div>
+            </section>
+
+            {isEditing && (
+              <section className="rounded-3xl border border-border-main bg-bg-surface p-5 shadow-sm dark:bg-slate-800">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-text-main">{t("patient.profilePage.editingTitle")}</p>
+                    <p className="mt-1 text-sm text-text-dim">
+                      {t("patient.profilePage.editingDescription")}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-border-main px-4 py-3 text-sm font-semibold text-text-main transition hover:bg-bg-app dark:hover:bg-slate-700"
                     >
-                      <option value="">{t("common.selectOne")}</option>
-                      <option value="male">{t("admin.genderMale")}</option>
-                      <option value="female">{t("admin.genderFemale")}</option>
-                      <option value="other">{t("admin.genderOther")}</option>
-                    </select>
-                  ) : (
-                    <p className="px-4 py-2.5 text-gray-700">
-                      {profileData.gender
-                        ? t(`admin.gender${profileData.gender.charAt(0).toUpperCase() + profileData.gender.slice(1)}`)
-                        : "-"}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("patient.dateOfBirth")}
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="date"
-                      name="date_of_birth"
-                      value={profileData.date_of_birth}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-                    />
-                  ) : (
-                    <p className="px-4 py-2.5 text-gray-700">
-                      {profileData.date_of_birth || "-"}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("admin.bloodGroup")}
-                  </label>
-                  {isEditing ? (
-                    <select
-                      name="blood_group"
-                      value={profileData.blood_group}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition bg-white"
+                      <X className="h-4 w-4" />
+                      {t("common.cancel")}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-[#E06666] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#D55555] disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <option value="">{t("common.selectOne")}</option>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                    </select>
-                  ) : (
-                    <p className="px-4 py-2.5 text-gray-700">
-                      {profileData.blood_group || "-"}
-                    </p>
-                  )}
+                      {submitting ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      {t("common.save")}
+                    </button>
+                  </div>
                 </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("patient.address")}
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="address"
-                      value={profileData.address}
-                      onChange={handleInputChange}
-                      placeholder="123 Main Street, City, Country"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-                    />
-                  ) : (
-                    <p className="px-4 py-2.5 text-gray-700">
-                      {profileData.address || "-"}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Section 2: Medical Information */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
-                  2
-                </span>
-                {t("patient.medicalInformation")}
-              </h3>
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("admin.allergies")}
-                  </label>
-                  {isEditing ? (
-                    <textarea
-                      name="allergies"
-                      value={profileData.allergies}
-                      onChange={handleInputChange}
-                      placeholder={t("admin.allergiesPlaceholder")}
-                      rows="3"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition resize-none"
-                    />
-                  ) : (
-                    <p className="px-4 py-2.5 text-gray-700 whitespace-pre-wrap">
-                      {profileData.allergies || "-"}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("admin.medicalHistory")}
-                  </label>
-                  {isEditing ? (
-                    <textarea
-                      name="medical_history"
-                      value={profileData.medical_history}
-                      onChange={handleInputChange}
-                      placeholder={t("admin.medicalHistoryPlaceholder")}
-                      rows="4"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition resize-none"
-                    />
-                  ) : (
-                    <p className="px-4 py-2.5 text-gray-700 whitespace-pre-wrap">
-                      {profileData.medical_history || "-"}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Section 3: Emergency Contact */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
-                  3
-                </span>
-                {t("patient.emergencyContact")}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("patient.emergencyContactName")}
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="emergency_contact_name"
-                      value={profileData.emergency_contact_name}
-                      onChange={handleInputChange}
-                      placeholder="Contact Person Name"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-                    />
-                  ) : (
-                    <p className="px-4 py-2.5 text-gray-700">
-                      {profileData.emergency_contact_name || "-"}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    {t("patient.emergencyContactPhone")}
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="tel"
-                      name="emergency_contact_phone"
-                      value={profileData.emergency_contact_phone}
-                      onChange={handleInputChange}
-                      placeholder="+84 812 345 6789"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
-                    />
-                  ) : (
-                    <p className="px-4 py-2.5 text-gray-700">
-                      {profileData.emergency_contact_phone || "-"}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="border-t pt-6 flex justify-end gap-4">
-              {isEditing ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsEditing(false);
-                      setError("");
-                      fetchProfile();
-                    }}
-                    disabled={submitting}
-                    className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                  >
-                    {t("common.cancel")}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="px-6 py-2.5 bg-[#E06666] text-white rounded-lg hover:bg-[#d05555] transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                  >
-                    {submitting ? t("common.saving") : t("common.save")}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="px-6 py-2.5 bg-[#E06666] text-white rounded-lg hover:bg-[#d05555] transition font-medium"
-                >
-                  {t("common.edit")}
-                </button>
-              )}
-            </div>
-          </form>
+              </section>
+            )}
+          </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 };

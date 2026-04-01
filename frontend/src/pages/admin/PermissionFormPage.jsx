@@ -112,28 +112,28 @@ const PermissionFormPage = () => {
 
   if (loading) {
     return (
-      <div className="rounded-2xl bg-white p-6 shadow-sm text-center">
+      <div className="rounded-2xl bg-bg-surface p-6 shadow-sm text-center dark:bg-slate-800">
         <div className="animate-spin inline-block w-8 h-8 border-4 border-[#E06666] border-r-transparent rounded-full"></div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-white p-8 shadow-sm">
+    <div className="rounded-2xl bg-bg-surface p-8 shadow-sm dark:bg-slate-800">
       {/* Header */}
-      <div className="border-b pb-6 mb-6">
+      <div className="border-b border-border-main pb-6 mb-6">
         <h2 className="text-3xl font-bold text-[#E06666] mb-2">
           {isEdit ? t("admin.editPermission") : t("admin.addNewPermission")}
         </h2>
-        <p className="text-gray-600">
+        <p className="text-text-dim">
           {isEdit ? t("admin.updatePermissionInfo") : t("admin.fillFormToAddPermission")}
         </p>
       </div>
 
       {/* Success Message */}
       {successMessage && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-start gap-3">
-          <span className="text-xl flex-shrink-0">✅</span>
+        <div className="mb-6 p-4 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg flex items-start gap-3 dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-400">
+          <span className="text-xl flex-shrink-0">✓</span>
           <div>
             <p className="font-semibold">{t("common.success")}</p>
             <p className="text-sm">{successMessage}</p>
@@ -143,8 +143,8 @@ const PermissionFormPage = () => {
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start gap-3">
-          <span className="text-xl flex-shrink-0">⚠️</span>
+        <div className="mb-6 p-4 border border-red-200 bg-red-50 text-red-700 rounded-lg flex items-start gap-3 dark:border-red-800/40 dark:bg-red-900/20 dark:text-red-400">
+          <span className="text-xl flex-shrink-0">!</span>
           <div>
             <p className="font-semibold">{t("common.error")}</p>
             <p className="text-sm">{error}</p>
@@ -156,7 +156,7 @@ const PermissionFormPage = () => {
       <form onSubmit={handleSubmit}>
         {/* Section 1: Basic Information */}
         <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-text-main mb-4 flex items-center gap-2">
             <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
               1
             </span>
@@ -164,7 +164,7 @@ const PermissionFormPage = () => {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-text-main mb-2">
                 {t("admin.name")} <span className="text-red-500">*</span>
               </label>
               <input
@@ -173,12 +173,12 @@ const PermissionFormPage = () => {
                 value={formData.name}
                 onChange={handleInputChange}
                 placeholder="e.g., Create User, Edit Role"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
+                className="w-full px-4 py-2.5 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 focus:border-transparent transition dark:bg-slate-700"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-text-main mb-2">
                 {t("admin.code")} <span className="text-red-500">*</span>
               </label>
               <input
@@ -188,17 +188,17 @@ const PermissionFormPage = () => {
                 onChange={handleInputChange}
                 placeholder="e.g., create_user, edit_role"
                 disabled={isEdit}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2.5 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 focus:border-transparent transition disabled:bg-bg-app disabled:cursor-not-allowed dark:bg-slate-700"
               />
               {isEdit && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-text-dim mt-1">
                   {t("admin.codeCannotChange")}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-text-main mb-2">
                 {t("admin.moduleName")} <span className="text-red-500">*</span>
               </label>
               <input
@@ -207,19 +207,19 @@ const PermissionFormPage = () => {
                 value={formData.module_name}
                 onChange={handleInputChange}
                 placeholder="e.g., users, roles, permissions"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition"
+                className="w-full px-4 py-2.5 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 focus:border-transparent transition dark:bg-slate-700"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-text-main mb-2">
                 {t("admin.status")}
               </label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition bg-white"
+                className="w-full px-4 py-2.5 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 focus:border-transparent transition dark:bg-slate-700"
               >
                 <option value="active">{t("admin.statusActive")}</option>
                 <option value="inactive">{t("admin.statusInactive")}</option>
@@ -230,14 +230,14 @@ const PermissionFormPage = () => {
 
         {/* Section 2: Description */}
         <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-text-main mb-4 flex items-center gap-2">
             <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
               2
             </span>
             {t("admin.description")}
           </h3>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-text-main mb-2">
               {t("admin.description")}
             </label>
             <textarea
@@ -246,18 +246,18 @@ const PermissionFormPage = () => {
               onChange={handleInputChange}
               placeholder={t("admin.descriptionPlaceholder")}
               rows="4"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666] focus:border-transparent transition resize-none"
+              className="w-full px-4 py-2.5 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 focus:border-transparent transition resize-none dark:bg-slate-700"
             />
           </div>
         </div>
 
         {/* Actions */}
-        <div className="border-t pt-6 flex justify-end gap-4">
+        <div className="border-t border-border-main pt-6 flex justify-end gap-4">
           <button
             type="button"
             onClick={() => navigate("/admin/permissions")}
             disabled={submitting}
-            className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className="px-6 py-2.5 border border-border-main text-text-main rounded-lg hover:bg-bg-app transition disabled:opacity-50 disabled:cursor-not-allowed font-medium dark:hover:bg-slate-700"
           >
             {t("common.cancel")}
           </button>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql
--- Generation Time: Mar 29, 2026 at 02:59 AM
+-- Generation Time: Mar 31, 2026 at 12:23 PM
 -- Server version: 8.0.45
 -- PHP Version: 8.3.26
 
@@ -72,7 +72,6 @@ CREATE TABLE `appointment` (
   `patient_id` bigint UNSIGNED NOT NULL,
   `doctor_id` bigint UNSIGNED NOT NULL,
   `specialty_id` bigint UNSIGNED DEFAULT NULL,
-  `branch_id` bigint UNSIGNED DEFAULT NULL,
   `appointment_code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `appointment_date` date NOT NULL,
   `start_time` datetime NOT NULL,
@@ -110,6 +109,39 @@ CREATE TABLE `audit_log` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `branch`
+--
+
+CREATE TABLE `branch` (
+  `id` bigint UNSIGNED NOT NULL,
+  `name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `owner_user_id` bigint UNSIGNED DEFAULT NULL,
+  `phone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(150) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `address` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `city` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `status` enum('active','inactive') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `branch`
+--
+
+INSERT INTO `branch` (`id`, `name`, `code`, `owner_user_id`, `phone`, `email`, `address`, `city`, `description`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'Phòng Khám Nha Khoa Quận 7', 'HLR_MED_31032026_0000001', 14, '0981819143', 'it@nhakhoavietmy.com.vn', '1298 Huỳnh Tấn Phát, Phú Mỹ, Quận 7, TP Hồ Chí Minh', 'TP HCM', NULL, 'active', '2026-03-29 15:32:39', '2026-03-31 03:37:18', NULL),
+(2, 'Phòng Khám Nha Khoa Quận 8', 'HLR_MED_31032026_0000002', 14, '0386040080', 'ongdienfood@gmail.com', '21 Hai Bà Trưng', 'Thành phố Thủ Dầu Một', NULL, 'active', '2026-03-30 00:08:26', '2026-03-31 03:37:44', NULL),
+(3, 'Phòng Khám Nha Khoa Bình Thạnh', 'HLR_MED_31032026_0000003', 14, '0981819143', 'binhthanh@holoramed.com', '1298 Huỳnh Tấn Phát, Phú Mỹ, Quận 7, TP Hồ Chí Minh', 'TP Hồ Chí Minh', 'Phòng Khám Nha Khoa Bình Thạnh', 'active', '2026-03-30 08:14:37', '2026-03-31 06:41:28', NULL),
+(4, 'Clinic Branch 1774859319', 'CLINIC_1774859319', 16, '0900000002', 'branch1774859319@example.com', '123 Test Street', 'HCM', 'E2E branch', 'active', '2026-03-30 08:28:39', '2026-03-30 08:28:39', NULL),
+(5, 'Phòng Khám Nha Khoa Mỹ Tho', 'HLR_MED_31032026_BR0001', 14, '0981819143', 'mytho@holoramed.com', '1298 Huỳnh Tấn Phát, Phú Mỹ, Quận 7, TP Hồ Chí Minh', 'TP Hồ Chí Minh', 'Phòng khám nha khoa khu vực Mỹ Tho - Đồng Tháp', 'active', '2026-03-31 06:39:45', '2026-03-31 06:39:45', NULL);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `consultation`
 --
 
@@ -130,6 +162,14 @@ CREATE TABLE `consultation` (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `consultation`
+--
+
+INSERT INTO `consultation` (`id`, `patient_id`, `doctor_id`, `appointment_id`, `consultation_type`, `chief_complaint`, `symptoms`, `notes`, `status`, `priority`, `started_at`, `completed_at`, `created_at`, `updated_at`) VALUES
+(1, 1, NULL, NULL, 'text', 'Tôi bị đau răng', 'Đau răng số 8', NULL, 'pending', 'normal', NULL, NULL, '2026-03-29 06:12:56', '2026-03-29 06:13:20'),
+(2, 2, NULL, NULL, 'text', 'Test', 'Test', NULL, 'pending', 'normal', NULL, NULL, '2026-03-29 07:37:11', '2026-03-29 07:37:11');
+
 -- --------------------------------------------------------
 
 --
@@ -149,6 +189,14 @@ CREATE TABLE `consultation_image` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `consultation_image`
+--
+
+INSERT INTO `consultation_image` (`id`, `consultation_id`, `uploaded_by`, `image_url`, `image_type`, `caption`, `file_name`, `mime_type`, `file_size`, `created_at`) VALUES
+(1, 1, 5, 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=300', 'symptom', NULL, NULL, NULL, NULL, '2026-03-29 13:12:56'),
+(2, 2, 4, 'http://localhost:5000/public/uploads/attachments-1774769831886-360672272.png', 'symptom', NULL, NULL, NULL, NULL, '2026-03-29 14:37:12');
+
 -- --------------------------------------------------------
 
 --
@@ -166,6 +214,13 @@ CREATE TABLE `consultation_response` (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `consultation_response`
+--
+
+INSERT INTO `consultation_response` (`id`, `consultation_id`, `responder_user_id`, `response_type`, `content`, `is_from_ai`, `created_at`, `updated_at`) VALUES
+(1, 1, 5, 'message', 'Xin chào', 0, '2026-03-29 06:13:20', '2026-03-29 06:13:20');
+
 -- --------------------------------------------------------
 
 --
@@ -175,6 +230,7 @@ CREATE TABLE `consultation_response` (
 CREATE TABLE `doctor` (
   `id` bigint UNSIGNED NOT NULL,
   `user_id` bigint UNSIGNED DEFAULT NULL,
+  `created_by_user_id` bigint UNSIGNED DEFAULT NULL,
   `specialty_id` bigint UNSIGNED DEFAULT NULL,
   `doctor_code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `full_name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -195,8 +251,138 @@ CREATE TABLE `doctor` (
 -- Dumping data for table `doctor`
 --
 
-INSERT INTO `doctor` (`id`, `user_id`, `specialty_id`, `doctor_code`, `full_name`, `phone`, `email`, `license_number`, `qualification`, `experience_years`, `consultation_fee`, `bio`, `avatar_url`, `status`, `created_at`, `updated_at`) VALUES
-(1, NULL, NULL, 'DOCTOR000001', 'Hoàng Văn Linh', '+84981819143', 'it@holora.com', '2022', '', 0, 0.00, NULL, NULL, 'active', '2026-03-29 02:42:28', '2026-03-29 02:42:56');
+INSERT INTO `doctor` (`id`, `user_id`, `created_by_user_id`, `specialty_id`, `doctor_code`, `full_name`, `phone`, `email`, `license_number`, `qualification`, `experience_years`, `consultation_fee`, `bio`, `avatar_url`, `status`, `created_at`, `updated_at`) VALUES
+(1, NULL, NULL, 24, 'DOCTOR000001', 'Hoàng Văn Linh', '+84981819143', 'it@holora.com', '2022', '', 0, 0.00, NULL, NULL, 'active', '2026-03-29 02:42:28', '2026-03-30 07:23:29'),
+(2, 12, 1, 1, 'DOCTOR000002', 'Hoàng Linh', '+84981819143', 'it@holoramind.com', '2023', '', 0, 0.00, NULL, NULL, 'active', '2026-03-30 07:03:38', '2026-03-30 07:23:53'),
+(3, 15, 14, 1, 'DOCTOR000003', 'Nguyễn Tiến Linh', '+84981819143', 'nguyentienlinh@holoramed.com', 'LIC-0001', '', 0, 0.00, NULL, NULL, 'active', '2026-03-30 08:16:14', '2026-03-30 08:16:14'),
+(4, 17, 16, 10, 'DOCTOR000004', 'Doctor Test 1774859319', '0900000003', 'doctor1774859319@example.com', 'LIC1774859319', 'MBBS', 3, 200000.00, 'E2E doctor', NULL, 'active', '2026-03-30 08:28:39', '2026-03-30 08:28:39'),
+(6, 19, 14, 1, 'HLR_MED_31032026_DT0001', 'Hoàng Văn Linh', '+84981819143', 'linhhv@holoramed.com', 'LIC-HVL-2027', 'Implant', 0, 0.00, NULL, NULL, 'active', '2026-03-31 06:44:14', '2026-03-31 06:44:14');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `doctor_branch`
+--
+
+CREATE TABLE `doctor_branch` (
+  `id` bigint UNSIGNED NOT NULL,
+  `doctor_id` bigint UNSIGNED NOT NULL,
+  `branch_id` bigint UNSIGNED NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `doctor_branch`
+--
+
+INSERT INTO `doctor_branch` (`id`, `doctor_id`, `branch_id`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(2, 1, 1, '2026-03-30 14:23:30', '2026-03-30 14:23:30', NULL),
+(3, 2, 2, '2026-03-30 14:23:53', '2026-03-30 14:23:53', NULL),
+(4, 3, 3, '2026-03-30 15:16:15', '2026-03-30 15:16:15', NULL),
+(5, 4, 4, '2026-03-30 15:28:40', '2026-03-30 15:28:40', NULL),
+(8, 6, 3, '2026-03-31 13:44:14', '2026-03-31 13:44:14', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `doctor_invite`
+--
+
+CREATE TABLE `doctor_invite` (
+  `id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `doctor_id` bigint UNSIGNED NOT NULL,
+  `email` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `token_hash` char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `used_at` datetime DEFAULT NULL,
+  `revoked_at` datetime DEFAULT NULL,
+  `created_by_user_id` bigint UNSIGNED DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `doctor_schedule`
+--
+
+CREATE TABLE `doctor_schedule` (
+  `id` bigint UNSIGNED NOT NULL,
+  `doctor_id` bigint UNSIGNED NOT NULL,
+  `work_date` date NOT NULL,
+  `start_time` time NOT NULL,
+  `end_time` time NOT NULL,
+  `slot_duration` int NOT NULL DEFAULT '30',
+  `status` enum('active','inactive') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `doctor_schedule`
+--
+
+INSERT INTO `doctor_schedule` (`id`, `doctor_id`, `work_date`, `start_time`, `end_time`, `slot_duration`, `status`, `created_at`, `updated_at`) VALUES
+(1, 1, '2026-04-01', '08:00:00', '12:00:00', 30, 'active', '2026-03-31 11:46:38', '2026-03-31 11:46:38'),
+(2, 1, '2026-04-01', '13:00:00', '17:00:00', 30, 'active', '2026-03-31 11:46:38', '2026-03-31 11:46:38'),
+(3, 1, '2026-04-02', '08:00:00', '12:00:00', 30, 'active', '2026-03-31 11:46:38', '2026-03-31 11:46:38'),
+(5, 6, '2026-04-01', '08:00:00', '20:00:00', 30, 'active', '2026-03-31 11:54:53', '2026-03-31 11:54:53'),
+(6, 6, '2026-04-02', '08:00:00', '20:00:00', 30, 'active', '2026-03-31 11:56:27', '2026-03-31 11:56:27');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `holora_mind_chats`
+--
+
+CREATE TABLE `holora_mind_chats` (
+  `id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT 'Cuộc trò chuyện mới',
+  `model_name` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT 'HoloraMind-v1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `holora_mind_chats`
+--
+
+INSERT INTO `holora_mind_chats` (`id`, `user_id`, `title`, `model_name`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 'Checklist trước buổi khám tổng', 'HoloraMind-v1', '2026-03-30 16:00:34', '2026-03-30 16:00:34', NULL),
+(2, 1, 'Khi nào cần đi cấp cứu nếu khó', 'HoloraMind-v1', '2026-03-30 16:01:13', '2026-03-30 16:01:13', NULL),
+(3, 1, 'Tôi bị sốt 38.8 và đau họng, c', 'HoloraMind-v1', '2026-03-30 16:03:35', '2026-03-30 16:03:35', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `holora_mind_messages`
+--
+
+CREATE TABLE `holora_mind_messages` (
+  `id` bigint UNSIGNED NOT NULL,
+  `chat_id` bigint UNSIGNED NOT NULL,
+  `role` enum('user','assistant') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `content` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `holora_mind_messages`
+--
+
+INSERT INTO `holora_mind_messages` (`id`, `chat_id`, `role`, `content`, `created_at`) VALUES
+(1, 1, 'user', 'Checklist trước buổi khám tổng quát', '2026-03-30 16:00:34'),
+(2, 1, 'assistant', 'Tôi đã ghi nhận nội dung của bạn. Đây là một thông tin quan trọng. Bạn có muốn đi sâu vào chi tiết nào không? (Tôi đang trong giai đoạn phát triển và sẽ sớm thông minh hơn!)', '2026-03-30 16:00:34'),
+(3, 2, 'user', 'Khi nào cần đi cấp cứu nếu khó thở?', '2026-03-30 16:01:13'),
+(4, 2, 'assistant', 'Tôi đã ghi nhận nội dung của bạn. Đây là một thông tin quan trọng. Bạn có muốn đi sâu vào chi tiết nào không? (Tôi đang trong giai đoạn phát triển và sẽ sớm thông minh hơn!)', '2026-03-30 16:01:13'),
+(5, 3, 'user', 'Tôi bị sốt 38.8 và đau họng, cần theo dõi gì?', '2026-03-30 16:03:35'),
+(6, 3, 'assistant', 'Tôi đã ghi nhận nội dung của bạn. Đây là một thông tin quan trọng. Bạn có muốn đi sâu vào chi tiết nào không? (Tôi đang trong giai đoạn phát triển và sẽ sớm thông minh hơn!)', '2026-03-30 16:03:35');
 
 -- --------------------------------------------------------
 
@@ -248,7 +434,39 @@ CREATE TABLE `patient` (
 --
 
 INSERT INTO `patient` (`id`, `user_id`, `patient_code`, `full_name`, `phone`, `email`, `gender`, `date_of_birth`, `address`, `blood_group`, `allergies`, `medical_history`, `emergency_contact_name`, `emergency_contact_phone`, `status`, `created_at`, `updated_at`) VALUES
-(1, 5, 'PAT000005', 'Linh Hoàng', '', 'hoangvanlinhuit@gmail.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-03-28 15:07:41', '2026-03-28 15:07:41');
+(1, 5, 'PAT000005', 'Linh Hoàng', '', 'hoangvanlinhuit@gmail.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-03-28 15:07:41', '2026-03-28 15:07:41'),
+(2, 4, 'PAT000004', 'Patient User', '0900000003', 'patient@holora.com', 'male', '1991-12-03', '1298 Huỳnh Tấn Phát, Phú Mỹ, Quận 7, TP Hồ Chí Minh', '', '', '', '', '', 'active', '2026-03-29 07:36:48', '2026-03-30 00:09:07'),
+(3, 6, 'PAT000006', 'Patient One', '0123456789', 'patient1@example.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-03-30 01:18:59', '2026-03-30 01:18:59'),
+(4, 7, 'PAT000007', 'Tester One', '0987654321', 'tester1@example.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-03-30 01:20:48', '2026-03-30 01:20:48');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payment_order`
+--
+
+CREATE TABLE `payment_order` (
+  `id` int UNSIGNED NOT NULL,
+  `user_id` int UNSIGNED NOT NULL,
+  `plan_code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `scope_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'account',
+  `months` tinyint UNSIGNED NOT NULL DEFAULT '1',
+  `amount_cents` int UNSIGNED NOT NULL,
+  `currency` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'VND',
+  `payment_method` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` enum('pending','paid','failed','expired') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `token` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `payment_order`
+--
+
+INSERT INTO `payment_order` (`id`, `user_id`, `plan_code`, `scope_type`, `months`, `amount_cents`, `currency`, `payment_method`, `status`, `token`, `expires_at`, `created_at`, `updated_at`) VALUES
+(1, 14, 'HOLORA_PLUS', 'account', 1, 299000, 'VND', 'momo', 'paid', '01c03f0b7198d7ae1b515e628904555ef40a3d68009c309d8630e2e708ce71be', '2026-03-31 13:45:17', '2026-03-31 06:30:17', '2026-03-31 06:30:19');
 
 -- --------------------------------------------------------
 
@@ -301,6 +519,37 @@ INSERT INTO `permission` (`id`, `name`, `code`, `module_name`, `description`, `s
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `provider_subscription`
+--
+
+CREATE TABLE `provider_subscription` (
+  `id` bigint UNSIGNED NOT NULL,
+  `plan_id` bigint UNSIGNED NOT NULL,
+  `scope_type` enum('doctor','branch','account') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `scope_id` bigint UNSIGNED NOT NULL,
+  `owner_user_id` bigint UNSIGNED NOT NULL,
+  `status` enum('trialing','active','past_due','cancelled','expired') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'trialing',
+  `starts_at` datetime NOT NULL,
+  `ends_at` datetime DEFAULT NULL,
+  `trial_ends_at` datetime DEFAULT NULL,
+  `auto_renew` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `provider_subscription`
+--
+
+INSERT INTO `provider_subscription` (`id`, `plan_id`, `scope_type`, `scope_id`, `owner_user_id`, `status`, `starts_at`, `ends_at`, `trial_ends_at`, `auto_renew`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 3, 'branch', 3, 14, 'trialing', '2026-03-30 08:16:14', '2026-04-29 08:16:14', '2026-04-29 08:16:14', 0, '2026-03-30 08:16:14', '2026-03-30 08:16:14', NULL),
+(2, 3, 'branch', 4, 16, 'trialing', '2026-03-30 08:28:39', '2026-04-29 08:28:39', '2026-04-29 08:28:39', 0, '2026-03-30 08:28:39', '2026-03-30 08:28:39', NULL),
+(3, 10, 'account', 14, 14, 'active', '2026-03-31 13:30:19', NULL, NULL, 1, '2026-03-31 06:30:19', '2026-03-31 06:30:19', NULL);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `review`
 --
 
@@ -343,7 +592,9 @@ INSERT INTO `role` (`id`, `name`, `code`, `description`, `is_system_role`, `stat
 (1, 'Super Admin', 'super_admin', 'Toàn quyền hệ thống', 1, 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
 (2, 'Admin', 'admin', 'Quản trị hệ thống', 1, 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
 (3, 'Doctor', 'doctor', 'Bác sĩ', 1, 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
-(4, 'Patient', 'patient', 'Bệnh nhân', 1, 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25');
+(4, 'Patient', 'patient', 'Bệnh nhân', 1, 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
+(5, 'Clinic Owner', 'clinic_owner', 'Owner of clinic/provider account', 0, 'active', '2026-03-30 04:20:47', '2026-03-30 04:20:47'),
+(6, 'Branch Manager', 'branch_manager', 'Manager of a specific branch', 0, 'active', '2026-03-30 04:20:47', '2026-03-30 04:20:47');
 
 -- --------------------------------------------------------
 
@@ -419,11 +670,114 @@ CREATE TABLE `specialty` (
   `id` bigint UNSIGNED NOT NULL,
   `name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
   `code` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `parent_id` bigint UNSIGNED DEFAULT NULL,
   `description` text COLLATE utf8mb4_unicode_ci,
   `status` enum('active','inactive') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `doctor_count` int UNSIGNED DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `specialty`
+--
+
+INSERT INTO `specialty` (`id`, `name`, `code`, `parent_id`, `description`, `status`, `created_at`, `updated_at`, `deleted_at`, `doctor_count`) VALUES
+(1, 'Răng Hàm Mặt', 'S000001', NULL, 'Răng Hàm Mặt', 'active', '2026-03-29 05:33:04', '2026-03-30 07:09:56', NULL, 0),
+(2, 'Nội khoa', 'INTERNAL_MEDICINE', NULL, 'Điều trị bệnh bằng thuốc', 'active', '2026-03-30 07:08:37', '2026-03-30 07:16:17', NULL, 0),
+(3, 'Ngoại khoa', 'SURGERY', NULL, 'Điều trị bệnh bằng phẫu thuật', 'active', '2026-03-30 07:08:57', '2026-03-30 07:16:17', NULL, 0),
+(4, 'Sản phụ khoa', 'S000004', NULL, 'Sản phụ khoa', 'active', '2026-03-30 07:09:16', '2026-03-30 07:09:16', NULL, 0),
+(5, 'Nhi khoa', 'S000005', NULL, 'Nhi khoa', 'active', '2026-03-30 07:09:37', '2026-03-30 07:09:37', NULL, 0),
+(6, 'Y tế công cộng/Y học dự phòng', 'S000006', NULL, 'Y tế công cộng/Y học dự phòng', 'active', '2026-03-30 07:10:14', '2026-03-30 07:10:14', NULL, 0),
+(7, 'Dược học', 'S000007', NULL, 'Dược học', 'active', '2026-03-30 07:10:31', '2026-03-30 07:10:31', NULL, 0),
+(8, 'Điều dưỡng/Hộ sinh', 'S000008', NULL, 'Điều dưỡng/Hộ sinh', 'active', '2026-03-30 07:10:46', '2026-03-30 07:10:46', NULL, 0),
+(9, 'Chuyên khoa giác quan/da', 'S000009', NULL, 'Chuyên khoa giác quan/da', 'active', '2026-03-30 07:11:10', '2026-03-30 07:11:10', NULL, 0),
+(10, 'Chuyên khoa chức năng/hỗ trợ', 'S000010', NULL, 'Chuyên khoa chức năng/hỗ trợ', 'active', '2026-03-30 07:11:29', '2026-03-30 07:11:29', NULL, 0),
+(11, 'Chuyên khoa đặc thù', 'S000011', NULL, 'Chuyên khoa đặc thù', 'active', '2026-03-30 07:11:44', '2026-03-30 07:11:44', NULL, 0),
+(13, 'Tim mạch', 'CARDIOLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
+(14, 'Tiêu hóa', 'GASTROENTEROLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
+(15, 'Hô hấp', 'RESPIRATORY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
+(16, 'Nội tiết', 'ENDOCRINOLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
+(17, 'Thận - Tiết niệu', 'NEPHRO_UROLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
+(18, 'Xương khớp', 'RHEUMATOLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
+(19, 'Huyết học', 'HEMATOLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
+(20, 'Truyền nhiễm/Nhiệt đới', 'INFECTIOUS_DISEASE', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
+(21, 'Ngoại tổng quát', 'GENERAL_SURGERY', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
+(22, 'Ngoại thần kinh', 'NEUROSURGERY', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
+(23, 'Ngoại lồng ngực', 'THORACIC_SURGERY', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
+(24, 'Chấn thương chỉnh hình', 'ORTHOPEDIC_TRAUMA', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
+(25, 'Ngoại nhi', 'PEDIATRIC_SURGERY', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `subscription_entitlement`
+--
+
+CREATE TABLE `subscription_entitlement` (
+  `id` bigint UNSIGNED NOT NULL,
+  `plan_id` bigint UNSIGNED NOT NULL,
+  `feature_code` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_enabled` tinyint(1) NOT NULL DEFAULT '1',
+  `limit_value` int DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `subscription_entitlement`
+--
+
+INSERT INTO `subscription_entitlement` (`id`, `plan_id`, `feature_code`, `is_enabled`, `limit_value`, `created_at`, `updated_at`) VALUES
+(1, 4, 'branch.manage', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
+(2, 3, 'branch.manage', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
+(3, 2, 'branch.manage', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
+(4, 1, 'branch.manage', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
+(8, 4, 'doctor.manage', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
+(9, 3, 'doctor.manage', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
+(10, 2, 'doctor.manage', 1, 3, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
+(11, 1, 'doctor.manage', 1, 1, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
+(15, 4, 'appointment.receive', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
+(16, 3, 'appointment.receive', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
+(17, 2, 'appointment.receive', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
+(18, 1, 'appointment.receive', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
+(25, 9, 'branch.manage', 1, 3, '2026-03-30 09:04:45', '2026-03-30 09:04:45'),
+(26, 9, 'doctor.manage', 1, 3, '2026-03-30 09:04:45', '2026-03-30 09:04:45'),
+(27, 10, 'branch.manage', 1, NULL, '2026-03-30 09:04:45', '2026-03-30 09:04:45'),
+(28, 10, 'doctor.manage', 1, NULL, '2026-03-30 09:04:45', '2026-03-30 09:04:45');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `subscription_plan`
+--
+
+CREATE TABLE `subscription_plan` (
+  `id` bigint UNSIGNED NOT NULL,
+  `code` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `scope_type` enum('doctor','branch','account') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `billing_cycle` enum('monthly','yearly') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'monthly',
+  `price_cents` int UNSIGNED NOT NULL DEFAULT '0',
+  `currency` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'VND',
+  `status` enum('active','inactive') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `subscription_plan`
+--
+
+INSERT INTO `subscription_plan` (`id`, `code`, `name`, `scope_type`, `billing_cycle`, `price_cents`, `currency`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'DOCTOR_TRIAL_14D', 'Doctor Trial 14 Days', 'doctor', 'monthly', 0, 'VND', 'active', '2026-03-30 03:24:55', '2026-03-30 08:24:44', NULL),
+(2, 'DOCTOR_PRO_MONTHLY', 'Doctor Pro Monthly', 'doctor', 'monthly', 299000, 'VND', 'active', '2026-03-30 03:24:55', '2026-03-30 08:24:44', NULL),
+(3, 'BRANCH_TRIAL_30D', 'Branch Trial 30 Days', 'branch', 'monthly', 0, 'VND', 'active', '2026-03-30 03:24:55', '2026-03-30 08:24:44', NULL),
+(4, 'BRANCH_GROWTH_MONTHLY', 'Branch Growth Monthly', 'branch', 'monthly', 999000, 'VND', 'active', '2026-03-30 03:24:55', '2026-03-30 08:24:44', NULL),
+(9, 'HOLORA_FREE', 'Holora Free', 'account', 'monthly', 0, 'VND', 'active', '2026-03-30 09:04:45', '2026-03-30 09:04:45', NULL),
+(10, 'HOLORA_PLUS', 'Holora Plus', 'account', 'monthly', 299000, 'VND', 'active', '2026-03-30 09:04:45', '2026-03-30 09:04:45', NULL);
 
 -- --------------------------------------------------------
 
@@ -437,6 +791,8 @@ CREATE TABLE `users` (
   `username` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
   `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `reset_password_token` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `reset_password_expires` datetime DEFAULT NULL,
   `phone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `avatar_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `gender` enum('male','female','other') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -454,12 +810,24 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `password_hash`, `phone`, `avatar_url`, `gender`, `date_of_birth`, `status`, `email_verified_at`, `last_login_at`, `remember_token`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'Super Admin', 'sadmin', 'sadmin@holora.com', '$2b$10$vRRxYLE/b6cZcc.F3w/KW.ZL1tgge1xCfCGSNQFFIMYaHcX7QjVVG', NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-28 10:29:08', '2026-03-28 10:29:08', NULL),
-(2, 'Admin User', 'admin', 'admin@holora.com', '$2b$10$vRRxYLE/b6cZcc.F3w/KW.ZL1tgge1xCfCGSNQFFIMYaHcX7QjVVG', '0900000001', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-28 15:00:40', '2026-03-28 15:00:40', NULL),
-(3, 'Doctor User', 'doctor', 'doctor@holora.com', '$2b$10$vRRxYLE/b6cZcc.F3w/KW.ZL1tgge1xCfCGSNQFFIMYaHcX7QjVVG', '0900000002', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-28 15:00:40', '2026-03-28 15:00:40', NULL),
-(4, 'Patient User', 'patient', 'patient@holora.com', '$2b$10$vRRxYLE/b6cZcc.F3w/KW.ZL1tgge1xCfCGSNQFFIMYaHcX7QjVVG', '0900000003', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-28 15:00:40', '2026-03-28 15:00:40', NULL),
-(5, 'Linh Hoàng', 'sadmin@holora.com', 'hoangvanlinhuit@gmail.com', '$2b$10$uePpdVkxfpVEAMEdJf7/fe4R8oBzWiryPxfYB7PKw.nUcnHnrR/6S', NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-28 15:07:41', '2026-03-28 15:07:41', NULL);
+INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `password_hash`, `reset_password_token`, `reset_password_expires`, `phone`, `avatar_url`, `gender`, `date_of_birth`, `status`, `email_verified_at`, `last_login_at`, `remember_token`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'Super Admin', 'sadmin', 'sadmin@holora.com', '$2b$10$vRRxYLE/b6cZcc.F3w/KW.ZL1tgge1xCfCGSNQFFIMYaHcX7QjVVG', NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-28 10:29:08', '2026-03-28 10:29:08', NULL),
+(2, 'Admin User', 'admin', 'admin@holora.com', '$2b$10$vRRxYLE/b6cZcc.F3w/KW.ZL1tgge1xCfCGSNQFFIMYaHcX7QjVVG', NULL, NULL, '0900000001', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-28 15:00:40', '2026-03-28 15:00:40', NULL),
+(3, 'Doctor User', 'doctor', 'doctor@holora.com', '$2b$10$vRRxYLE/b6cZcc.F3w/KW.ZL1tgge1xCfCGSNQFFIMYaHcX7QjVVG', NULL, NULL, '0900000002', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-28 15:00:40', '2026-03-28 15:00:40', NULL),
+(4, 'Patient User', 'patient', 'patient@holora.com', '$2b$10$vRRxYLE/b6cZcc.F3w/KW.ZL1tgge1xCfCGSNQFFIMYaHcX7QjVVG', NULL, NULL, '0900000003', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-28 15:00:40', '2026-03-28 15:00:40', NULL),
+(5, 'Linh Hoàng', 'sadmin@holora.com', 'hoangvanlinhuit@gmail.com', '$2b$10$uePpdVkxfpVEAMEdJf7/fe4R8oBzWiryPxfYB7PKw.nUcnHnrR/6S', NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-28 15:07:41', '2026-03-29 06:58:23', NULL),
+(6, 'Patient One', 'patient1', 'patient1@example.com', '$2b$10$5sRWNN5SxgVzdbRe.LfqCeMgcMIHPox0AeIN3XZRJaHhuEKJ0NT1m', NULL, NULL, '0123456789', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-30 01:18:59', '2026-03-30 01:18:59', NULL),
+(7, 'Tester One', 'tester1', 'tester1@example.com', '$2b$10$iC.mjH41lCHi9zHTvwL81.1TSAU.HwS.KnG15ygzHk/Uh6/DOQ4te', NULL, NULL, '0987654321', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-30 01:20:47', '2026-03-30 01:20:47', NULL),
+(8, 'App Dentor', 'dentorvn_942976', 'dentor.vn@gmail.com', '$2b$10$j54XbWDvME9v7/KBzHY7DOUuHnSLBj6y0Zg2.dYSyI8lczUWb6cEG', NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-03-30 03:05:43', NULL, NULL, '2026-03-30 03:05:43', '2026-03-30 03:05:43', NULL),
+(9, 'Farm Ông Điền', 'ongdienfarm_122345', 'ongdienfarm@gmail.com', '$2b$10$AA5v4xAw1qRFsGQzfDhOiuW9MCrve0bJuC0L6cOOtCswnawWDbl5e', NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-03-30 04:15:22', NULL, NULL, '2026-03-30 04:15:22', '2026-03-30 04:15:22', NULL),
+(10, 'Provider Test', 'provider_6593', 'provider_8044@example.com', '$2b$10$dJfcIctPkMDlwzLEOKDaUeFgE.xWw9iY3wUm5J7Yhs79CuSypaeOu', NULL, NULL, '0900000000', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-30 04:21:09', '2026-03-30 04:21:09', NULL),
+(11, 'Hoàng Linh', 'it@holoramind.com.vn', 'it@holoramind.com.vn', '$2b$10$qmQqse/.YWmdXGIrn7Fbt.yF7wpIxXActnC0Zqo1rGagIHwYEyud2', NULL, NULL, '+84981819143', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-30 07:03:02', '2026-03-30 07:03:02', NULL),
+(12, 'Hoàng Linh', 'it@holoramind.com', 'it@holoramind.com', '$2b$10$U0H6BR86NAoY2aYdS/WiXuWSNoGcniflX7BCtG31ikSVha/xTiu8q', NULL, NULL, '+84981819143', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-30 07:03:38', '2026-03-30 07:03:38', NULL),
+(14, 'Nguyễn Hoàng Đức', 'ducnh', 'ongdienfood@gmail.com', '$2b$10$dICGZnislRyI0fBwgriNj.yMhl2NfcayY8F/RmEGlGliU8nBGgfv2', NULL, NULL, '0386040080', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-30 07:26:06', '2026-03-30 07:26:06', NULL),
+(15, 'Nguyễn Tiến Linh', 'ongdienfood@gmail.com', 'nguyentienlinh@holoramed.com', '$2b$10$L4PqwmyEIkxhxQgVz21uk..huGQ7ygkIHOAC2IMDgA/avZV55q.RS', NULL, NULL, '+84981819143', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-30 08:16:14', '2026-03-30 08:16:14', NULL),
+(16, 'Provider Test', 'provider1774859319', 'provider1774859319@example.com', '$2b$10$a/ZPcFOkTpX8IcNuyEY1QO0kT1QKZy4dvr3Ct3eRjuUDh35dWIqNW', NULL, NULL, '0900000001', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-30 08:28:39', '2026-03-30 08:28:39', NULL),
+(17, 'Doctor Test 1774859319', 'doctor1774859319', 'doctor1774859319@example.com', '$2b$10$zpX48n4g1FbA1Ssr2cDbNO8ZHrYIIL02hUa8kQZ7alUwUwYJDk7V6', NULL, NULL, '0900000003', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-30 08:28:39', '2026-03-30 08:28:39', NULL),
+(19, 'Hoàng Văn Linh', 'linhhv@holoramed.com', 'linhhv@holoramed.com', '$2b$10$tig6VmX.6TpZMa2JKfJTru/sP3cU7YICs8JBL5uOVnQPt7JUo6QXS', NULL, NULL, '+84981819143', NULL, NULL, NULL, 'active', NULL, NULL, NULL, '2026-03-31 06:44:14', '2026-03-31 06:44:14', NULL);
 
 -- --------------------------------------------------------
 
@@ -484,7 +852,19 @@ INSERT INTO `user_role` (`id`, `user_id`, `role_id`, `assigned_at`, `assigned_by
 (3, 2, 2, '2026-03-28 15:01:06', NULL),
 (4, 3, 3, '2026-03-28 15:01:06', NULL),
 (5, 4, 4, '2026-03-28 15:01:06', NULL),
-(6, 5, 4, '2026-03-28 15:07:41', NULL);
+(6, 5, 4, '2026-03-28 15:07:41', NULL),
+(7, 6, 4, '2026-03-30 01:18:59', NULL),
+(8, 7, 4, '2026-03-30 01:20:47', NULL),
+(9, 8, 4, '2026-03-30 03:05:43', NULL),
+(10, 9, 4, '2026-03-30 04:15:22', NULL),
+(11, 10, 5, '2026-03-30 04:21:09', NULL),
+(12, 11, 3, '2026-03-30 07:03:02', NULL),
+(13, 12, 3, '2026-03-30 07:03:38', NULL),
+(14, 14, 5, '2026-03-30 07:26:06', NULL),
+(15, 15, 3, '2026-03-30 08:16:14', NULL),
+(16, 16, 5, '2026-03-30 08:28:39', NULL),
+(17, 17, 3, '2026-03-30 08:28:39', NULL),
+(19, 19, 3, '2026-03-31 06:44:14', NULL);
 
 -- --------------------------------------------------------
 
@@ -543,7 +923,6 @@ ALTER TABLE `appointment`
   ADD KEY `idx_appointment_patient_id` (`patient_id`),
   ADD KEY `idx_appointment_doctor_id` (`doctor_id`),
   ADD KEY `idx_appointment_specialty_id` (`specialty_id`),
-  ADD KEY `idx_appointment_branch_id` (`branch_id`),
   ADD KEY `idx_appointment_date` (`appointment_date`),
   ADD KEY `idx_appointment_status` (`status`),
   ADD KEY `idx_appointment_start_time` (`start_time`);
@@ -558,6 +937,16 @@ ALTER TABLE `audit_log`
   ADD KEY `idx_audit_log_module_name` (`module_name`),
   ADD KEY `idx_audit_log_entity` (`entity_type`,`entity_id`),
   ADD KEY `idx_audit_log_created_at` (`created_at`);
+
+--
+-- Indexes for table `branch`
+--
+ALTER TABLE `branch`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_branch_code` (`code`),
+  ADD KEY `idx_branch_status` (`status`),
+  ADD KEY `idx_branch_deleted_at` (`deleted_at`),
+  ADD KEY `idx_branch_owner_user` (`owner_user_id`);
 
 --
 -- Indexes for table `consultation`
@@ -595,13 +984,58 @@ ALTER TABLE `consultation_response`
 ALTER TABLE `doctor`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `doctor_code` (`doctor_code`),
+  ADD UNIQUE KEY `uk_doctor_code` (`doctor_code`),
   ADD UNIQUE KEY `uk_license_number` (`license_number`),
   ADD KEY `fk_doctor_user` (`user_id`),
   ADD KEY `idx_doctor_specialty_id` (`specialty_id`),
   ADD KEY `idx_doctor_full_name` (`full_name`),
   ADD KEY `idx_doctor_status` (`status`),
   ADD KEY `idx_doctor_license_number` (`license_number`),
-  ADD KEY `idx_doctor_code` (`doctor_code`);
+  ADD KEY `idx_doctor_code` (`doctor_code`),
+  ADD KEY `idx_doctor_created_by_user` (`created_by_user_id`);
+
+--
+-- Indexes for table `doctor_branch`
+--
+ALTER TABLE `doctor_branch`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_doctor_branch` (`doctor_id`,`branch_id`),
+  ADD KEY `idx_doctor_branch_doctor` (`doctor_id`),
+  ADD KEY `idx_doctor_branch_branch` (`branch_id`),
+  ADD KEY `idx_doctor_branch_deleted_at` (`deleted_at`);
+
+--
+-- Indexes for table `doctor_invite`
+--
+ALTER TABLE `doctor_invite`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_doctor_invite_token_hash` (`token_hash`),
+  ADD KEY `idx_doctor_invite_user` (`user_id`),
+  ADD KEY `idx_doctor_invite_doctor` (`doctor_id`),
+  ADD KEY `idx_doctor_invite_email` (`email`),
+  ADD KEY `idx_doctor_invite_expiry` (`expires_at`),
+  ADD KEY `fk_doctor_invite_creator` (`created_by_user_id`);
+
+--
+-- Indexes for table `doctor_schedule`
+--
+ALTER TABLE `doctor_schedule`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `doctor_id` (`doctor_id`);
+
+--
+-- Indexes for table `holora_mind_chats`
+--
+ALTER TABLE `holora_mind_chats`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_holora_mind_chat_user` (`user_id`);
+
+--
+-- Indexes for table `holora_mind_messages`
+--
+ALTER TABLE `holora_mind_messages`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_holora_mind_msg_chat` (`chat_id`);
 
 --
 -- Indexes for table `notification`
@@ -619,11 +1053,21 @@ ALTER TABLE `notification`
 ALTER TABLE `patient`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `patient_code` (`patient_code`),
+  ADD UNIQUE KEY `uk_patient_code` (`patient_code`),
   ADD KEY `fk_patient_user` (`user_id`),
   ADD KEY `idx_patient_full_name` (`full_name`),
   ADD KEY `idx_patient_phone` (`phone`),
   ADD KEY `idx_patient_email` (`email`),
-  ADD KEY `idx_patient_status` (`status`);
+  ADD KEY `idx_patient_status` (`status`),
+  ADD KEY `idx_patient_code` (`patient_code`);
+
+--
+-- Indexes for table `payment_order`
+--
+ALTER TABLE `payment_order`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_payment_token` (`token`),
+  ADD KEY `idx_user_status` (`user_id`,`status`);
 
 --
 -- Indexes for table `permission`
@@ -633,6 +1077,17 @@ ALTER TABLE `permission`
   ADD UNIQUE KEY `code` (`code`),
   ADD KEY `idx_permission_module` (`module_name`),
   ADD KEY `idx_permission_status` (`status`);
+
+--
+-- Indexes for table `provider_subscription`
+--
+ALTER TABLE `provider_subscription`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_provider_subscription_scope` (`scope_type`,`scope_id`),
+  ADD KEY `idx_provider_subscription_owner` (`owner_user_id`),
+  ADD KEY `idx_provider_subscription_status` (`status`),
+  ADD KEY `idx_provider_subscription_deleted` (`deleted_at`),
+  ADD KEY `fk_provider_subscription_plan` (`plan_id`);
 
 --
 -- Indexes for table `review`
@@ -669,7 +1124,29 @@ ALTER TABLE `role_permission`
 ALTER TABLE `specialty`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `name` (`name`),
-  ADD UNIQUE KEY `code` (`code`);
+  ADD UNIQUE KEY `code` (`code`),
+  ADD UNIQUE KEY `uk_specialty_code` (`code`),
+  ADD KEY `idx_specialty_code` (`code`),
+  ADD KEY `idx_specialty_status` (`status`),
+  ADD KEY `idx_specialty_deleted_at` (`deleted_at`),
+  ADD KEY `idx_specialty_parent_id` (`parent_id`);
+
+--
+-- Indexes for table `subscription_entitlement`
+--
+ALTER TABLE `subscription_entitlement`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_plan_feature` (`plan_id`,`feature_code`),
+  ADD KEY `idx_entitlement_feature` (`feature_code`);
+
+--
+-- Indexes for table `subscription_plan`
+--
+ALTER TABLE `subscription_plan`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_subscription_plan_code` (`code`),
+  ADD KEY `idx_subscription_plan_scope` (`scope_type`),
+  ADD KEY `idx_subscription_plan_status` (`status`);
 
 --
 -- Indexes for table `users`
@@ -730,28 +1207,64 @@ ALTER TABLE `audit_log`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `branch`
+--
+ALTER TABLE `branch`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
 -- AUTO_INCREMENT for table `consultation`
 --
 ALTER TABLE `consultation`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `consultation_image`
 --
 ALTER TABLE `consultation_image`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `consultation_response`
 --
 ALTER TABLE `consultation_response`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `doctor`
 --
 ALTER TABLE `doctor`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `doctor_branch`
+--
+ALTER TABLE `doctor_branch`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `doctor_invite`
+--
+ALTER TABLE `doctor_invite`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `doctor_schedule`
+--
+ALTER TABLE `doctor_schedule`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `holora_mind_chats`
+--
+ALTER TABLE `holora_mind_chats`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `holora_mind_messages`
+--
+ALTER TABLE `holora_mind_messages`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `notification`
@@ -763,13 +1276,25 @@ ALTER TABLE `notification`
 -- AUTO_INCREMENT for table `patient`
 --
 ALTER TABLE `patient`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `payment_order`
+--
+ALTER TABLE `payment_order`
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `permission`
 --
 ALTER TABLE `permission`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+
+--
+-- AUTO_INCREMENT for table `provider_subscription`
+--
+ALTER TABLE `provider_subscription`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `review`
@@ -781,7 +1306,7 @@ ALTER TABLE `review`
 -- AUTO_INCREMENT for table `role`
 --
 ALTER TABLE `role`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `role_permission`
@@ -793,19 +1318,31 @@ ALTER TABLE `role_permission`
 -- AUTO_INCREMENT for table `specialty`
 --
 ALTER TABLE `specialty`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+
+--
+-- AUTO_INCREMENT for table `subscription_entitlement`
+--
+ALTER TABLE `subscription_entitlement`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+
+--
+-- AUTO_INCREMENT for table `subscription_plan`
+--
+ALTER TABLE `subscription_plan`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `user_role`
 --
 ALTER TABLE `user_role`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `video_consultation_session`
@@ -839,7 +1376,6 @@ ALTER TABLE `appointment`
   ADD CONSTRAINT `fk_appointment_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_appointment_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_appointment_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_appointment_branch` FOREIGN KEY (`branch_id`) REFERENCES `branch` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_appointment_specialty` FOREIGN KEY (`specialty_id`) REFERENCES `specialty` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
@@ -847,6 +1383,12 @@ ALTER TABLE `appointment`
 --
 ALTER TABLE `audit_log`
   ADD CONSTRAINT `fk_audit_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `branch`
+--
+ALTER TABLE `branch`
+  ADD CONSTRAINT `fk_branch_owner_user` FOREIGN KEY (`owner_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `consultation`
@@ -874,8 +1416,42 @@ ALTER TABLE `consultation_response`
 -- Constraints for table `doctor`
 --
 ALTER TABLE `doctor`
+  ADD CONSTRAINT `fk_doctor_created_by_user` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_doctor_specialty` FOREIGN KEY (`specialty_id`) REFERENCES `specialty` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_doctor_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `doctor_branch`
+--
+ALTER TABLE `doctor_branch`
+  ADD CONSTRAINT `fk_doctor_branch_branch` FOREIGN KEY (`branch_id`) REFERENCES `branch` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_doctor_branch_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `doctor_invite`
+--
+ALTER TABLE `doctor_invite`
+  ADD CONSTRAINT `fk_doctor_invite_creator` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_doctor_invite_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_doctor_invite_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `doctor_schedule`
+--
+ALTER TABLE `doctor_schedule`
+  ADD CONSTRAINT `doctor_schedule_ibfk_1` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `holora_mind_chats`
+--
+ALTER TABLE `holora_mind_chats`
+  ADD CONSTRAINT `fk_holora_mind_chat_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `holora_mind_messages`
+--
+ALTER TABLE `holora_mind_messages`
+  ADD CONSTRAINT `fk_holora_mind_msg_chat` FOREIGN KEY (`chat_id`) REFERENCES `holora_mind_chats` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `notification`
@@ -888,6 +1464,13 @@ ALTER TABLE `notification`
 --
 ALTER TABLE `patient`
   ADD CONSTRAINT `fk_patient_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `provider_subscription`
+--
+ALTER TABLE `provider_subscription`
+  ADD CONSTRAINT `fk_provider_subscription_owner` FOREIGN KEY (`owner_user_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `fk_provider_subscription_plan` FOREIGN KEY (`plan_id`) REFERENCES `subscription_plan` (`id`);
 
 --
 -- Constraints for table `review`
@@ -904,6 +1487,18 @@ ALTER TABLE `role_permission`
   ADD CONSTRAINT `fk_role_permission_granted_by` FOREIGN KEY (`granted_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_role_permission_permission` FOREIGN KEY (`permission_id`) REFERENCES `permission` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_role_permission_role` FOREIGN KEY (`role_id`) REFERENCES `role` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `specialty`
+--
+ALTER TABLE `specialty`
+  ADD CONSTRAINT `fk_specialty_parent` FOREIGN KEY (`parent_id`) REFERENCES `specialty` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `subscription_entitlement`
+--
+ALTER TABLE `subscription_entitlement`
+  ADD CONSTRAINT `fk_entitlement_plan` FOREIGN KEY (`plan_id`) REFERENCES `subscription_plan` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `user_role`

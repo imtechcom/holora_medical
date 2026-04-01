@@ -6,6 +6,7 @@ import {
   assignRoleToUserApi,
   removeRoleFromUserApi,
 } from "../services/userRoleService";
+import ConfirmModal from "./ConfirmModal";
 
 const AssignUserRoleModal = ({ user_id, user_name, onClose, onSuccess }) => {
   const { t } = useTranslation();
@@ -14,6 +15,7 @@ const AssignUserRoleModal = ({ user_id, user_name, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(true);
   const [selectedRole, setSelectedRole] = useState("");
   const [assigning, setAssigning] = useState(false);
+  const [roleToRemove, setRoleToRemove] = useState(null);
 
   const fetchRoles = useCallback(async () => {
     try {
@@ -56,15 +58,15 @@ const AssignUserRoleModal = ({ user_id, user_name, onClose, onSuccess }) => {
   };
 
   const handleRemoveRole = async (role_id) => {
-    if (window.confirm(t("admin.confirmRemoveRole"))) {
-      try {
-        await removeRoleFromUserApi(user_id, role_id);
-        await fetchRoles();
-        onSuccess?.();
-      } catch (error) {
-        console.error("Error removing role:", error);
-        alert(t("admin.removeRoleFailed"));
-      }
+    try {
+      await removeRoleFromUserApi(user_id, role_id);
+      await fetchRoles();
+      onSuccess?.();
+    } catch (error) {
+      console.error("Error removing role:", error);
+      alert(t("admin.removeRoleFailed"));
+    } finally {
+      setRoleToRemove(null);
     }
   };
 
@@ -107,7 +109,7 @@ const AssignUserRoleModal = ({ user_id, user_name, onClose, onSuccess }) => {
                     </p>
                   </div>
                   <button
-                    onClick={() => handleRemoveRole(role.id)}
+                    onClick={() => setRoleToRemove(role)}
                     className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition"
                   >
                     {t("common.delete")}
@@ -160,6 +162,19 @@ const AssignUserRoleModal = ({ user_id, user_name, onClose, onSuccess }) => {
           </button>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={Boolean(roleToRemove)}
+        title={t("admin.confirmRemoveRole")}
+        description={roleToRemove ? `${user_name}: ${roleToRemove.name}` : ""}
+        badgeLabel={t("admin.currentRoles")}
+        tone="danger"
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        closeLabel={t("common.close")}
+        onConfirm={() => handleRemoveRole(roleToRemove.id)}
+        onClose={() => setRoleToRemove(null)}
+      />
     </div>
   );
 };

@@ -24,6 +24,20 @@ const updateSpecialty = async (id, payload) => {
   return response.data;
 };
 
+const updateSpecialtyParent = async (id, parentId) => {
+  const response = await api.patch(`/specialties/${id}/parent`, {
+    parent_id: parentId,
+  });
+  return response.data;
+};
+
+const reassignAndDeleteSpecialty = async (id, targetSpecialtyId) => {
+  const response = await api.post(`/specialties/${id}/reassign-delete`, {
+    target_specialty_id: targetSpecialtyId,
+  });
+  return response.data;
+};
+
 // Delete specialty
 const deleteSpecialty = async (id) => {
   const response = await api.delete(`/specialties/${id}`);
@@ -35,5 +49,7 @@ export default {
   getSpecialtyById,
   createSpecialty,
   updateSpecialty,
+  updateSpecialtyParent,
+  reassignAndDeleteSpecialty,
   deleteSpecialty
 };

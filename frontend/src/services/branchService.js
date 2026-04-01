@@ -5,8 +5,18 @@ const getAllBranches = async () => {
   return response.data;
 };
 
+const getMyBranches = async () => {
+  const response = await api.get("/branches/my");
+  return response.data;
+};
+
 const getBranchById = async (id) => {
   const response = await api.get(`/branches/${id}`);
+  return response.data;
+};
+
+const getNextBranchCode = async () => {
+  const response = await api.get("/branches/next-code");
   return response.data;
 };
 
@@ -27,7 +37,9 @@ const deleteBranch = async (id) => {
 
 export default {
   getAllBranches,
+  getMyBranches,
   getBranchById,
+  getNextBranchCode,
   createBranch,
   updateBranch,
   deleteBranch,

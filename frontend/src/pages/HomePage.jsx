@@ -1,208 +1,261 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "../context/AuthContext";
+import ConfirmModal from "../components/ConfirmModal";
 
 const HomePage = () => {
-  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const { i18n } = useTranslation();
+  const { user, role } = useAuth();
+  const isVi = i18n.language === "vi";
+  const [rolePrompt, setRolePrompt] = useState(null);
 
-  const features = [
-    {
-      icon: "🏥",
-      titleEn: "Book by Branch",
-      titleVi: "Đặt lịch theo chi nhánh",
-      descEn: "Select your preferred healthcare facility and book an appointment in just a few steps.",
-      descVi: "Chọn đúng cơ sở khám phù hợp và đặt lịch ngay trong vài bước.",
-    },
-    {
-      icon: "👨‍⚕️",
-      titleEn: "Multi-Branch Doctors",
-      titleVi: "Bác sĩ đa khoa, đa cơ sở",
-      descEn: "One doctor manages multiple branches for flexible and easy schedule management.",
-      descVi: "Một bác sĩ có thể phụ trách nhiều chi nhánh, dễ dàng linh hoạt lịch khám.",
-    },
-    {
-      icon: "💬",
-      titleEn: "Quick Consultation",
-      titleVi: "Tư vấn nhanh",
-      descEn: "Submit online consultation requests and track results directly on our system.",
-      descVi: "Gửi yêu cầu tư vấn online và theo dõi kết quả ngay trên hệ thống.",
-    },
-  ];
+  const getZonePath = () => {
+    switch (role) {
+      case "patient":
+        return "/patient";
+      case "doctor":
+        return "/doctor";
+      case "clinic_owner":
+        return "/clinic-owner";
+      case "admin":
+      case "super_admin":
+        return "/admin";
+      case "receptionist":
+        return "/receptionist";
+      case "accountant":
+        return "/accountant";
+      default:
+        return "/";
+    }
+  };
 
-  const stats = [
-    { label: "Cơ sở / Branches", value: "Nhiều chi nhánh" },
-    { label: "Đặt lịch / Booking", value: "Theo slot trong" },
-    { label: "Theo dõi / Tracking", value: "Lịch của tôi" },
-  ];
+  const patientEntryPath = user ? getZonePath() : "/register";
+  const providerEntryPath = user ? getZonePath() : "/register/provider";
+
+  const patientEntryLabel = user
+    ? isVi
+      ? "Đi tới khu vực của bạn"
+      : "Go to your zone"
+    : isVi
+    ? "Đi tới đăng ký Patient"
+    : "Go to patient registration";
+
+  const providerEntryLabel = user
+    ? isVi
+      ? "Đi tới khu vực của bạn"
+      : "Go to your zone"
+    : isVi
+    ? "Đi tới đăng ký Provider"
+    : "Go to provider registration";
+
+  const getRoleLabel = () => {
+    switch (role) {
+      case "patient":
+        return isVi ? "patient" : "patient";
+      case "doctor":
+        return isVi ? "doctor" : "doctor";
+      case "clinic_owner":
+        return isVi ? "clinic owner" : "clinic owner";
+      case "admin":
+      case "super_admin":
+        return isVi ? "admin" : "admin";
+      case "receptionist":
+        return isVi ? "receptionist" : "receptionist";
+      case "accountant":
+        return isVi ? "accountant" : "accountant";
+      default:
+        return isVi ? "user" : "user";
+    }
+  };
+
+  const getZoneLabel = () => {
+    switch (role) {
+      case "patient":
+        return isVi ? "Patient Zone" : "Patient Zone";
+      case "doctor":
+        return isVi ? "Doctor Zone" : "Doctor Zone";
+      case "clinic_owner":
+        return isVi ? "Provider Zone" : "Provider Zone";
+      case "admin":
+      case "super_admin":
+        return isVi ? "Admin Panel" : "Admin Panel";
+      case "receptionist":
+        return isVi ? "Receptionist Zone" : "Receptionist Zone";
+      case "accountant":
+        return isVi ? "Accountant Zone" : "Accountant Zone";
+      default:
+        return isVi ? "khu vực của bạn" : "your zone";
+    }
+  };
+
+  const openWrongCardPrompt = (entryType) => {
+    setRolePrompt({
+      entryType,
+      zonePath: getZonePath(),
+      zoneLabel: getZoneLabel(),
+      roleLabel: getRoleLabel(),
+    });
+  };
+
+  const handlePatientEntry = (event) => {
+    if (!user) return;
+
+    if (role === "patient") return;
+
+    event.preventDefault();
+    openWrongCardPrompt("patient");
+  };
+
+  const handleProviderEntry = (event) => {
+    if (!user) return;
+
+    if (role === "doctor" || role === "clinic_owner") return;
+
+    event.preventDefault();
+    openWrongCardPrompt("provider");
+  };
+
+  const handleConfirmZoneRedirect = () => {
+    if (!rolePrompt?.zonePath) return;
+    navigate(rolePrompt.zonePath);
+    setRolePrompt(null);
+  };
+
+  const promptTitle = isVi
+    ? "Tài khoản hiện tại không phù hợp với lựa chọn này"
+    : "This selection does not match your current account";
+
+  const promptDescription = rolePrompt
+    ? isVi
+      ? `Bạn đang đăng nhập bằng tài khoản ${rolePrompt.roleLabel}. Nếu tiếp tục, hệ thống sẽ đưa bạn về ${rolePrompt.zoneLabel} để làm việc đúng theo quyền hiện tại.`
+      : `You are currently signed in with a ${rolePrompt.roleLabel} account. If you continue, the system will take you to ${rolePrompt.zoneLabel}, which matches your current permissions.`
+    : "";
+
+  const promptSelectionLabel = rolePrompt
+    ? rolePrompt.entryType === "provider"
+      ? isVi
+        ? "Bạn vừa chọn khu vực Provider"
+        : "You selected the Provider area"
+      : isVi
+      ? "Bạn vừa chọn khu vực Patient"
+      : "You selected the Patient area"
+    : "";
 
   return (
-    <div className="bg-white text-gray-800">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#E06666] via-[#D55555] to-[#C94545] py-24 md:py-32">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-white rounded-full blur-3xl" />
-        </div>
-        
-        <div className="relative mx-auto max-w-7xl px-6">
-          <div className="max-w-2xl">
-            <div className="mb-6 inline-block">
-              <span className="inline-block rounded-full border-2 border-white/40 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white backdrop-blur-sm">
-                ✨ Holora Medical Platform
-              </span>
-            </div>
-            
-            <h1 className="text-5xl md:text-6xl font-black text-white leading-tight mb-6">
-              {i18n.language === "vi" 
-                ? "Đặt lịch kham nhanh,\nđúng bác sĩ, đúng chi nhánh"
-                : "Quick Appointments,\nRight Doctor, Right Branch"
-              }
-            </h1>
-            
-            <p className="text-lg md:text-xl text-white/90 mb-8 max-w-xl leading-relaxed">
-              {i18n.language === "vi"
-                ? "Nền tảng chăm sóc sức khỏe thông minh: đặt lịch theo khung giờ trống, theo dõi lịch của tôi, kết hợp tư vấn trực tuyến và hồ sơ y tế trên cùng một hệ thống."
-                : "Intelligent healthcare platform: book appointments by available slots, track your schedule, combine online consultations and medical records all in one system."
-              }
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                to="/appointments"
-                className="inline-flex items-center justify-center rounded-xl bg-white text-[#E06666] px-8 py-4 font-bold shadow-xl hover:shadow-2xl transition transform hover:scale-105"
-              >
-                {i18n.language === "vi" ? "📅 Đặt lịch hẹn ngay" : "📅 Book Now"}
-              </Link>
-              <Link
-                to="/patient/consultations/new"
-                className="inline-flex items-center justify-center rounded-xl border-2 border-white text-white px-8 py-4 font-bold hover:bg-white/10 transition"
-              >
-                {i18n.language === "vi" ? "💬 Gửi yêu cầu tư vấn" : "💬 Request Consultation"}
-              </Link>
-            </div>
-          </div>
+    <div className="relative min-h-[calc(100vh-140px)] overflow-hidden bg-white text-gray-900 dark:bg-[#0F141F] dark:text-slate-100">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-[-180px] h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-[#E06666]/10 blur-3xl dark:bg-[#E06666]/12" />
+        <div className="absolute bottom-[-120px] left-[-120px] h-[260px] w-[260px] rounded-full bg-[#F6B4B4]/25 blur-3xl dark:bg-[#4B2A34]/35" />
+        <div className="absolute bottom-[-100px] right-[-110px] h-[250px] w-[250px] rounded-full bg-[#FFDAD4]/30 blur-3xl dark:bg-[#2E3C55]/30" />
+      </div>
 
-          {/* Stats Cards */}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {stats.map((stat, idx) => (
-              <div key={idx} className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-6 text-white">
-                <div className="text-sm font-semibold text-white/70 uppercase tracking-wider mb-2">
-                  {i18n.language === "vi" ? stat.label.split(" / ")[1] : stat.label.split(" / ")[0]}
-                </div>
-                <div className="text-2xl font-black">{stat.value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <div className="relative mx-auto flex min-h-[calc(100vh-140px)] max-w-5xl flex-col items-center justify-center px-6 py-14">
+        <p className="inline-flex items-center rounded-full border border-[#E06666]/25 bg-[#FFF5F5] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#C14D4D] dark:border-[#E06666]/35 dark:bg-[#2B1F28] dark:text-[#F3A3A3]">
+          {isVi ? "Holora AI Native" : "Holora AI Native"}
+        </p>
 
-      {/* Features Section */}
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-black text-gray-900 mb-4">
-            {i18n.language === "vi" ? "Trải nghiệm khám bệnh hiện đại" : "Modern Healthcare Experience"}
-          </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            {i18n.language === "vi"
-              ? "Tối ưu cho bệnh nhân cần đặt lịch nhanh và rõ ràng thông tin"
-              : "Optimized for patients who need quick booking and clear information"
-            }
-          </p>
-        </div>
+        <h1 className="mt-7 text-center text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl dark:text-slate-100">
+          {isVi ? "Chọn vai trò để bắt đầu" : "Choose your role to start"}
+        </h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {features.map((feature, idx) => (
-            <article 
-              key={idx} 
-              className="group rounded-2xl border-2 border-gray-200 bg-white p-8 shadow-md hover:shadow-xl hover:border-[#E06666] transition transform hover:-translate-y-2"
-            >
-              <div className="text-5xl mb-4">{feature.icon}</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[#E06666] transition">
-                {i18n.language === "vi" ? feature.titleVi : feature.titleEn}
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                {i18n.language === "vi" ? feature.descVi : feature.descEn}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
+        <p className="mt-4 max-w-2xl text-center text-base leading-7 text-gray-600 sm:text-lg dark:text-slate-400">
+          {isVi
+            ? "Một điểm vào duy nhất, hệ thống đưa bạn thẳng đến đúng khu vực chức năng."
+            : "One clean entry point, then direct routing to the right workspace."}
+        </p>
 
-      {/* CTA Section */}
-      <section className="bg-gradient-to-r from-[#F5E6E6] to-[#FFE8E8] border-t-4 border-[#E06666]">
-        <div className="mx-auto max-w-7xl px-6 py-16 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div>
-            <h3 className="text-3xl font-black text-gray-900 mb-3">
-              {i18n.language === "vi" ? "Bắt đầu hôm nay!" : "Get Started Today!"}
-            </h3>
-            <p className="text-gray-700 text-lg">
-              {i18n.language === "vi"
-                ? "Bắt đầu từ việc chọn bác sĩ và chi nhánh phù hợp"
-                : "Start by choosing the right doctor and branch for you"
-              }
-            </p>
-          </div>
+        <div className="mt-10 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2">
           <Link
-            to="/appointments"
-            className="flex-shrink-0 rounded-xl bg-[#E06666] text-white px-10 py-4 font-bold shadow-lg hover:bg-[#D55555] transition transform hover:scale-105"
+            to={patientEntryPath}
+            onClick={handlePatientEntry}
+            className="group flex min-h-[230px] flex-col rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#E06666]/40 hover:shadow-lg dark:border-slate-700 dark:bg-[#141B29] dark:hover:border-[#E06666]/50 dark:hover:shadow-[0_18px_35px_rgba(0,0,0,0.35)]"
           >
-            {i18n.language === "vi" ? "Mở trang đặt lịch" : "Open Booking Page"}
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E06666] dark:text-[#F29A9A]">
+              {isVi ? "For Patients" : "For Patients"}
+            </p>
+            <h2 className="mt-3 text-2xl font-semibold text-gray-900 dark:text-slate-100">
+              {isVi ? "Bệnh nhân" : "Patients"}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-slate-400">
+              {isVi
+                ? "Đặt lịch, theo dõi lịch khám, gửi yêu cầu tư vấn trong một luồng đơn giản."
+                : "Book appointments, track schedule, and request consultations in one simple flow."}
+            </p>
+            <p className="mt-auto pt-5 text-sm font-semibold text-[#C14D4D] transition group-hover:translate-x-1 dark:text-[#F29A9A]">
+              {patientEntryLabel} →
+            </p>
+          </Link>
+
+          <Link
+            to={providerEntryPath}
+            onClick={handleProviderEntry}
+            className="group flex min-h-[230px] flex-col rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#E06666]/40 hover:shadow-lg dark:border-slate-700 dark:bg-[#141B29] dark:hover:border-[#E06666]/50 dark:hover:shadow-[0_18px_35px_rgba(0,0,0,0.35)]"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E06666] dark:text-[#F29A9A]">
+              {isVi ? "For Doctors / Branch Owners" : "For Doctors / Branch Owners"}
+            </p>
+            <h2 className="mt-3 text-2xl font-semibold text-gray-900 dark:text-slate-100">
+              {isVi ? "Bác sĩ / Chủ chi nhánh" : "Doctors / Branch Owners"}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-slate-400">
+              {isVi
+                ? "Mở chi nhánh, quản lý đội ngũ bác sĩ và vận hành lịch khám theo hệ thống."
+                : "Open branches, manage doctor teams, and operate schedules in a focused workspace."}
+            </p>
+            <p className="mt-auto pt-5 text-sm font-semibold text-[#C14D4D] transition group-hover:translate-x-1 dark:text-[#F29A9A]">
+              {providerEntryLabel} →
+            </p>
           </Link>
         </div>
-      </section>
 
-      {/* Info Section */}
-      <section className="mx-auto max-w-7xl px-6 py-16">
-        <div className="grid md:grid-cols-2 gap-12">
-          <div>
-            <h4 className="text-2xl font-black text-gray-900 mb-4">
-              {i18n.language === "vi" ? "Dành cho bệnh nhân" : "For Patients"}
-            </h4>
-            <ul className="space-y-3 text-gray-700">
-              <li className="flex items-start gap-3">
-                <span className="text-[#E06666] font-bold mt-1">✓</span>
-                <span>{i18n.language === "vi" ? "Đặt lịch hẹn dễ dàng" : "Easy appointment booking"}</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-[#E06666] font-bold mt-1">✓</span>
-                <span>{i18n.language === "vi" ? "Theo dõi lịch khám" : "Track your appointments"}</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-[#E06666] font-bold mt-1">✓</span>
-                <span>{i18n.language === "vi" ? "Tư vấn trực tuyến" : "Online consultations"}</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-[#E06666] font-bold mt-1">✓</span>
-                <span>{i18n.language === "vi" ? "Hồ sơ y tế điện tử" : "Digital medical records"}</span>
-              </li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className="text-2xl font-black text-gray-900 mb-4">
-              {i18n.language === "vi" ? "Dành cho bác sĩ" : "For Doctors"}
-            </h4>
-            <ul className="space-y-3 text-gray-700">
-              <li className="flex items-start gap-3">
-                <span className="text-[#E06666] font-bold mt-1">✓</span>
-                <span>{i18n.language === "vi" ? "Quản lý lịch làm việc" : "Manage work schedule"}</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-[#E06666] font-bold mt-1">✓</span>
-                <span>{i18n.language === "vi" ? "Nhiều chi nhánh" : "Multiple branches"}</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-[#E06666] font-bold mt-1">✓</span>
-                <span>{i18n.language === "vi" ? "Tư vấn trực tuyến" : "Online consultations"}</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="text-[#E06666] font-bold mt-1">✓</span>
-                <span>{i18n.language === "vi" ? "Hồ sơ bệnh nhân toàn diện" : "Complete patient records"}</span>
-              </li>
-            </ul>
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500 dark:text-slate-500">
+          <Link to="/login" className="transition hover:text-[#E06666] dark:hover:text-[#F29A9A]">
+            {isVi ? "Đăng nhập" : "Sign in"}
+          </Link>
+          <span className="text-gray-300 dark:text-slate-600">•</span>
+          <Link to="/pricing" className="transition hover:text-[#E06666] dark:hover:text-[#F29A9A]">
+            {isVi ? "Bảng giá" : "Pricing"}
+          </Link>
+          <span className="text-gray-300 dark:text-slate-600">•</span>
+          <Link to="/holoramind" className="text-xs uppercase tracking-[0.14em] transition hover:text-[#E06666] dark:hover:text-[#F29A9A]">
+            HoloraMind
+          </Link>
+        </div>
+      </div>
+
+      <ConfirmModal
+        isOpen={Boolean(rolePrompt)}
+        title={promptTitle}
+        description={promptDescription}
+        badgeLabel={promptSelectionLabel}
+        tone="default"
+        confirmLabel={isVi ? "Đi tới đúng khu vực" : "Go to the correct zone"}
+        cancelLabel={isVi ? "Ở lại trang này" : "Stay on this page"}
+        closeLabel={isVi ? "Đóng" : "Close"}
+        onConfirm={handleConfirmZoneRedirect}
+        onClose={() => setRolePrompt(null)}
+      >
+        <div className="rounded-2xl border border-[#F0D6D1] bg-[#FFF8F6] p-4 dark:border-slate-700 dark:bg-slate-900/70">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+            {isVi ? "Tài khoản hiện tại" : "Current account"}
+          </p>
+          <div className="mt-3 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                {user?.full_name || (isVi ? "Người dùng" : "User")}
+              </p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {isVi ? "Vai trò" : "Role"}: {rolePrompt?.roleLabel || ""}
+              </p>
+            </div>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300">
+              {rolePrompt?.zoneLabel || ""}
+            </span>
           </div>
         </div>
-      </section>
+      </ConfirmModal>
     </div>
   );
 };

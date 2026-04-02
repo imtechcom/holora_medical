@@ -35,13 +35,13 @@ const normalizeDateInput = (value) => {
   return date.toISOString().slice(0, 10);
 };
 
-const formatDateDisplay = (value) => {
+const formatDateDisplay = (value, locale) => {
   if (!value) return EMPTY_VALUE;
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
-  return new Intl.DateTimeFormat("vi-VN", {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -74,7 +74,7 @@ const getProfileCompletion = (profileData) => {
 };
 
 const PatientProfilePage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { isAuthenticated, role } = useAuth();
 
@@ -227,7 +227,7 @@ const PatientProfilePage = () => {
       name: "date_of_birth",
       value: profileData.date_of_birth,
       type: "date",
-      formatter: formatDateDisplay,
+      formatter: (value) => formatDateDisplay(value, i18n.language),
     },
     {
       label: t("patient.gender"),
@@ -378,12 +378,12 @@ const PatientProfilePage = () => {
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12 animate-in fade-in duration-500">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <section className="overflow-hidden rounded-[28px] bg-gradient-to-br from-[#E06666] to-[#C04444] p-8 text-white shadow-lg md:p-10">
+        <section className="overflow-hidden rounded-[28px] bg-gradient-to-br from-[#E06666] to-[#C04444] p-4 text-white shadow-lg sm:p-8 md:p-10">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
             <div className="space-y-6">
               <div className="flex flex-wrap items-start gap-5">
-                <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/15 backdrop-blur text-white shadow-lg shadow-black/10">
-                  <User className="h-10 w-10" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-white/15 backdrop-blur text-white shadow-lg shadow-black/10 sm:h-20 sm:w-20">
+                  <User className="h-7 w-7 sm:h-10 sm:w-10" />
                 </div>
 
                 <div className="space-y-3">
@@ -391,8 +391,8 @@ const PatientProfilePage = () => {
                     <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">
                       {t("patient.myProfile")}
                     </p>
-                    <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">{profileName}</h1>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80 md:text-base">
+                    <h1 className="mt-1.5 text-2xl font-bold tracking-tight sm:mt-2 sm:text-3xl md:text-4xl">{profileName}</h1>
+                    <p className="mt-1.5 max-w-2xl text-xs leading-5 text-white/80 sm:mt-2 sm:text-sm sm:leading-6 md:text-base">
                       {t("patient.profilePage.heroDescription")}
                     </p>
                   </div>
@@ -410,18 +410,18 @@ const PatientProfilePage = () => {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4 backdrop-blur">
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/65">{t("admin.phone")}</p>
-                  <p className="mt-2 text-sm font-semibold">{profileData.phone || EMPTY_VALUE}</p>
+              <div className="grid gap-2 grid-cols-3 sm:gap-3">
+                <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-3 backdrop-blur sm:px-4 sm:py-4">
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-white/65 sm:text-xs sm:tracking-[0.2em]">{t("admin.phone")}</p>
+                  <p className="mt-1 text-xs font-semibold sm:mt-2 sm:text-sm">{profileData.phone || EMPTY_VALUE}</p>
                 </div>
-                <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4 backdrop-blur">
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/65">{t("admin.email")}</p>
-                  <p className="mt-2 text-sm font-semibold break-all">{profileData.email || EMPTY_VALUE}</p>
+                <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-3 backdrop-blur sm:px-4 sm:py-4">
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-white/65 sm:text-xs sm:tracking-[0.2em]">{t("admin.email")}</p>
+                  <p className="mt-1 text-xs font-semibold break-all sm:mt-2 sm:text-sm">{profileData.email || EMPTY_VALUE}</p>
                 </div>
-                <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4 backdrop-blur">
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/65">{t("patient.dateOfBirth")}</p>
-                  <p className="mt-2 text-sm font-semibold">{formatDateDisplay(profileData.date_of_birth)}</p>
+                <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-3 backdrop-blur sm:px-4 sm:py-4">
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-white/65 sm:text-xs sm:tracking-[0.2em]">{t("patient.dateOfBirth")}</p>
+                  <p className="mt-1 text-xs font-semibold sm:mt-2 sm:text-sm">{formatDateDisplay(profileData.date_of_birth, i18n.language, i18n.language)}</p>
                 </div>
               </div>
             </div>
@@ -547,7 +547,7 @@ const PatientProfilePage = () => {
           </aside>
 
           <div className="space-y-6">
-            <section className="rounded-3xl border border-border-main bg-bg-surface p-6 shadow-sm dark:bg-slate-800 md:p-8">
+            <section className="rounded-3xl border border-border-main bg-bg-surface p-4 shadow-sm sm:p-6 dark:bg-slate-800 md:p-8">
               <div className="border-b border-border-main pb-4">
                 <h2 className="flex items-center gap-3 text-lg font-bold text-text-main">
                   <User className="h-5 w-5 text-[#E06666]" />
@@ -565,7 +565,7 @@ const PatientProfilePage = () => {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-border-main bg-bg-surface p-6 shadow-sm dark:bg-slate-800 md:p-8">
+            <section className="rounded-3xl border border-border-main bg-bg-surface p-4 shadow-sm sm:p-6 dark:bg-slate-800 md:p-8">
               <div className="border-b border-border-main pb-4">
                 <h2 className="flex items-center gap-3 text-lg font-bold text-text-main">
                   <ClipboardList className="h-5 w-5 text-[#E06666]" />
@@ -583,7 +583,7 @@ const PatientProfilePage = () => {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-border-main bg-bg-surface p-6 shadow-sm dark:bg-slate-800 md:p-8">
+            <section className="rounded-3xl border border-border-main bg-bg-surface p-4 shadow-sm sm:p-6 dark:bg-slate-800 md:p-8">
               <div className="border-b border-border-main pb-4">
                 <h2 className="flex items-center gap-3 text-lg font-bold text-text-main">
                   <Contact className="h-5 w-5 text-[#E06666]" />

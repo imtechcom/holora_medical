@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
   CalendarDays,
+  CheckCircle2,
+  ExternalLink,
   Loader2,
   MessageSquare,
   RefreshCw,
@@ -39,6 +42,7 @@ const formatDateTime = (value, locale) => {
 };
 
 const DoctorConsultationHistoryPage = () => {
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -112,6 +116,27 @@ const DoctorConsultationHistoryPage = () => {
       setDetailData(res.data);
     } catch (err) {
       console.error("Failed to send consultation response:", err);
+      setReplyError(err.response?.data?.message || err.message || t("doctor.consultationsPage.errors.sendReply"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCompleteCase = async () => {
+    if (!replyText.trim()) return;
+    try {
+      setSubmitting(true);
+      setReplyError("");
+      await consultationService.addResponse(selectedId, {
+        content: replyText,
+        complete: true,
+      });
+      setReplyText("");
+      const res = await consultationService.getConsultationDetails(selectedId);
+      setDetailData(res.data);
+      await fetchHistory();
+    } catch (err) {
+      console.error("Failed to complete consultation:", err);
       setReplyError(err.response?.data?.message || err.message || t("doctor.consultationsPage.errors.sendReply"));
     } finally {
       setSubmitting(false);
@@ -252,13 +277,23 @@ const DoctorConsultationHistoryPage = () => {
                       </span>
                     </td>
                     <td className="px-3 py-4 text-right">
-                      <button
-                        onClick={() => handleOpenDetail(item.id)}
-                        className="inline-flex items-center gap-2 rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2563EB]"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                        {t("doctor.consultationsPage.viewAction")}
-                      </button>
+                      <div className="inline-flex gap-2">
+                        <button
+                          onClick={() => navigate(`/doctor/consultations/${item.id}`)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[#3B82F6] px-3 py-2 text-sm font-semibold text-[#3B82F6] transition hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          title="Xem trang chi tiết đầy đủ (phân tích AI, kết thúc ca)"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Chi tiết
+                        </button>
+                        <button
+                          onClick={() => handleOpenDetail(item.id)}
+                          className="inline-flex items-center gap-2 rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2563EB]"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          {t("doctor.consultationsPage.viewAction")}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -383,7 +418,17 @@ const DoctorConsultationHistoryPage = () => {
                         rows="2"
                         required
                       />
-                      <div className="mt-2 flex justify-end">
+                      <div className="mt-2 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCompleteCase}
+                          disabled={submitting || !replyText.trim()}
+                          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white shadow-md transition hover:bg-emerald-700 disabled:opacity-50"
+                          title="Gửi phản hồi cuối và đánh dấu kết thúc ca tư vấn"
+                        >
+                          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                          Kết thúc ca
+                        </button>
                         <button
                           type="submit"
                           disabled={submitting}

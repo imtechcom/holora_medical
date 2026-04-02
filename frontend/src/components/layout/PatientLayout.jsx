@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
-import LanguageSwitcher from "../LanguageSwitcher";
 import Logo from "../Logo";
 import NotificationBadge from "../NotificationBadge";
 import Breadcrumb from "../Breadcrumb";
@@ -15,14 +13,11 @@ import {
   Stethoscope, 
   Bot, 
   User,
-  Moon,
-  Sun,
   Layout,
   Shield
 } from "lucide-react";
 
 const PatientLayout = ({ children }) => {
-  const { theme, toggleTheme } = useTheme();
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -126,26 +121,9 @@ const PatientLayout = ({ children }) => {
                </h1>
             </div>
 
-            <div className="flex items-center gap-4">
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-xl bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-slate-600 transition-all"
-              >
-                {theme === "light" ? (
-                  <Moon className="w-5 h-5" />
-                ) : (
-                  <Sun className="w-5 h-5" />
-                )}
-              </button>
-              
-              <div className="h-8 w-px bg-border-main" />
-              
+            <div className="flex items-center gap-3">
               <NotificationBadge />
-              <LanguageSwitcher />
-
-              <div className="h-8 w-px bg-border-main" />
-
-              <UserDropdown profilePath="/patient/profile" />
+              <UserDropdown profilePath="/patient/profile" showTheme showLanguage />
             </div>
           </header>
 

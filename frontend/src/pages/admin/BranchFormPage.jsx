@@ -24,6 +24,7 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState(""); // "success" | "error"
   const [errors, setErrors] = useState({});
 
   const fetchBranch = useCallback(async () => {
@@ -45,6 +46,7 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
       setOriginalFormData(normalizedBranch);
     } catch (err) {
       setMessage(err?.response?.data?.message || t("branch.fetchError"));
+      setMessageType("error");
     } finally {
       setLoading(false);
     }
@@ -58,6 +60,7 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
     } catch (err) {
       console.error("Error generating branch code:", err);
       setMessage(err?.response?.data?.message || t("branch.saveError"));
+      setMessageType("error");
     } finally {
       setLoading(false);
     }
@@ -108,6 +111,7 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
 
     if (!validateForm()) {
       setMessage(t("common.pleaseFixErrors"));
+      setMessageType("error");
       return;
     }
 
@@ -127,9 +131,11 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
       if (isEditMode) {
         await branchService.updateBranch(branchId, payload);
         setMessage(t("branch.updateSuccess"));
+        setMessageType("success");
       } else {
         await branchService.createBranch(payload);
         setMessage(t("branch.createSuccess"));
+        setMessageType("success");
       }
 
       setTimeout(() => {
@@ -137,6 +143,7 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
       }, 1000);
     } catch (err) {
       setMessage(err?.response?.data?.message || t("branch.saveError"));
+      setMessageType("error");
     } finally {
       setSaving(false);
     }
@@ -163,7 +170,7 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
     }
 
     const text = `${value || ""}`.trim();
-    return text || "(empty)";
+    return text || `(${t("common.empty")})`;
   };
   const changedFields =
     isEditMode && originalFormData
@@ -186,7 +193,7 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
       <div className="rounded-2xl border border-border-main bg-bg-surface dark:bg-slate-800 p-8 text-center shadow-sm">
         <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#E06666] border-r-transparent"></div>
         <p className="mt-4 text-sm text-text-dim">
-          {t("branch.loading", { defaultValue: "Loading branch form..." })}
+          {t("branch.loading")}
         </p>
       </div>
     );
@@ -195,10 +202,10 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
   return (
     <div className="space-y-6">
       <div className="overflow-hidden rounded-[28px] border border-[#f0c9c2] bg-[linear-gradient(135deg,#fff7f2_0%,#ffe6dc_52%,#fff0ea_100%)] p-6 shadow-sm dark:border-[#7a3d3b] dark:bg-[linear-gradient(135deg,rgba(127,29,29,0.30)_0%,rgba(51,65,85,0.92)_56%,rgba(15,23,42,1)_100%)] lg:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#B85757] dark:text-[#F2B4A8]">
-              {isClinicOwnerMode ? "Clinic owner workspace" : "Admin workspace"}
+              {isClinicOwnerMode ? t("branch.workspaceClinicOwner") : t("branch.workspaceAdmin")}
             </p>
             <h1 className="mt-3 text-3xl font-bold text-text-main lg:text-4xl">
               {isEditMode ? t("branch.editTitle") : t("branch.addTitle")}
@@ -206,11 +213,11 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
             <p className="mt-3 max-w-xl text-sm leading-6 text-text-dim lg:text-base">
               {isEditMode
                 ? t("branch.editSubtitle")
-                : "Set up branch identity, contact points, and operational status with a clean guided layout."}
+                : t("branch.addSubtitleAuto")}
             </p>
           </div>
 
-          <div className="min-w-[280px] rounded-2xl border border-white/60 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/50">
+          <div className="w-full lg:min-w-[280px] lg:w-auto rounded-2xl border border-white/60 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/50">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-text-dim">
               {t("branch.code")}
             </p>
@@ -219,8 +226,8 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
             </p>
             <p className="mt-3 text-sm text-text-dim">
               {isEditMode
-                ? "Branch code is fixed after creation."
-                : "Code is auto-generated and reserved for this record."}
+                ? t("branch.codeFixedAfterCreate")
+                : t("branch.codeAutoGenerated")}
             </p>
           </div>
         </div>
@@ -229,7 +236,7 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
       {message && (
         <div
           className={`rounded-2xl border p-4 text-sm ${
-            message.toLowerCase().includes("success") || message.includes("thành công")
+            messageType === "success"
               ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400"
               : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
           }`}
@@ -243,7 +250,7 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
           <section className={cardClassName}>
             <div className="border-b border-border-main px-6 py-5">
               <h2 className="text-lg font-semibold text-text-main">{t("branch.basicInfo")}</h2>
-              <p className="mt-1 text-sm text-text-dim">Core branch metadata and contact information.</p>
+              <p className="mt-1 text-sm text-text-dim">{t("branch.basicInfoSubtitle")}</p>
             </div>
 
             <div className="grid grid-cols-1 gap-5 px-6 py-6 md:grid-cols-2">
@@ -275,7 +282,7 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
                   className="w-full rounded-xl border border-border-main bg-bg-app px-4 py-3 font-mono text-sm text-text-dim cursor-not-allowed dark:bg-slate-900"
                 />
                 <p className="mt-2 text-xs text-text-dim">
-                  {isEditMode ? "This code cannot be changed" : "Auto-generated format: HLR_MED_ddmmyyyy_BR0001"}
+                  {isEditMode ? t("branch.codeCannotChange") : t("branch.codeFormat")}
                 </p>
               </div>
 
@@ -348,7 +355,7 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
           <section className={cardClassName}>
             <div className="border-b border-border-main px-6 py-5">
               <h2 className="text-lg font-semibold text-text-main">{t("branch.description")}</h2>
-              <p className="mt-1 text-sm text-text-dim">Optional context for operations and patient guidance.</p>
+              <p className="mt-1 text-sm text-text-dim">{t("branch.descriptionSubtitle")}</p>
             </div>
             <div className="px-6 py-6">
               <textarea
@@ -363,29 +370,32 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
           </section>
         </div>
 
-        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <section className={`${cardClassName} p-6`}>
-            <h2 className="text-base font-semibold text-text-main">Branch snapshot</h2>
+        <aside className="space-y-4 lg:space-y-6 lg:sticky lg:top-24 lg:self-start">
+          {/* Snapshot — desktop only */}
+          <section className={`${cardClassName} p-6 hidden lg:block`}>
+            <h2 className="text-base font-semibold text-text-main">{t("branch.snapshot")}</h2>
             <div className="mt-4 space-y-4 text-sm">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-text-dim">Name</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-text-dim">{t("branch.snapshotName")}</p>
                 <p className="mt-1 font-medium text-text-main">{formData.name || "-"}</p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-text-dim">City</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-text-dim">{t("branch.snapshotCity")}</p>
                 <p className="mt-1 font-medium text-text-main">{formData.city || "-"}</p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-text-dim">Status</p>
-                <p className="mt-1 font-medium text-text-main">{formData.status}</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-text-dim">{t("branch.snapshotStatus")}</p>
+                <p className="mt-1 font-medium text-text-main">
+                  {formData.status === "active" ? t("branch.statusActive") : t("branch.statusInactive")}
+                </p>
               </div>
             </div>
           </section>
 
           {isEditMode && (
-            <section className={`${cardClassName} p-6`}>
+            <section className={`${cardClassName} p-6 hidden lg:block`}>
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-base font-semibold text-text-main">Review changes</h2>
+                <h2 className="text-base font-semibold text-text-main">{t("branch.reviewChanges")}</h2>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${
                     changedFields.length > 0
@@ -394,14 +404,14 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
                   }`}
                 >
                   {changedFields.length > 0
-                    ? `${changedFields.length} changed`
-                    : "No changes"}
+                    ? t("branch.reviewChangedCount", { count: changedFields.length })
+                    : t("branch.reviewNoChanges")}
                 </span>
               </div>
 
               {changedFields.length === 0 ? (
                 <p className="mt-3 text-sm text-text-dim">
-                  Field values are still the same as the original branch data.
+                  {t("branch.reviewNoChangesHint")}
                 </p>
               ) : (
                 <div className="mt-4 space-y-4">
@@ -415,10 +425,10 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
                       </p>
                       <div className="mt-2 space-y-2 text-xs">
                         <div className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
-                          <span className="font-semibold">Before:</span> {field.before}
+                          <span className="font-semibold">{t("branch.reviewBefore")}</span> {field.before}
                         </div>
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
-                          <span className="font-semibold">After:</span> {field.after}
+                          <span className="font-semibold">{t("branch.reviewAfter")}</span> {field.after}
                         </div>
                       </div>
                     </div>
@@ -429,9 +439,9 @@ const BranchFormPage = ({ returnPath = "/admin/branches" }) => {
           )}
 
           <section className={`${cardClassName} p-6`}>
-            <h2 className="text-base font-semibold text-text-main">Actions</h2>
+            <h2 className="text-base font-semibold text-text-main">{t("branch.actions")}</h2>
             <p className="mt-2 text-sm text-text-dim">
-              Review branch details before saving.
+              {t("branch.reviewBeforeSave")}
             </p>
             <div className="mt-5 space-y-3">
               <button

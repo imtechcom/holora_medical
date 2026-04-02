@@ -144,62 +144,151 @@ const DoctorConsultationDetailPage = () => {
           </div>
         </div>
 
-        {/* Khung Ảnh đính kèm & Tương tác AI (UC06) */}
+        {/* Khung Ảnh đính kèm & Tiền Xử Lý & Phân Tích AI */}
         {data.images && data.images.length > 0 && (
           <div className="bg-bg-surface p-6 rounded-2xl shadow-sm border border-border-main dark:bg-slate-800">
-            <h3 className="text-lg font-semibold text-text-main mb-4 flex items-center gap-2">
-               Hình Ảnh Cận Lâm Sàng & Phân Tích
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-text-main flex items-center gap-2">
+                🩻 Hình Ảnh Cận Lâm Sàng
+              </h3>
+              <button onClick={fetchAiData} className="text-xs text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1">
+                ↻ Làm mới
+              </button>
+            </div>
+
+            <div className="space-y-4">
               {data.images.map((img, idx) => {
                 const aiResult = aiData?.find(a => a.consultation_image_id === img.id);
                 const isProcessing = aiResult?.request_status === 'processing' || aiResult?.request_status === 'queued';
                 const isCompleted = aiResult?.request_status === 'completed';
                 const isFailed = aiResult?.request_status === 'failed';
+                // TODO (Giai đoạn 2): thay bằng img.preprocessed_url khi backend hỗ trợ tiền xử lý ảnh
+                const preprocessedUrl = null;
 
                 return (
-                    <div key={idx} className="relative aspect-square border-2 border-dashed border-border-main rounded-md overflow-hidden bg-bg-app flex flex-col group dark:bg-slate-700">
-                    <img src={img.image_url} alt="Medical" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                    
-                    {/* Thanh đáy chứa tác vụ AI */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-white/95 p-2 border-t text-center">
-                      {aiResult ? (
-                        <div className="text-sm">
-                            {isProcessing && (
-                              <span className="text-blue-600 font-medium flex items-center justify-center gap-1 text-xs">
-                                <svg className="animate-spin h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                AI đang xử lý...
-                              </span>
-                            )}
-                            {isFailed && <span className="text-red-500 font-medium text-xs">❌ Lỗi Phân tích API</span>}
-                            {isCompleted && (
-                              <div className="flex flex-col items-center">
-                                {getRiskBadge(aiResult.risk_level)}
-                                <span className="text-[10px] text-gray-500 font-medium mt-1">Độ chính xác: {aiResult.confidence_score}%</span>
-                              </div>
-                            )}
-                        </div>
-                      ) : (
-                        role === 'patient' ? (
-                          <button 
-                            onClick={() => handleRequestAI(img.id)}
-                            className="w-full text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 py-1.5 rounded transition-all shadow-sm"
-                            disabled={requestAILoading === img.id}
-                          >
-                            {requestAILoading === img.id ? "Đơn đợi..." : "✨ Gửi AI Phân Tích"}
-                          </button>
-                        ) : (
-                        <span className="text-xs text-text-dim">Chưa được y/c quét AI</span>
-                        )
-                      )}
+                  <div key={idx} className="border border-border-main rounded-xl overflow-hidden dark:border-slate-700">
+
+                    {/* Card header: số ảnh + trạng thái AI */}
+                    <div className="bg-bg-app px-4 py-2 flex items-center justify-between border-b border-border-main dark:bg-slate-900">
+                      <span className="text-xs font-bold text-text-dim uppercase tracking-widest">Ảnh #{idx + 1}</span>
+                      <div className="flex items-center gap-2">
+                        {isProcessing && (
+                          <span className="flex items-center gap-1 text-[10px] text-blue-600 font-medium">
+                            <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                            </svg>
+                            AI đang phân tích...
+                          </span>
+                        )}
+                        {isCompleted && getRiskBadge(aiResult.risk_level)}
+                        {isFailed && <span className="text-[10px] text-red-500 font-medium">❌ Lỗi AI</span>}
+                        {!aiResult && <span className="text-[10px] text-text-dim">Chưa phân tích</span>}
+                      </div>
                     </div>
+
+                    {/* So sánh ảnh: Gốc | Đã tiền xử lý */}
+                    <div className="grid grid-cols-2 divide-x divide-border-main dark:divide-slate-700">
+
+                      {/* Panel 1: Ảnh gốc */}
+                      <div className="flex flex-col">
+                        <div className="bg-slate-50 dark:bg-slate-900/40 px-3 py-1.5 text-center border-b border-border-main">
+                          <span className="text-[9px] font-semibold uppercase tracking-widest text-text-dim">Ảnh gốc</span>
+                        </div>
+                        <div className="aspect-square overflow-hidden bg-bg-app dark:bg-slate-800 group">
+                          <img src={img.image_url} alt="Ảnh gốc" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        </div>
+                      </div>
+
+                      {/* Panel 2: Ảnh sau tiền xử lý (framework – Giai đoạn 2) */}
+                      <div className="flex flex-col">
+                        <div className="bg-violet-50 dark:bg-violet-900/20 px-3 py-1.5 text-center border-b border-border-main flex items-center justify-center gap-1.5">
+                          <span className="text-[9px] font-semibold uppercase tracking-widest text-violet-600 dark:text-violet-400">Ảnh đã xử lý</span>
+                          <span className="bg-violet-200 text-violet-700 dark:bg-violet-800/50 dark:text-violet-300 text-[7px] font-bold uppercase px-1.5 py-0.5 rounded-sm leading-none">Sắp ra mắt</span>
+                        </div>
+                        <div className="aspect-square flex flex-col items-center justify-center bg-violet-50/60 dark:bg-violet-900/10 gap-2 p-3">
+                          {preprocessedUrl ? (
+                            <img src={preprocessedUrl} alt="Ảnh đã xử lý" className="w-full h-full object-cover" />
+                          ) : (
+                            <>
+                              <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-xl">🔬</div>
+                              <p className="text-[9px] font-semibold text-violet-600 dark:text-violet-300 text-center">Tiền xử lý ảnh</p>
+                              <p className="text-[8px] text-violet-400 text-center leading-relaxed px-1">Khử nhiễu · Cân bằng histogram · Tăng tương phản</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Thông số kỹ thuật */}
+                    <div className="border-t border-border-main dark:border-slate-700 grid grid-cols-2 divide-x divide-border-main dark:divide-slate-700 text-[10px]">
+
+                      {/* Thông số tiền xử lý */}
+                      <div className="px-3 py-2.5 bg-violet-50/50 dark:bg-violet-900/10">
+                        <p className="font-bold text-[9px] uppercase tracking-widest text-violet-600 dark:text-violet-400 mb-2">🔬 Tiền xử lý (Giai đoạn 2)</p>
+                        <div className="space-y-1 text-text-dim">
+                          <div className="flex justify-between"><span>Mức nhiễu (dB)</span><span className="font-mono text-violet-300">—</span></div>
+                          <div className="flex justify-between"><span>Tương phản</span><span className="font-mono text-violet-300">—</span></div>
+                          <div className="flex justify-between"><span>Độ sắc nét</span><span className="font-mono text-violet-300">—</span></div>
+                          <div className="flex justify-between"><span>Phương pháp</span><span className="font-mono text-violet-300">—</span></div>
+                        </div>
+                      </div>
+
+                      {/* Thông số phân tích AI */}
+                      <div className="px-3 py-2.5 bg-indigo-50/50 dark:bg-indigo-900/10">
+                        <p className="font-bold text-[9px] uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-2">✨ Phân tích AI</p>
+                        <div className="space-y-1 text-text-dim">
+                          <div className="flex justify-between">
+                            <span>Mức rủi ro</span>
+                            {isCompleted
+                              ? <span className="font-bold font-mono uppercase">{aiResult.risk_level || '—'}</span>
+                              : <span className="font-mono text-indigo-200">—</span>}
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Độ chính xác</span>
+                            {isCompleted
+                              ? <span className="font-bold font-mono">{aiResult.confidence_score}%</span>
+                              : <span className="font-mono text-indigo-200">—</span>}
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Nhận định</span>
+                            {isCompleted
+                              ? <span className="font-mono text-emerald-600 font-bold">✓ Có</span>
+                              : <span className="font-mono text-indigo-200">—</span>}
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Gợi ý điều trị</span>
+                            {isCompleted
+                              ? <span className="font-mono text-emerald-600 font-bold">✓ Có</span>
+                              : <span className="font-mono text-indigo-200">—</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer: hành động AI */}
+                    <div className="border-t border-border-main px-4 py-2.5 bg-bg-app dark:bg-slate-900 flex items-center gap-3">
+                      {!aiResult && role === 'patient' && (
+                        <button
+                          onClick={() => handleRequestAI(img.id)}
+                          className="text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 px-3 py-1.5 rounded-lg transition-all shadow-sm disabled:opacity-60"
+                          disabled={requestAILoading === img.id}
+                        >
+                          {requestAILoading === img.id ? "Đang gửi..." : "✨ Yêu cầu AI phân tích"}
+                        </button>
+                      )}
+                      {!aiResult && role !== 'patient' && (
+                        <span className="text-[10px] text-text-dim">Bệnh nhân chưa yêu cầu phân tích AI</span>
+                      )}
+                      {isCompleted && <span className="text-[10px] text-emerald-600 font-medium">✓ Phân tích hoàn thành</span>}
+                      {isProcessing && <span className="text-[10px] text-blue-600 font-medium">Đang xử lý...</span>}
+                      {isFailed && <span className="text-[10px] text-red-500">Phân tích thất bại</span>}
+                      <span className="text-[9px] text-text-dim ml-auto">Tiền xử lý → AI phân tích</span>
+                    </div>
+
                   </div>
                 );
               })}
-            </div>
-            {/* Lệnh Load data thay F5 */}
-            <div className="mt-4 text-right">
-              <button onClick={fetchAiData} className="text-xs text-indigo-600 hover:text-indigo-800 underline">↻ Làm mới trạng thái AI</button>
             </div>
           </div>
         )}

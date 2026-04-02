@@ -257,26 +257,27 @@ const HoloraMindPage = () => {
       <main className="relative z-10 flex flex-1 flex-col h-full bg-transparent overflow-hidden">
         
         {/* Header Area */}
-        <header className="flex h-16 shrink-0 items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-4">
+        <header className="flex h-14 sm:h-16 shrink-0 items-center justify-between px-3 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             {!isSidebarOpen && (
               <button 
                 onClick={() => setIsSidebarOpen(true)}
-                className="p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-[#E06666] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400"
+                className="p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-[#E06666] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 shrink-0"
               >
                 <PanelLeft size={18} />
               </button>
             )}
-            <div className="hidden sm:block">
-              <span className="text-sm font-semibold text-gray-900 dark:text-slate-100">{activeChatTitle}</span>
+            <div className="min-w-0 hidden xs:block sm:block">
+              <span className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate block max-w-[160px] sm:max-w-none">{activeChatTitle}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button onClick={() => navigate("/")} className="text-xs font-semibold px-3 py-1.5 rounded-lg border dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800">
-              Về Trang Chủ
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <button onClick={() => navigate("/")} className="text-xs font-semibold px-2 sm:px-3 py-1.5 rounded-lg border dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800 whitespace-nowrap">
+              <span className="hidden sm:inline">Về Trang Chủ</span>
+              <span className="sm:hidden">← Home</span>
             </button>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#E06666]/10 text-[#E06666] text-[10px] font-bold uppercase tracking-wider">
+            <div className="hidden xs:flex sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-[#E06666]/10 text-[#E06666] text-[10px] font-bold uppercase tracking-wider">
                <Sparkles size={12} />
                Plus
             </div>
@@ -284,21 +285,22 @@ const HoloraMindPage = () => {
         </header>
 
         {/* Messages Area - SCROLLABLE */}
-        <section className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-2 sm:px-6">
+        <section className="flex-1 overflow-y-auto custom-scrollbar px-3 sm:px-6 pt-3 sm:pt-4 pb-2">
           <div className="mx-auto max-w-3xl space-y-6">
             {!hasMessages ? (
-              <div className="py-12 sm:py-20 flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-2xl bg-[#E06666] flex items-center justify-center text-white mb-6 shadow-xl shadow-[#E06666]/30">
-                  <Bot size={32} />
+              <div className="py-8 sm:py-20 flex flex-col items-center text-center">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-[#E06666] flex items-center justify-center text-white mb-4 sm:mb-6 shadow-xl shadow-[#E06666]/30">
+                  <Bot size={24} className="sm:hidden" />
+                  <Bot size={32} className="hidden sm:block" />
                 </div>
-                <h1 className="text-3xl font-bold tracking-tight mb-4">Xin chào, tôi là HoloraMind</h1>
-                <p className="text-gray-500 dark:text-slate-400 max-w-md mb-10">Tôi có thể giúp bạn phân tích triệu chứng, tra cứu thuốc hoặc chuẩn bị cho buổi khám sắp tới.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl px-4">
+                <h1 className="text-xl sm:text-3xl font-bold tracking-tight mb-2 sm:mb-4">Xin chào, tôi là HoloraMind</h1>
+                <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs sm:max-w-md mb-6 sm:mb-10">Tôi có thể giúp bạn phân tích triệu chứng, tra cứu thuốc hoặc chuẩn bị cho buổi khám sắp tới.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 w-full max-w-2xl">
                   {SUGGESTIONS.map(s => (
                     <button 
                       key={s} 
                       onClick={() => setInput(s)}
-                      className="text-left p-4 rounded-2xl border bg-white/50 backdrop-blur dark:bg-slate-800/30 dark:border-slate-700 hover:border-[#E06666]/50 transition text-sm text-gray-600 dark:text-slate-300"
+                      className="text-left p-3 sm:p-4 rounded-2xl border bg-white/50 backdrop-blur dark:bg-slate-800/30 dark:border-slate-700 hover:border-[#E06666]/50 transition text-xs sm:text-sm text-gray-600 dark:text-slate-300"
                     >
                       {s}
                     </button>
@@ -337,11 +339,11 @@ const HoloraMindPage = () => {
         </section>
 
         {/* Input Area - PINNED (FIXED AT BOTTOM) */}
-        <footer className="shrink-0 p-4 sm:p-6 bg-transparent">
+        <footer className="shrink-0 px-3 py-3 sm:px-6 sm:py-4 bg-transparent">
           <div className="mx-auto max-w-3xl">
-            <form 
+            <form
               onSubmit={handleSend}
-              className="relative p-2 rounded-3xl border border-gray-200 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:bg-[#141B29] dark:border-slate-700 dark:shadow-[0_20px_60px_rgba(0,0,0,0.3)] transition-all focus-within:ring-2 focus-within:ring-[#E06666]/20"
+              className="relative rounded-3xl border border-gray-200 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:bg-[#141B29] dark:border-slate-700 dark:shadow-[0_20px_60px_rgba(0,0,0,0.3)] transition-all focus-within:ring-2 focus-within:ring-[#E06666]/20"
             >
               <textarea
                 ref={textareaRef}
@@ -352,14 +354,17 @@ const HoloraMindPage = () => {
                 placeholder="Hỏi bất cứ điều gì..."
                 className="w-full resize-none bg-transparent px-4 py-3 text-sm focus:outline-none custom-scrollbar max-h-40 min-h-[44px]"
               />
-              <div className="flex items-center justify-between px-2 pt-2 border-t border-gray-50 dark:border-slate-800">
-                <div className="text-[10px] text-gray-400 dark:text-slate-500 font-medium px-2">HoloraMind v1.0 • AI-Native Assistant</div>
-                <button 
+              <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 dark:border-slate-800">
+                <span className="text-[10px] text-gray-400 dark:text-slate-500 font-medium truncate pr-2">
+                  HoloraMind v1.0
+                  <span className="hidden sm:inline"> • AI-Native Assistant</span>
+                </span>
+                <button
                   type="submit"
                   disabled={!input.trim() || isSending}
-                  className="inline-flex items-center justify-center rounded-full bg-[#E06666] w-9 h-9 text-white hover:bg-[#D55555] active:scale-95 disabled:opacity-40 transition shadow-lg shadow-[#E06666]/20"
+                  className="inline-flex items-center justify-center rounded-full bg-[#E06666] w-9 h-9 text-white hover:bg-[#D55555] active:scale-95 disabled:opacity-40 transition shadow-lg shadow-[#E06666]/20 shrink-0"
                 >
-                  <ArrowUp size={20} strokeWidth={2.5} />
+                  <ArrowUp size={18} strokeWidth={2.5} />
                 </button>
               </div>
             </form>

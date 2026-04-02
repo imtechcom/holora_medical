@@ -224,8 +224,8 @@ const Empty = () => (
 );
 
 const Card = ({ title, icon, children }) => (
-  <div className="bg-bg-surface p-6 rounded-2xl border border-border-main shadow-sm flex flex-col gap-5">
-    <div className="font-bold text-base text-text-main flex items-center gap-2">
+  <div className="bg-bg-surface p-4 sm:p-6 rounded-2xl border border-border-main shadow-sm flex flex-col gap-4 sm:gap-5">
+    <div className="font-bold text-sm sm:text-base text-text-main flex items-center gap-2">
       {icon} {title}
     </div>
     {children}
@@ -233,17 +233,17 @@ const Card = ({ title, icon, children }) => (
 );
 
 const StatCard = ({ title, value, icon, accent, loading }) => (
-  <div className="bg-bg-surface p-5 rounded-2xl border border-border-main shadow-sm flex items-center gap-4">
+  <div className="bg-bg-surface p-3 sm:p-5 rounded-2xl border border-border-main shadow-sm flex items-center gap-3 sm:gap-4">
     <div style={{
-      width: 46, height: 46, borderRadius: 14, flexShrink: 0,
+      width: 38, height: 38, borderRadius: 12, flexShrink: 0,
       display: "flex", alignItems: "center", justifyContent: "center",
-      background: accent + "1a", fontSize: 22,
-    }}>
+      background: accent + "1a", fontSize: 18,
+    }} className="sm:w-[46px] sm:h-[46px]">
       {icon}
     </div>
-    <div>
-      <div className="text-xs text-text-dim mb-1">{title}</div>
-      <div className="text-2xl font-extrabold text-text-main">
+    <div className="min-w-0">
+      <div className="text-[10px] sm:text-xs text-text-dim mb-0.5 sm:mb-1 truncate">{title}</div>
+      <div className="text-lg sm:text-2xl font-extrabold text-text-main leading-none">
         {loading ? "—" : Number(value).toLocaleString("vi-VN")}
       </div>
     </div>
@@ -291,32 +291,31 @@ const DashboardPage = () => {
     { title: "Tư vấn",      value: stats?.consultations || 0, icon: "💬", accent: "#ec4899" },
   ];
 
-  const grid2 = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 16 };
+  const grid2 = "grid grid-cols-1 lg:grid-cols-2 gap-4";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="flex flex-col gap-4 sm:gap-5">
 
       {/* Welcome banner */}
-      <div className="bg-bg-surface p-6 px-7 rounded-2xl border border-border-main shadow-sm">
-        <div className="text-xl font-bold text-[#E06666]">
+      <div className="bg-bg-surface p-4 sm:p-6 sm:px-7 rounded-2xl border border-border-main shadow-sm">
+        <div className="text-base sm:text-xl font-bold text-[#E06666]">
           Xin chào, {user?.full_name || "Admin"} 👋
         </div>
-        <div className="mt-1 text-sm text-text-dim">
+        <div className="mt-1 text-xs sm:text-sm text-text-dim">
           Bảng điều khiển tổng quan —{" "}
           <span className="font-semibold uppercase">{role}</span>
         </div>
       </div>
 
       {/* KPI cards */}
-      <div style={{ display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {KPI.map((c) => (
           <StatCard key={c.title} {...c} loading={loadingS} />
         ))}
       </div>
 
       {/* Row 1: appointments by month | appointment status */}
-      <div style={grid2}>
+      <div className={grid2}>
         <Card title="Lịch hẹn 6 tháng gần nhất" icon="📅">
           {loadingA
             ? <div style={{ color: "#94a3b8", fontSize: 13, padding: "40px 0", textAlign: "center" }}>Đang tải...</div>
@@ -334,7 +333,7 @@ const DashboardPage = () => {
       </div>
 
       {/* Row 2: top specialties | consultation status */}
-      <div style={grid2}>
+      <div className={grid2}>
         <Card title="Top chuyên khoa (theo số bác sĩ)" icon="🏥">
           {loadingA
             ? <div style={{ color: "#94a3b8", fontSize: 13, padding: "40px 0", textAlign: "center" }}>Đang tải...</div>

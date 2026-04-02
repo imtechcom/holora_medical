@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Building2, ChevronLeft, ChevronRight, LocateFixed, Mail, MapPin, Phone, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import branchService from "../services/branchService";
 
@@ -48,6 +49,7 @@ const scoreBranch = (branch, searchText, areaFilter) => {
 };
 
 const PatientBranchesPage = () => {
+  const { t } = useTranslation();
   const [branches, setBranches] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [areaFilter, setAreaFilter] = useState("");
@@ -69,14 +71,14 @@ const PatientBranchesPage = () => {
         setBranches(list);
       } catch (err) {
         console.error("Failed to load branches", err);
-        setError("Khong the tai danh sach chi nhanh. Vui long thu lai.");
+        setError(t("publicBranches.error"));
       } finally {
         setIsLoading(false);
       }
     };
 
     loadBranches();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -144,7 +146,7 @@ const PatientBranchesPage = () => {
 
   const handleUseMyLocation = async () => {
     if (!navigator.geolocation) {
-      setLocationError("Trinh duyet khong ho tro dinh vi.");
+      setLocationError(t("publicBranches.errors.locationNotSupported"));
       return;
     }
 
@@ -167,7 +169,7 @@ const PatientBranchesPage = () => {
             "";
 
           if (!city) {
-            setLocationError("Khong xac dinh duoc khu vuc gan ban.");
+            setLocationError(t("publicBranches.errors.cityNotDetected"));
             return;
           }
 
@@ -175,14 +177,14 @@ const PatientBranchesPage = () => {
           setAreaFilter(city);
         } catch (err) {
           console.error("Reverse geocode failed", err);
-          setLocationError("Khong the xac dinh khu vuc tu vi tri hien tai.");
+          setLocationError(t("publicBranches.errors.locationFailed"));
         } finally {
           setIsLocating(false);
         }
       },
       () => {
         setIsLocating(false);
-        setLocationError("Ban da tu choi quyen truy cap vi tri.");
+        setLocationError(t("publicBranches.errors.locationDenied"));
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
     );
@@ -199,11 +201,11 @@ const PatientBranchesPage = () => {
         <div className="rounded-3xl bg-gradient-to-r from-[#0F2748] via-[#123A68] to-[#114E86] px-6 py-8 text-white shadow-[0_22px_45px_rgba(17,53,95,0.28)] sm:px-8">
           <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em]">
             <Sparkles size={14} />
-            Branch Discovery
+            {t("publicBranches.hero.badge")}
           </p>
-          <h1 className="mt-4 text-2xl font-semibold sm:text-3xl">Tim chi nhanh theo khu vuc, nhanh nhu dat phong</h1>
+          <h1 className="mt-4 text-2xl font-semibold sm:text-3xl">{t("publicBranches.hero.title")}</h1>
           <p className="mt-2 max-w-2xl text-sm text-blue-100 sm:text-base">
-            Nhap khu vuc, ten chi nhanh hoac dia chi. He thong se xep hang ket qua theo muc do phu hop nhu cach Booking.com uu tien diem den.
+            {t("publicBranches.hero.description")}
           </p>
 
           <div className="mt-6 rounded-2xl border border-white/20 bg-white p-3 text-gray-900 shadow-lg backdrop-blur">
@@ -213,7 +215,7 @@ const PatientBranchesPage = () => {
                 <input
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  placeholder="Tim theo ten chi nhanh, quan/huyen, thanh pho..."
+                  placeholder={t("publicBranches.search.placeholder")}
                   className="w-full border-none bg-transparent text-sm focus:outline-none"
                 />
               </label>
@@ -225,7 +227,7 @@ const PatientBranchesPage = () => {
                   onChange={(e) => setAreaFilter(e.target.value)}
                   className="w-full border-none bg-transparent text-sm focus:outline-none"
                 >
-                  <option value="">Tat ca khu vuc</option>
+                  <option value="">{t("publicBranches.search.allAreas")}</option>
                   {areas.map((area) => (
                     <option key={area} value={area}>
                       {area}
@@ -241,9 +243,9 @@ const PatientBranchesPage = () => {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="w-full border-none bg-transparent text-sm focus:outline-none"
                 >
-                  <option value="smart">Xep hang thong minh</option>
-                  <option value="city">Theo thanh pho</option>
-                  <option value="name">Theo ten</option>
+                  <option value="smart">{t("publicBranches.search.sortSmart")}</option>
+                  <option value="city">{t("publicBranches.search.sortCity")}</option>
+                  <option value="name">{t("publicBranches.search.sortName")}</option>
                 </select>
               </label>
             </div>
@@ -256,11 +258,11 @@ const PatientBranchesPage = () => {
                 className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:border-[#E06666]/40 hover:text-[#B64949] disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
               >
                 <LocateFixed size={14} />
-                {isLocating ? "Dang xac dinh vi tri..." : "Gan vi tri cua toi"}
+                {isLocating ? t("publicBranches.search.locating") : t("publicBranches.search.locateMe")}
               </button>
               {detectedCity && (
                 <span className="rounded-full bg-[#EAF4FF] px-3 py-1.5 text-xs font-semibold text-[#2B6298]">
-                  Khu vuc gan ban: {detectedCity}
+                  {t("publicBranches.search.nearYou", { city: detectedCity })}
                 </span>
               )}
             </div>
@@ -286,7 +288,7 @@ const PatientBranchesPage = () => {
 
         {suggestedAreas.length > 0 && (
           <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-[#141B29]">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500 dark:text-slate-400">Khu vuc pho bien</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500 dark:text-slate-400">{t("publicBranches.popularAreas")}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {suggestedAreas.map((city) => (
                 <button
@@ -308,7 +310,7 @@ const PatientBranchesPage = () => {
                   onClick={() => setAreaFilter("")}
                   className="rounded-full border border-transparent bg-gray-100 px-3 py-1.5 text-sm text-gray-700 transition hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-200"
                 >
-                  Bo loc
+                  {t("publicBranches.clearFilter")}
                 </button>
               )}
             </div>
@@ -337,17 +339,18 @@ const PatientBranchesPage = () => {
             </div>
           ) : visibleBranches.length === 0 ? (
             <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-slate-700 dark:bg-[#141B29]">
-              <h2 className="text-lg font-semibold">Khong tim thay chi nhanh phu hop</h2>
-              <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">Hay thu doi khu vuc hoac tu khoa de mo rong ket qua.</p>
+              <h2 className="text-lg font-semibold">{t("publicBranches.empty.title")}</h2>
+              <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">{t("publicBranches.empty.description")}</p>
             </div>
           ) : (
             <>
               <div className="mb-4 flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-slate-400">
-                  Tim thay <span className="font-semibold text-gray-900 dark:text-slate-100">{visibleBranches.length}</span> chi nhanh phu hop
-                </p>
+                <p
+                  className="text-sm text-gray-600 dark:text-slate-400"
+                  dangerouslySetInnerHTML={{ __html: t("publicBranches.results", { count: visibleBranches.length }) }}
+                />
                 <p className="text-xs text-gray-500 dark:text-slate-500">
-                  Trang {currentPage}/{totalPages}
+                  {t("publicBranches.page", { current: currentPage, total: totalPages })}
                 </p>
               </div>
 
@@ -361,7 +364,7 @@ const PatientBranchesPage = () => {
                     <div>
                       <p className="inline-flex items-center gap-1 rounded-full bg-[#FFF2F2] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#BC4D4D] dark:bg-[#2B1F28] dark:text-[#F3A3A3]">
                         <Building2 size={13} />
-                        Branch
+                        {t("publicBranches.card.branchBadge")}
                       </p>
                       <h3 className="mt-3 line-clamp-2 text-lg font-semibold text-gray-900 dark:text-slate-100">{branch.name}</h3>
                     </div>
@@ -373,7 +376,7 @@ const PatientBranchesPage = () => {
                   <div className="mt-4 space-y-2 text-sm text-gray-600 dark:text-slate-300">
                     <p className="flex items-start gap-2">
                       <MapPin size={16} className="mt-0.5 shrink-0 text-[#B64949]" />
-                      <span className="line-clamp-2">{branch.address || "Dang cap nhat dia chi"}</span>
+                      <span className="line-clamp-2">{branch.address || t("publicBranches.card.addressFallback")}</span>
                     </p>
                     {branch.phone && (
                       <p className="flex items-center gap-2">
@@ -398,7 +401,7 @@ const PatientBranchesPage = () => {
                       to={`/branches/${branch.id}`}
                       className="inline-flex items-center rounded-xl border border-[#E06666]/30 bg-[#FFF5F5] px-3 py-2 text-sm font-semibold text-[#B64949] transition hover:bg-[#FFECEB]"
                     >
-                      Xem chi tiet
+                      {t("publicBranches.card.viewDetail")}
                     </Link>
                   </div>
                 </article>
@@ -414,7 +417,7 @@ const PatientBranchesPage = () => {
                     className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 transition hover:border-[#E06666]/35 hover:text-[#B64949] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-[#111827] dark:text-slate-300"
                   >
                     <ChevronLeft size={16} />
-                    Truoc
+                    {t("publicBranches.pagination.prev")}
                   </button>
 
                   {Array.from({ length: totalPages }).map((_, index) => {
@@ -442,7 +445,7 @@ const PatientBranchesPage = () => {
                     onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                     className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 transition hover:border-[#E06666]/35 hover:text-[#B64949] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-[#111827] dark:text-slate-300"
                   >
-                    Sau
+                    {t("publicBranches.pagination.next")}
                     <ChevronRight size={16} />
                   </button>
                 </div>

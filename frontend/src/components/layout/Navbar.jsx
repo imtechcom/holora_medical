@@ -127,6 +127,34 @@ const Navbar = () => {
 
           {menuOpen && (
             <div className="absolute right-0 z-[120] mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+              {/* Mobile-only public nav links */}
+              <div className="mb-3 space-y-1 md:hidden">
+                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-400 dark:text-slate-500">
+                  {t("navbar.navigation") || "Navigation"}
+                </p>
+                <Link to="/" onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-[#E06666] dark:text-slate-200 dark:hover:bg-slate-800">
+                  🏠 {t("navbar.home")}
+                </Link>
+                <Link to="/doctors" onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-[#E06666] dark:text-slate-200 dark:hover:bg-slate-800">
+                  👨‍⚕️ {t("navbar.doctors")}
+                </Link>
+                <Link to="/pricing" onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-[#E06666] dark:text-slate-200 dark:hover:bg-slate-800">
+                  💳 {t("navbar.pricing")}
+                </Link>
+                <Link to="/branches" onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-[#E06666] dark:text-slate-200 dark:hover:bg-slate-800">
+                  🏥 Branches
+                </Link>
+                <Link to="/holoramind" onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-[#E06666] dark:text-slate-200 dark:hover:bg-slate-800">
+                  🧠 HoloraMind
+                </Link>
+                <div className="mt-2 border-t border-gray-100 dark:border-slate-700" />
+              </div>
+
               <div className="mb-3 rounded-xl bg-gray-50 p-3 dark:bg-slate-800">
                 <p className="truncate text-sm font-semibold text-gray-800 dark:text-slate-100">{isAuthenticated ? (user?.full_name || t("common.user")) : "Guest"}</p>
                 <p className="truncate text-xs text-gray-500 dark:text-slate-400">{isAuthenticated ? (user?.email || role) : "Not signed in"}</p>
@@ -170,97 +198,104 @@ const Navbar = () => {
                   </>
                 ) : (
                   <>
+                    {/* Zone link — nổi bật theo role */}
                     {role === "patient" && (
-                      <>
-                        <Link
-                          to="/patient/branches"
-                          onClick={() => setMenuOpen(false)}
-                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-[#E06666]/40 hover:text-[#E06666] dark:border-slate-700 dark:text-slate-200"
-                        >
-                          {t("patient.browseBranches")}
-                        </Link>
-                        <Link
-                          to="/patient/profile"
-                          onClick={() => setMenuOpen(false)}
-                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-[#E06666]/40 hover:text-[#E06666] dark:border-slate-700 dark:text-slate-200"
-                        >
-                          {t("patient.profile")}
-                        </Link>
-                      </>
+                      <Link to="/patient" onClick={() => setMenuOpen(false)}
+                        className="flex items-center justify-between rounded-xl bg-[#E06666] px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-[#D55555]">
+                        <span>🏥 {t("navbar.patientZone") || "Patient Zone"}</span>
+                        <span className="text-white/70">→</span>
+                      </Link>
+                    )}
+                    {role === "doctor" && (
+                      <Link to="/doctor" onClick={() => setMenuOpen(false)}
+                        className="flex items-center justify-between rounded-xl bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+                        <span>🩺 {t("navbar.doctorZone") || "Doctor Zone"}</span>
+                        <span className="text-white/70">→</span>
+                      </Link>
+                    )}
+                    {role === "clinic_owner" && (
+                      <Link to="/clinic-owner" onClick={() => setMenuOpen(false)}
+                        className="flex items-center justify-between rounded-xl bg-purple-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-700">
+                        <span>🏢 {t("navbar.clinicZone") || "Clinic Zone"}</span>
+                        <span className="text-white/70">→</span>
+                      </Link>
+                    )}
+                    {role === "receptionist" && (
+                      <Link to="/receptionist" onClick={() => setMenuOpen(false)}
+                        className="flex items-center justify-between rounded-xl bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700">
+                        <span>📋 {t("receptionist.zone") || "Receptionist Zone"}</span>
+                        <span className="text-white/70">→</span>
+                      </Link>
+                    )}
+                    {role === "accountant" && (
+                      <Link to="/accountant" onClick={() => setMenuOpen(false)}
+                        className="flex items-center justify-between rounded-xl bg-amber-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700">
+                        <span>🧮 {t("accountant.zone") || "Accountant Zone"}</span>
+                        <span className="text-white/70">→</span>
+                      </Link>
+                    )}
+                    {(role === "admin" || role === "super_admin") && (
+                      <Link to="/admin" onClick={() => setMenuOpen(false)}
+                        className="flex items-center justify-between rounded-xl bg-gray-800 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-900 dark:bg-slate-700 dark:hover:bg-slate-600">
+                        <span>🛡️ {t("navbar.adminPanel") || "Admin Panel"}</span>
+                        <span className="text-white/70">→</span>
+                      </Link>
                     )}
 
+                    {/* Sub-links theo role */}
+                    {role === "patient" && (
+                      <div className="space-y-1 pt-1">
+                        <Link to="/patient/appointments" onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 hover:text-[#E06666] dark:text-slate-400 dark:hover:bg-slate-800">
+                          📅 {t("patient.myAppointments")}
+                        </Link>
+                        <Link to="/patient/consultations" onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 hover:text-[#E06666] dark:text-slate-400 dark:hover:bg-slate-800">
+                          🩺 {t("patient.myConsultations")}
+                        </Link>
+                        <Link to="/patient/profile" onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 hover:text-[#E06666] dark:text-slate-400 dark:hover:bg-slate-800">
+                          👤 {t("patient.profile")}
+                        </Link>
+                      </div>
+                    )}
                     {role === "doctor" && (
-                      <>
-                        <Link
-                          to="/doctor/appointments"
-                          onClick={() => setMenuOpen(false)}
-                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400/40 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
-                        >
+                      <div className="space-y-1 pt-1">
+                        <Link to="/doctor/appointments" onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800">
                           📅 {t("navbar.appointments")}
                         </Link>
-                        <Link
-                          to="/doctor/consultations"
-                          onClick={() => setMenuOpen(false)}
-                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400/40 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
-                        >
+                        <Link to="/doctor/consultations" onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800">
                           💬 {t("navbar.consultations")}
                         </Link>
-                        <Link
-                          to="/doctor/schedule"
-                          onClick={() => setMenuOpen(false)}
-                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400/40 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
-                        >
+                        <Link to="/doctor/schedule" onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800">
                           🗓️ {t("navbar.schedule")}
                         </Link>
-                        <Link
-                          to="/doctor/patients"
-                          onClick={() => setMenuOpen(false)}
-                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400/40 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
-                        >
-                          👥 {t("navbar.patients")}
+                        <Link to="/doctor/profile" onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800">
+                          👤 {t("navbar.profile")}
                         </Link>
-                        <Link
-                          to="/doctor/profile"
-                          onClick={() => setMenuOpen(false)}
-                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400/40 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
-                        >
-                          ⚙️ {t("navbar.profile")}
-                        </Link>
-                      </>
+                      </div>
                     )}
-
                     {role === "clinic_owner" && (
-                      <>
-                        <Link
-                          to="/clinic-owner"
-                          onClick={() => setMenuOpen(false)}
-                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-purple-400/40 hover:text-purple-600 dark:border-slate-700 dark:text-slate-200"
-                        >
-                          📊 {t("navbar.dashboard")}
-                        </Link>
-                        <Link
-                          to="/clinic-owner/doctors"
-                          onClick={() => setMenuOpen(false)}
-                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-purple-400/40 hover:text-purple-600 dark:border-slate-700 dark:text-slate-200"
-                        >
+                      <div className="space-y-1 pt-1">
+                        <Link to="/clinic-owner/doctors" onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 hover:text-purple-600 dark:text-slate-400 dark:hover:bg-slate-800">
                           👨‍⚕️ {t("navbar.doctors")}
                         </Link>
-                        <Link
-                          to="/clinic-owner/branches"
-                          onClick={() => setMenuOpen(false)}
-                          className="block rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-purple-400/40 hover:text-purple-600 dark:border-slate-700 dark:text-slate-200"
-                        >
+                        <Link to="/clinic-owner/branches" onClick={() => setMenuOpen(false)}
+                          className="block rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-50 hover:text-purple-600 dark:text-slate-400 dark:hover:bg-slate-800">
                           🏢 {t("navbar.branches")}
                         </Link>
-                      </>
+                      </div>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="w-full rounded-lg bg-gray-100 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                    >
-                      {t("navbar.logout")}
+                    <div className="border-t border-gray-100 pt-2 dark:border-slate-700" />
+                    <button type="button" onClick={handleLogout}
+                      className="w-full rounded-lg bg-gray-100 px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:bg-red-50 hover:text-red-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-red-900/20 dark:hover:text-red-400">
+                      🚪 {t("navbar.logout")}
                     </button>
                   </>
                 )}

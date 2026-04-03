@@ -58,3 +58,15 @@ export const getPatientStatsApi = async () => {
   const response = await api.get("/patients/me/stats");
   return response.data;
 };
+
+// Get doctors the patient has interacted with (via appointments + consultations)
+export const getMyDoctorsApi = async () => {
+  const response = await api.get("/patients/me/doctors");
+  return response.data;
+};
+
+// Get branches the patient has interacted with (via appointment/consultation doctors)
+export const getMyBranchesApi = async () => {
+  const response = await api.get("/patients/me/branches");
+  return response.data;
+};

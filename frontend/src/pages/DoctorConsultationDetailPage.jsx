@@ -1,12 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { consultationService } from "../services/consultationService";
 import { aiService } from "../services/aiService";
 import { useAuth } from "../context/AuthContext";
 import ConfirmModal from "../components/ConfirmModal";
 
+const REVIEW_STATUS_CONFIG = {
+  pending_review: { label: 'Chờ đánh giá', badge: 'text-amber-700 bg-amber-50 border-amber-300', icon: '🔍' },
+  approved:       { label: 'Đạt tiêu chuẩn · Đã chia sẻ', badge: 'text-emerald-700 bg-emerald-50 border-emerald-300', icon: '✅' },
+  approved_watch: { label: 'Đạt · Cần theo dõi · Đã chia sẻ', badge: 'text-teal-700 bg-teal-50 border-teal-300', icon: '👁️' },
+  not_standard:   { label: 'Không đạt tiêu chuẩn', badge: 'text-red-700 bg-red-50 border-red-300', icon: '❌' },
+  revoked:        { label: 'Đã thu hồi quyền xem', badge: 'text-slate-600 bg-slate-100 border-slate-300', icon: '🔒' },
+};
+
 const DoctorConsultationDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { role } = useAuth();
   const [data, setData] = useState(null);
   const [aiData, setAiData] = useState([]);
@@ -15,10 +24,14 @@ const DoctorConsultationDetailPage = () => {
   const [replyText, setReplyText] = useState("");
   const [replyType, setReplyType] = useState("message");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reopenSubmitting, setReopenSubmitting] = useState(false);
   
   // Trạng thái nút bấm gửi yêu cầu
   const [requestAILoading, setRequestAILoading] = useState(null);
   const [confirmAiImageId, setConfirmAiImageId] = useState(null);
+  const [reviewingRequestId, setReviewingRequestId] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ status: 'approved', note: '' });
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   useEffect(() => {
     fetchDetail();
@@ -79,6 +92,22 @@ const DoctorConsultationDetailPage = () => {
     setConfirmAiImageId(imageId);
   };
 
+  const handleSubmitReview = async (requestId) => {
+    setReviewSubmitting(true);
+    try {
+      await aiService.reviewAIResult(requestId, {
+        review_status: reviewForm.status,
+        review_note: reviewForm.note,
+      });
+      setReviewingRequestId(null);
+      await fetchAiData();
+    } catch (err) {
+      alert('Lỗi khi lưu đánh giá: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
   const handleReplySubmit = async (e, markComplete = false) => {
     e.preventDefault();
     if (!replyText.trim()) return;
@@ -98,6 +127,18 @@ const DoctorConsultationDetailPage = () => {
       alert("Lỗi khi gửi phản hồi: " + (err.response?.data?.message || err.message));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleReopenCase = async () => {
+    setReopenSubmitting(true);
+    try {
+      await consultationService.reopenConsultation(id);
+      await fetchDetail();
+    } catch (err) {
+      alert("Lỗi mở lại ca: " + (err.response?.data?.message || err.message));
+    } finally {
+      setReopenSubmitting(false);
     }
   };
 
@@ -121,11 +162,19 @@ const DoctorConsultationDetailPage = () => {
       {/* Khung bên Trái: Thông tin Bệnh nhân & Hồ sơ (UC13) */}
       <div className="w-full md:w-5/12 space-y-6">
         <div className="bg-bg-surface p-6 rounded-2xl shadow-sm border border-border-main dark:bg-slate-800">
-          <div className="flex justify-between items-start mb-4">
-            <h2 className="text-xl font-bold text-text-main">Chi tiết Ca Tư Vấn #{data.id}</h2>
-            <span className={`px-2 py-1 rounded text-xs font-semibold ${data.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-              Trạng thái: {data.status}
-            </span>
+          <div className="mb-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-text-dim transition hover:text-text-main"
+            >
+              ← Quay lại danh sách
+            </button>
+            <div className="flex justify-between items-start">
+              <h2 className="text-xl font-bold text-text-main">Chi tiết Ca Tư Vấn #{data.id}</h2>
+              <span className={`px-2 py-1 rounded text-xs font-semibold ${data.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                Trạng thái: {data.status}
+              </span>
+            </div>
           </div>
 
           <div className="space-y-3 text-sm">
@@ -142,6 +191,22 @@ const DoctorConsultationDetailPage = () => {
             <p className="font-medium text-red-600 border-l-4 border-red-500 pl-3 mb-2">{data.chief_complaint}</p>
             <p className="text-text-main bg-bg-app p-3 rounded dark:bg-slate-700">{data.symptoms}</p>
           </div>
+
+          {/* Lịch hẹn liên kết */}
+          {data.appointment_id && (
+            <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50 dark:bg-violet-900/10 dark:border-violet-800 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-violet-500 dark:text-violet-400 mb-2">
+                Lịch hẹn liên kết
+              </p>
+              <p className="text-sm text-text-dim mb-2">Ca tư vấn này được tạo từ lịch hẹn <span className="font-semibold text-text-main">#{data.appointment_id}</span>.</p>
+              <button
+                onClick={() => navigate(`/doctor/appointments/${data.appointment_id}`)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700"
+              >
+                Xem chi tiết lịch hẹn
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Khung Ảnh đính kèm & Tiền Xử Lý & Phân Tích AI */}
@@ -164,6 +229,9 @@ const DoctorConsultationDetailPage = () => {
                 const isFailed = aiResult?.request_status === 'failed';
                 // TODO (Giai đoạn 2): thay bằng img.preprocessed_url khi backend hỗ trợ tiền xử lý ảnh
                 const preprocessedUrl = null;
+                const reviewStatus = aiResult?.doctor_review_status || 'pending_review';
+                const reviewCfg = REVIEW_STATUS_CONFIG[reviewStatus];
+                const isReviewing = reviewingRequestId === aiResult?.request_id;
 
                 return (
                   <div key={idx} className="border border-border-main rounded-xl overflow-hidden dark:border-slate-700">
@@ -266,24 +334,82 @@ const DoctorConsultationDetailPage = () => {
                       </div>
                     </div>
 
-                    {/* Footer: hành động AI */}
-                    <div className="border-t border-border-main px-4 py-2.5 bg-bg-app dark:bg-slate-900 flex items-center gap-3">
-                      {!aiResult && role === 'patient' && (
-                        <button
-                          onClick={() => handleRequestAI(img.id)}
-                          className="text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 px-3 py-1.5 rounded-lg transition-all shadow-sm disabled:opacity-60"
-                          disabled={requestAILoading === img.id}
-                        >
-                          {requestAILoading === img.id ? "Đang gửi..." : "✨ Yêu cầu AI phân tích"}
-                        </button>
+                    {/* Footer: Trạng thái & Đánh giá của Bác sĩ */}
+                    <div className="border-t border-border-main bg-bg-app dark:bg-slate-900">
+                      {/* Row 1: Trạng thái xử lý AI */}
+                      <div className="flex items-center gap-2 px-4 py-2">
+                        {!aiResult && (
+                          <button
+                            onClick={() => handleRequestAI(img.id)}
+                            className="text-[10px] font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 px-2.5 py-1 rounded-lg transition-all shadow-sm disabled:opacity-60"
+                            disabled={requestAILoading === img.id}
+                          >
+                            {requestAILoading === img.id ? "Đang gửi..." : "✨ Chạy phân tích AI (test)"}
+                          </button>
+                        )}
+                        {isCompleted && <span className="text-[10px] text-emerald-600 font-medium">✓ Phân tích AI hoàn thành</span>}
+                        {isProcessing && <span className="text-[10px] text-blue-600 font-medium">⏳ Đang xử lý...</span>}
+                        {isFailed && <span className="text-[10px] text-red-500">❌ Phân tích thất bại</span>}
+                        <span className="text-[9px] text-text-dim ml-auto">Tiền xử lý → AI phân tích</span>
+                      </div>
+
+                      {/* Row 2: Review section (bác sĩ & admin, khi AI đã có kết quả) */}
+                      {isCompleted && role !== 'patient' && (
+                        <div className="border-t border-border-main/50 px-4 py-3">
+                          {!isReviewing ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold border px-2 py-1 rounded-full ${reviewCfg.badge}`}>
+                                {reviewCfg.icon} {reviewCfg.label}
+                              </span>
+                              {aiResult.shared_with_patient === 1 && (
+                                <span className="text-[9px] text-indigo-600 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">👤 Bệnh nhân đang xem</span>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setReviewingRequestId(aiResult.request_id);
+                                  setReviewForm({ status: reviewStatus === 'pending_review' ? 'approved' : reviewStatus, note: aiResult.review_note || '' });
+                                }}
+                                className="ml-auto text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 underline"
+                              >
+                                {reviewStatus === 'pending_review' ? '+ Đánh giá' : '✎ Sửa'}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-bold uppercase text-text-dim mb-1">Đánh giá kết quả AI</p>
+                              <select
+                                value={reviewForm.status}
+                                onChange={(e) => setReviewForm(f => ({ ...f, status: e.target.value }))}
+                                className="w-full text-xs border border-border-main rounded-lg p-2 bg-bg-surface text-text-main dark:bg-slate-800"
+                              >
+                                <option value="approved">✅ Đạt tiêu chuẩn – Chia sẻ bệnh nhân</option>
+                                <option value="approved_watch">👁️ Đạt – Cần theo dõi – Chia sẻ</option>
+                                <option value="not_standard">❌ Không đạt tiêu chuẩn – Không chia sẻ</option>
+                                <option value="revoked">🔒 Thu hồi quyền xem</option>
+                                <option value="pending_review">🔍 Chưa đánh giá</option>
+                              </select>
+                              <textarea
+                                value={reviewForm.note}
+                                onChange={(e) => setReviewForm(f => ({ ...f, note: e.target.value }))}
+                                placeholder="Ghi chú của bác sĩ (tùy chọn)..."
+                                rows="2"
+                                className="w-full text-xs border border-border-main rounded-lg p-2 resize-none bg-bg-surface text-text-main dark:bg-slate-800"
+                              />
+                              <div className="flex gap-2 justify-end">
+                                <button
+                                  onClick={() => setReviewingRequestId(null)}
+                                  className="text-xs px-3 py-1.5 rounded-lg border border-border-main text-text-dim hover:bg-bg-app"
+                                >Hủy</button>
+                                <button
+                                  onClick={() => handleSubmitReview(aiResult.request_id)}
+                                  disabled={reviewSubmitting}
+                                  className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                                >{reviewSubmitting ? 'Đang lưu...' : 'Lưu đánh giá'}</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       )}
-                      {!aiResult && role !== 'patient' && (
-                        <span className="text-[10px] text-text-dim">Bệnh nhân chưa yêu cầu phân tích AI</span>
-                      )}
-                      {isCompleted && <span className="text-[10px] text-emerald-600 font-medium">✓ Phân tích hoàn thành</span>}
-                      {isProcessing && <span className="text-[10px] text-blue-600 font-medium">Đang xử lý...</span>}
-                      {isFailed && <span className="text-[10px] text-red-500">Phân tích thất bại</span>}
-                      <span className="text-[9px] text-text-dim ml-auto">Tiền xử lý → AI phân tích</span>
                     </div>
 
                   </div>
@@ -412,8 +538,20 @@ const DoctorConsultationDetailPage = () => {
           )}
           
           {data.status === 'completed' && (
-              <div className="p-4 bg-green-50 text-green-700 text-center rounded-b-lg font-medium border-t">
-                Ca tư vấn này đã được đánh dấu hoàn thành.
+              <div className="p-4 bg-green-50 rounded-b-lg border-t">
+                <p className="text-center font-medium text-green-700 mb-3">Ca tư vấn này đã được đánh dấu hoàn thành.</p>
+                {(role === 'doctor' || role === 'super_admin' || role === 'admin') && (
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={handleReopenCase}
+                      disabled={reopenSubmitting}
+                      className="inline-flex items-center gap-2 rounded-lg border border-amber-400 bg-amber-50 px-5 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-50"
+                    >
+                      {reopenSubmitting ? "Đang xử lý..." : "↩ Mở lại ca tư vấn"}
+                    </button>
+                  </div>
+                )}
               </div>
           )}
         </div>

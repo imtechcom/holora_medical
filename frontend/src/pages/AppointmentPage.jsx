@@ -73,6 +73,7 @@ const AppointmentPage = () => {
   const [selectedSlot, setSelectedSlot] = useState("");
   const [isBooking, setIsBooking] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [appointmentType, setAppointmentType] = useState("offline");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const statusLabels = {
@@ -209,7 +210,7 @@ const AppointmentPage = () => {
         start_time: selectedSlot,
         duration_minutes: duration,
         reason,
-        appointment_type: "offline",
+        appointment_type: appointmentType,
       });
 
       setSuccessMessage(t("patient.appointmentsPage.bookingSuccess", { time: selectedSlot }));
@@ -219,6 +220,7 @@ const AppointmentPage = () => {
       setReason("");
       setSelectedSlot("");
       setAvailableSlots([]);
+      setAppointmentType("offline");
       fetchMyAppointments();
       setActiveTab("my_list");
     } catch (err) {
@@ -419,6 +421,43 @@ const AppointmentPage = () => {
                   </div>
                 </div>
 
+                {/* Appointment Type */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-text-main">Hình thức khám</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAppointmentType("offline")}
+                      className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition ${
+                        appointmentType === "offline"
+                          ? "border-[#E06666] bg-[#E06666] text-white"
+                          : "border-border-main bg-bg-app text-text-main hover:border-[#E06666]/50 dark:bg-slate-900"
+                      }`}
+                    >
+                      <Hospital className="h-4 w-4" />
+                      Trực tiếp
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAppointmentType("online")}
+                      className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition ${
+                        appointmentType === "online"
+                          ? "border-[#3B82F6] bg-[#3B82F6] text-white"
+                          : "border-border-main bg-bg-app text-text-main hover:border-[#3B82F6]/50 dark:bg-slate-900"
+                      }`}
+                    >
+                      <Video className="h-4 w-4" />
+                      Trực tuyến
+                    </button>
+                  </div>
+                  {appointmentType === "online" && (
+                    <p className="mt-1.5 text-xs text-blue-500 flex items-center gap-1">
+                      <Video className="h-3 w-3" />
+                      Cuộc gọi video sẽ bắt đầu tại thời điểm khám
+                    </p>
+                  )}
+                </div>
+
                 {/* Branch + Date: 2 cols on mobile, 3 on md */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
                   <div className="sm:col-span-1 md:col-span-2">
@@ -552,7 +591,7 @@ const AppointmentPage = () => {
               </div>
             ) : (
               myAppointments.map((app) => (
-                <div key={app.id} className="p-4 space-y-3">
+                <div key={app.id} className="p-4 space-y-3 cursor-pointer hover:bg-bg-app dark:hover:bg-slate-900/40 transition-colors" onClick={() => navigate(`/patient/appointments/${app.id}`)}>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold text-[#E06666]">{app.appointment_code}</span>
                     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase ${
@@ -579,11 +618,16 @@ const AppointmentPage = () => {
                   <div className="flex items-center gap-3">
                     <Hospital className="h-4 w-4 text-[#E06666] shrink-0" />
                     <span className="text-sm text-text-main">{app.branch_name || "-"}</span>
+                    {app.appointment_type === "online" && (
+                      <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                        <Video className="h-3 w-3" /> Trực tuyến
+                      </span>
+                    )}
                   </div>
-                  {(app.status === "scheduled" || app.status === "confirmed") && (
+                  {app.appointment_type === "online" && (app.status === "scheduled" || app.status === "confirmed") && (
                     <button
-                      onClick={() => navigate(`/patient/appointments/${app.id}/room`)}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#E06666] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#D55555]"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/patient/appointments/${app.id}/room`); }}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#3B82F6] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#2563EB]"
                     >
                       <Video className="h-3.5 w-3.5" /> {t("patient.appointmentsPage.enterRoom")}
                     </button>
@@ -623,7 +667,7 @@ const AppointmentPage = () => {
                   </tr>
                 ) : (
                   myAppointments.map((app) => (
-                    <tr key={app.id} className="hover:bg-bg-app dark:hover:bg-slate-900/40">
+                    <tr key={app.id} className="hover:bg-bg-app dark:hover:bg-slate-900/40 cursor-pointer" onClick={() => navigate(`/patient/appointments/${app.id}`)}>
                       <td className="px-6 py-4 text-sm font-semibold text-[#E06666]">{app.appointment_code}</td>
                       <td className="px-6 py-4 text-sm text-text-main">
                         <div>{formatDate(app.appointment_date, i18n.language)}</div>
@@ -635,7 +679,14 @@ const AppointmentPage = () => {
                         <div className="font-medium">{app.doctor_name || "-"}</div>
                         <div className="text-xs text-text-dim">{app.specialty_name || "-"}</div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-text-main">{app.branch_name || "-"}</td>
+                      <td className="px-6 py-4 text-sm text-text-main">
+                        <div>{app.branch_name || "-"}</div>
+                        {app.appointment_type === "online" && (
+                          <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                            <Video className="h-3 w-3" /> Trực tuyến
+                          </span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 text-sm">
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase ${
@@ -647,10 +698,10 @@ const AppointmentPage = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right text-sm">
-                        {(app.status === "scheduled" || app.status === "confirmed") && (
+                        {app.appointment_type === "online" && (app.status === "scheduled" || app.status === "confirmed") && (
                           <button
-                            onClick={() => navigate(`/patient/appointments/${app.id}/room`)}
-                            className="inline-flex items-center gap-2 rounded-lg bg-[#E06666] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#D55555]"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/patient/appointments/${app.id}/room`); }}
+                            className="inline-flex items-center gap-2 rounded-lg bg-[#3B82F6] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#2563EB]"
                           >
                             <Video className="h-3.5 w-3.5" /> {t("patient.appointmentsPage.enterRoom")}
                           </button>

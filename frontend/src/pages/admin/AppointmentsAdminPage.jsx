@@ -220,7 +220,7 @@ const AppointmentsAdminPage = () => {
                         )}
                         {app.status === "confirmed" && (
                           <>
-                            <button onClick={() => navigate(`/appointments/${app.id}/room`)}
+                            <button onClick={() => navigate(`/admin/appointments/${app.id}/room`)}
                               className="rounded bg-blue-600 px-3 py-1 text-xs font-bold text-white hover:bg-blue-700">
                               Vào phòng
                             </button>

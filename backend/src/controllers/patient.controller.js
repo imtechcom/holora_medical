@@ -760,6 +760,139 @@ const getMyStats = async (req, res) => {
   }
 };
 
+// GET /patients/me/doctors — doctors the patient has interacted with via appointments or consultations
+const getMyDoctors = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const patientRows = await queryAsync(
+      "SELECT id FROM patient WHERE user_id = ? LIMIT 1",
+      [userId]
+    );
+    if (!patientRows.length) {
+      return res.status(404).json({ message: "Patient profile not found" });
+    }
+    const patientId = patientRows[0].id;
+
+    // Doctors from appointments
+    const apptDoctors = await queryAsync(
+      `SELECT
+         d.id,
+         d.full_name,
+         d.avatar_url,
+         s.name AS specialty_name,
+         COUNT(a.id) AS appointment_count,
+         MAX(a.appointment_date) AS last_appointment_date
+       FROM appointment a
+       JOIN doctor d ON a.doctor_id = d.id
+       LEFT JOIN specialty s ON d.specialty_id = s.id
+       WHERE a.patient_id = ?
+       GROUP BY d.id, d.full_name, d.avatar_url, s.name
+       ORDER BY last_appointment_date DESC`,
+      [patientId]
+    );
+
+    // Doctors from consultations
+    const consDoctors = await queryAsync(
+      `SELECT
+         d.id,
+         d.full_name,
+         d.avatar_url,
+         s.name AS specialty_name,
+         COUNT(c.id) AS consultation_count,
+         MAX(c.created_at) AS last_consultation_date
+       FROM consultation c
+       JOIN doctor d ON c.doctor_id = d.id
+       LEFT JOIN specialty s ON d.specialty_id = s.id
+       WHERE c.patient_id = ? AND c.doctor_id IS NOT NULL
+       GROUP BY d.id, d.full_name, d.avatar_url, s.name
+       ORDER BY last_consultation_date DESC`,
+      [patientId]
+    );
+
+    return res.json({
+      message: "My doctors fetched successfully",
+      data: {
+        appointments: apptDoctors,
+        consultations: consDoctors,
+      },
+    });
+  } catch (err) {
+    console.error("getMyDoctors error:", err);
+    return res.status(500).json({ message: "Database error", error: err.message });
+  }
+};
+
+// GET /patients/me/branches — branches (via doctor_branch) the patient has interacted with
+const getMyBranches = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const patientRows = await queryAsync(
+      "SELECT id FROM patient WHERE user_id = ? LIMIT 1",
+      [userId]
+    );
+    if (!patientRows.length) {
+      return res.status(404).json({ message: "Patient profile not found" });
+    }
+    const patientId = patientRows[0].id;
+
+    // Branches of doctors the patient had appointments with
+    const apptBranches = await queryAsync(
+      `SELECT
+         b.id,
+         b.name,
+         b.city,
+         b.address,
+         b.phone,
+         b.email,
+         COUNT(DISTINCT a.id) AS appointment_count,
+         MAX(a.appointment_date) AS last_appointment_date
+       FROM appointment a
+       JOIN doctor_branch db ON a.doctor_id = db.doctor_id
+       JOIN branch b ON db.branch_id = b.id
+       WHERE a.patient_id = ?
+         AND (db.deleted_at IS NULL)
+         AND b.deleted_at IS NULL
+       GROUP BY b.id, b.name, b.city, b.address, b.phone, b.email
+       ORDER BY last_appointment_date DESC`,
+      [patientId]
+    );
+
+    // Branches of doctors the patient had consultations with
+    const consBranches = await queryAsync(
+      `SELECT
+         b.id,
+         b.name,
+         b.city,
+         b.address,
+         b.phone,
+         b.email,
+         COUNT(DISTINCT c.id) AS consultation_count,
+         MAX(c.created_at) AS last_consultation_date
+       FROM consultation c
+       JOIN doctor_branch db ON c.doctor_id = db.doctor_id
+       JOIN branch b ON db.branch_id = b.id
+       WHERE c.patient_id = ?
+         AND c.doctor_id IS NOT NULL
+         AND (db.deleted_at IS NULL)
+         AND b.deleted_at IS NULL
+       GROUP BY b.id, b.name, b.city, b.address, b.phone, b.email
+       ORDER BY last_consultation_date DESC`,
+      [patientId]
+    );
+
+    return res.json({
+      message: "My branches fetched successfully",
+      data: {
+        appointments: apptBranches,
+        consultations: consBranches,
+      },
+    });
+  } catch (err) {
+    console.error("getMyBranches error:", err);
+    return res.status(500).json({ message: "Database error", error: err.message });
+  }
+};
+
 module.exports = {
   getAllPatients,
   getPatientById,
@@ -771,4 +904,6 @@ module.exports = {
   updateMyProfile,
   getPatientsByOwnerBranches,
   getMyStats,
+  getMyDoctors,
+  getMyBranches,
 };

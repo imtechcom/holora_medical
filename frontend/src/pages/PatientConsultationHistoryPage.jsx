@@ -80,14 +80,15 @@ const PatientConsultationHistoryPage = () => {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <section className="overflow-hidden rounded-[28px] bg-gradient-to-br from-[#E06666] to-[#C04444] p-4 text-white shadow-lg sm:p-8 md:p-10">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 p-4 text-white shadow-lg sm:p-8 md:p-10">
+        <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-rose-500/10 blur-3xl" />
+        <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/75">{t("patient.zone")}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">{t("patient.zone")}</p>
             <h1 className="mt-2 text-xl font-bold tracking-tight sm:mt-3 sm:text-3xl md:text-4xl">
               {t("patient.consultationsPage.title")}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/85 md:text-base">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 md:text-base">
               {t("patient.consultationsPage.heroDescription")}
             </p>
             <Link
@@ -99,13 +100,13 @@ const PatientConsultationHistoryPage = () => {
             </Link>
           </div>
 
-          <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
+          <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
               <Sparkles className="h-4 w-4" />
               {t("patient.consultationsPage.summaryTitle")}
             </div>
             <p className="mt-2 text-2xl font-bold">{stats.total}</p>
-            <p className="text-sm text-white/75">{t("patient.consultationsPage.totalLabel")}</p>
+            <p className="text-sm text-slate-400">{t("patient.consultationsPage.totalLabel")}</p>
           </div>
         </div>
       </section>
@@ -179,7 +180,7 @@ const PatientConsultationHistoryPage = () => {
                   <p className="text-xs text-text-dim">{formatDateTime(item.created_at, i18n.language)}</p>
                   <button
                     onClick={() => navigate(`/patient/consultations/${item.id}`)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#E06666] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#cc5b5b]"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-600"
                   >
                     <MessageSquare className="h-3.5 w-3.5" />
                     {t("patient.consultationsPage.viewAction")}
@@ -242,7 +243,7 @@ const PatientConsultationHistoryPage = () => {
                     <td className="px-3 py-4 text-right">
                       <button
                         onClick={() => navigate(`/patient/consultations/${item.id}`)}
-                        className="inline-flex items-center gap-2 rounded-lg bg-[#E06666] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#cc5b5b]"
+                        className="inline-flex items-center gap-2 rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-600"
                       >
                         <MessageSquare className="h-4 w-4" />
                         {t("patient.consultationsPage.viewAction")}

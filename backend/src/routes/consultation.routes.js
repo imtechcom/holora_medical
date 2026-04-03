@@ -21,4 +21,7 @@ router.get("/:id", consultationController.getConsultationDetails);
 // Trả lời phản hồi / Chẩn đoán (Bệnh nhân và Bác sĩ dùng chung)
 router.post("/:id/responses", consultationController.addConsultationResponse);
 
+// Bác sĩ mở lại ca tư vấn đã hoàn thành
+router.patch("/:id/reopen", consultationController.reopenConsultation);
+
 module.exports = router;

@@ -298,6 +298,22 @@ exports.getAllAppointmentsAdmin = (req, res) => {
 };
 
 // Lấy chi tiết lịch khám theo ID (Kèm verify quyền truy cập)
+// Lấy tư vấn được liên kết với lịch hẹn
+exports.getConsultationByAppointmentId = (req, res) => {
+  const { id } = req.params;
+  const sql = `
+    SELECT c.id, c.status, c.chief_complaint, c.appointment_id, c.created_at
+    FROM consultation c
+    WHERE c.appointment_id = ?
+    LIMIT 1
+  `;
+  db.query(sql, [id], (err, results) => {
+    if (err) return res.status(500).json({ message: "Lỗi cơ sở dữ liệu", error: err.message });
+    if (!results.length) return res.status(404).json({ message: "Chưa có tư vấn liên kết với lịch hẹn này." });
+    return res.json({ message: "OK", data: results[0] });
+  });
+};
+
 exports.getAppointmentById = (req, res) => {
   const { id } = req.params;
   const { role, id: user_id } = req.user;

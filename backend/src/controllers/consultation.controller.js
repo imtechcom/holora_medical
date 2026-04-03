@@ -3,7 +3,7 @@ const db = require("../config/db");
 // Bệnh nhân gửi yêu cầu tư vấn mới (UC04)
 const createConsultation = (req, res) => {
   const userId = req.user.id;
-  const { chief_complaint, symptoms, attachments } = req.body;
+  const { chief_complaint, symptoms, attachments, doctor_id, appointment_id } = req.body;
 
   if (!chief_complaint || !symptoms) {
     return res.status(400).json({ message: "Vui lòng nhập lý do khám và triệu chứng." });
@@ -16,14 +16,16 @@ const createConsultation = (req, res) => {
     if (!pResults.length) return res.status(404).json({ message: "Không tìm thấy hồ sơ bệnh nhân cho người dùng này." });
     
     const patientId = pResults[0].id;
+    const assignedDoctorId = doctor_id ? Number(doctor_id) : null;
+    const appointmentId = appointment_id ? Number(appointment_id) : null;
 
     // Insert vào bảng consultation
     const insertConsultationSql = `
-      INSERT INTO consultation (patient_id, chief_complaint, symptoms, status, priority, created_at, updated_at) 
-      VALUES (?, ?, ?, 'pending', 'normal', NOW(), NOW())
+      INSERT INTO consultation (patient_id, doctor_id, appointment_id, chief_complaint, symptoms, status, priority, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, 'pending', 'normal', NOW(), NOW())
     `;
     
-    db.query(insertConsultationSql, [patientId, chief_complaint, symptoms], (insertErr, cResult) => {
+    db.query(insertConsultationSql, [patientId, assignedDoctorId, appointmentId, chief_complaint, symptoms], (insertErr, cResult) => {
       if (insertErr) return res.status(500).json({ message: "Lỗi tạo tư vấn", error: insertErr.message });
       
       const consultationId = cResult.insertId;
@@ -89,7 +91,7 @@ const getDoctorConsultations = (req, res) => {
       FROM consultation c
       JOIN patient p ON c.patient_id = p.id
       WHERE (c.status = 'pending' AND c.doctor_id IS NULL) 
-         OR (c.status = 'in_progress' AND c.doctor_id = ?)
+         OR (c.doctor_id = ? AND c.status IN ('pending', 'in_progress', 'completed'))
       ORDER BY c.created_at DESC
     `;
 
@@ -163,71 +165,77 @@ const addConsultationResponse = (req, res) => {
   }
 
   // Validate response_type - only allow known types, default to 'message'
-  const VALID_RESPONSE_TYPES = ['message', 'diagnosis', 'prescription', 'recommendation'];
+  const VALID_RESPONSE_TYPES = ['message', 'diagnosis', 'prescription', 'recommendation', 'prescription_note'];
   const finalResponseType = (response_type && VALID_RESPONSE_TYPES.includes(response_type)) ? response_type : 'message';
 
-  // Nếu là bác sĩ, ta lấy doctor_id để update người trực tiếp phụ trách ca này
-  const getDoctorSql = "SELECT id FROM doctor WHERE user_id = ? LIMIT 1";
-  db.query(getDoctorSql, [userId], (err, dResults) => {
-    if (err) return res.status(500).json({ message: "Lỗi cơ sở dữ liệu", error: err.message });
-    
-    // Lưu ý: User có thể là bệnh nhân rep lại bác sĩ, lúc này doctor_id sẽ ko có
-    const isDoctor = dResults.length > 0;
-    const doctorId = isDoctor ? dResults[0].id : null;
+  // Lấy 1 connection cố định từ pool để đảm bảo transaction toàn vẹn
+  db.getConnection((connErr, connection) => {
+    if (connErr) return res.status(500).json({ message: "Lỗi kết nối cơ sở dữ liệu", error: connErr.message });
 
-    const newStatus = complete ? 'completed' : 'in_progress';
-
-    db.beginTransaction((err) => {
-      if (err) return res.status(500).json({ error: err.message });
-
-      // Cập nhật trạng thái Consultation
-      let updateSql;
-      let updateParams;
-
-      if (isDoctor) {
-        // Gán ca này cho bác sĩ này nếu trước đây đang pending
-        updateSql = `
-          UPDATE consultation 
-          SET status = ?, doctor_id = COALESCE(doctor_id, ?), updated_at = NOW() 
-          ${complete ? ', completed_at = NOW()' : ", started_at = COALESCE(started_at, NOW())"}
-          WHERE id = ?
-        `;
-        updateParams = [newStatus, doctorId, id];
-      } else {
-        // Bệnh nhân tự trả lời, không cần update doctor_id
-        updateSql = `
-          UPDATE consultation 
-          SET updated_at = NOW() 
-          WHERE id = ?
-        `;
-        updateParams = [id];
+    // Nếu là bác sĩ, ta lấy doctor_id để update người trực tiếp phụ trách ca này
+    connection.query("SELECT id FROM doctor WHERE user_id = ? LIMIT 1", [userId], (err, dResults) => {
+      if (err) {
+        connection.release();
+        return res.status(500).json({ message: "Lỗi cơ sở dữ liệu", error: err.message });
       }
 
-      db.query(updateSql, updateParams, (updErr) => {
-        if (updErr) {
-          db.rollback(() => res.status(500).json({ error: updErr.message }));
-          return;
+      // Lưu ý: User có thể là bệnh nhân rep lại bác sĩ, lúc này doctor_id sẽ ko có
+      const isDoctor = dResults.length > 0;
+      const doctorId = isDoctor ? dResults[0].id : null;
+      const newStatus = complete ? 'completed' : 'in_progress';
+
+      connection.beginTransaction((txErr) => {
+        if (txErr) {
+          connection.release();
+          return res.status(500).json({ error: txErr.message });
         }
 
-        // Insert nội dung phản hồi
-        const insertRespSql = `
-          INSERT INTO consultation_response (consultation_id, responder_user_id, response_type, content, is_from_ai, created_at, updated_at)
-          VALUES (?, ?, ?, ?, 0, NOW(), NOW())
-        `;
-        db.query(insertRespSql, [id, userId, finalResponseType, content], (insErr, result) => {
-          if (insErr) {
-            db.rollback(() => res.status(500).json({ error: insErr.message }));
-            return;
+        // Cập nhật trạng thái Consultation
+        let updateSql;
+        let updateParams;
+
+        if (isDoctor) {
+          // Gán ca này cho bác sĩ này nếu trước đây đang pending
+          updateSql = complete
+            ? `UPDATE consultation SET status = ?, doctor_id = COALESCE(doctor_id, ?), completed_at = NOW(), updated_at = NOW() WHERE id = ?`
+            : `UPDATE consultation SET status = ?, doctor_id = COALESCE(doctor_id, ?), started_at = COALESCE(started_at, NOW()), updated_at = NOW() WHERE id = ?`;
+          updateParams = [newStatus, doctorId, id];
+        } else {
+          // Bệnh nhân tự trả lời, không cần update doctor_id
+          updateSql = `UPDATE consultation SET updated_at = NOW() WHERE id = ?`;
+          updateParams = [id];
+        }
+
+        connection.query(updateSql, updateParams, (updErr) => {
+          if (updErr) {
+            return connection.rollback(() => {
+              connection.release();
+              res.status(500).json({ error: updErr.message });
+            });
           }
 
-          db.commit((commitErr) => {
-            if (commitErr) {
-              db.rollback(() => res.status(500).json({ error: commitErr.message }));
-              return;
+          // Insert nội dung phản hồi
+          const insertRespSql = `
+            INSERT INTO consultation_response (consultation_id, responder_user_id, response_type, content, is_from_ai, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 0, NOW(), NOW())
+          `;
+          connection.query(insertRespSql, [id, userId, finalResponseType, content], (insErr, result) => {
+            if (insErr) {
+              return connection.rollback(() => {
+                connection.release();
+                res.status(500).json({ error: insErr.message });
+              });
             }
-            res.status(201).json({ 
-              message: "Đã thêm phản hồi", 
-              response_id: result.insertId 
+
+            connection.commit((commitErr) => {
+              connection.release();
+              if (commitErr) {
+                return res.status(500).json({ error: commitErr.message });
+              }
+              res.status(201).json({
+                message: "Đã thêm phản hồi",
+                response_id: result.insertId,
+              });
             });
           });
         });
@@ -268,10 +276,43 @@ const getPatientConsultations = (req, res) => {
   });
 };
 
+// Bác sĩ mở lại ca tư vấn đã hoàn thành (chuyển từ completed → in_progress)
+const reopenConsultation = (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  // Chỉ bác sĩ hoặc admin mới được mở lại
+  db.query(`SELECT id FROM doctor WHERE user_id = ? LIMIT 1`, [userId], (err, dResults) => {
+    if (err) return res.status(500).json({ message: "Lỗi cơ sở dữ liệu", error: err.message });
+
+    const isDoctor = dResults.length > 0;
+    const isAdmin = ['admin', 'super_admin'].includes(req.user.role);
+    if (!isDoctor && !isAdmin) {
+      return res.status(403).json({ message: "Chỉ bác sĩ mới có quyền mở lại ca tư vấn." });
+    }
+
+    // Kiểm tra ca có tồn tại và đang ở trạng thái completed không
+    db.query(`SELECT id, status FROM consultation WHERE id = ? LIMIT 1`, [id], (err2, cResults) => {
+      if (err2) return res.status(500).json({ message: "Lỗi cơ sở dữ liệu", error: err2.message });
+      if (!cResults.length) return res.status(404).json({ message: "Không tìm thấy ca tư vấn." });
+      if (cResults[0].status !== 'completed') {
+        return res.status(400).json({ message: "Chỉ có thể mở lại ca đã hoàn thành." });
+      }
+
+      const sql = `UPDATE consultation SET status = 'in_progress', completed_at = NULL, updated_at = NOW() WHERE id = ?`;
+      db.query(sql, [id], (err3) => {
+        if (err3) return res.status(500).json({ message: "Lỗi cập nhật trạng thái", error: err3.message });
+        return res.json({ message: "Đã mở lại ca tư vấn thành công." });
+      });
+    });
+  });
+};
+
 module.exports = {
   createConsultation,
   getDoctorConsultations,
   getConsultationDetails,
   addConsultationResponse,
-  getPatientConsultations
+  getPatientConsultations,
+  reopenConsultation,
 };

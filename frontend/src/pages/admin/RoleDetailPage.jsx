@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import {
+  ArrowLeft, Pencil, Shield, Users, CheckCircle2,
+  AlertCircle, Search, Save, Lock, ChevronDown, ChevronUp,
+} from "lucide-react";
 import * as roleService from "../../services/roleService";
 import * as permissionService from "../../services/permissionService";
 
@@ -20,58 +24,57 @@ const RoleDetailPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedModule, setSelectedModule] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState([]);
+  const [collapsedModules, setCollapsedModules] = useState({});
 
-  // Fetch data on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchData(); }, [roleId]);
+
   useEffect(() => {
-    fetchData();
-  }, [roleId]);
+    if (!success) return;
+    const id = setTimeout(() => setSuccess(""), 3000);
+    return () => clearTimeout(id);
+  }, [success]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError("");
-
-      // Fetch role
       const roleResponse = await roleService.getRoleByIdApi(roleId);
       setRole(roleResponse.data);
 
-      // Fetch all permissions
       const permResponse = await permissionService.getAllPermissionsApi();
       setPermissions(permResponse.data || []);
 
-      // Extract unique modules
       const uniqueModules = [
-        ...new Set(
-          (permResponse.data || [])
-            .filter((p) => p.module_name)
-            .map((p) => p.module_name)
-        ),
+        ...new Set((permResponse.data || []).filter((p) => p.module_name).map((p) => p.module_name)),
       ];
       setModules(uniqueModules);
 
-      // Fetch role permissions
       const rolePermResponse = await roleService.getRolePermissionsApi(roleId);
       setAssignedPermissions(rolePermResponse.data || []);
-      const assignedIds = rolePermResponse.data
-        .filter((p) => p.is_assigned)
-        .map((p) => p.id);
+      const assignedIds = rolePermResponse.data.filter((p) => p.is_assigned).map((p) => p.id);
       setSelectedPermissions(assignedIds);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch data");
-      console.error("Error fetching data:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleTogglePermission = (permissionId) => {
-    setSelectedPermissions((prev) => {
-      if (prev.includes(permissionId)) {
-        return prev.filter((id) => id !== permissionId);
-      } else {
-        return [...prev, permissionId];
-      }
-    });
+    setSelectedPermissions((prev) =>
+      prev.includes(permissionId) ? prev.filter((id) => id !== permissionId) : [...prev, permissionId]
+    );
+  };
+
+  const handleToggleModule = (module, perms) => {
+    const moduleIds = perms.map((p) => p.id);
+    const allSelected = moduleIds.every((id) => selectedPermissions.includes(id));
+    if (allSelected) {
+      setSelectedPermissions((prev) => prev.filter((id) => !moduleIds.includes(id)));
+    } else {
+      setSelectedPermissions((prev) => [...new Set([...prev, ...moduleIds])]);
+    }
   };
 
   const handleSavePermissions = async () => {
@@ -80,329 +83,314 @@ const RoleDetailPage = () => {
       setError("");
       setSuccess("");
 
-      // Get current assigned permissions
-      const currentAssigned = assignedPermissions
-        .filter((p) => p.is_assigned)
-        .map((p) => p.id);
-
-      // Permissions to add
+      const currentAssigned = assignedPermissions.filter((p) => p.is_assigned).map((p) => p.id);
       const toAdd = selectedPermissions.filter((id) => !currentAssigned.includes(id));
-
-      // Permissions to remove
       const toRemove = currentAssigned.filter((id) => !selectedPermissions.includes(id));
 
-      // Add new permissions
       for (const permissionId of toAdd) {
-        await roleService.assignPermissionApi({
-          role_id: roleId,
-          permission_id: permissionId,
-        });
+        await roleService.assignPermissionApi({ role_id: roleId, permission_id: permissionId });
       }
-
-      // Remove revoked permissions
       for (const permissionId of toRemove) {
-        await roleService.removePermissionApi({
-          role_id: roleId,
-          permission_id: permissionId,
-        });
+        await roleService.removePermissionApi({ role_id: roleId, permission_id: permissionId });
       }
 
       setSuccess(t("admin.updateRolePermissionsSuccess"));
-      setTimeout(() => {
-        fetchData();
-      }, 1500);
+      setTimeout(() => { fetchData(); }, 1500);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save permissions");
-      console.error("Error saving permissions:", err);
     } finally {
       setSaving(false);
     }
   };
 
-  // Filter permissions
-  const filteredPermissions = permissions.filter((permission) => {
-    const matchesSearch =
-      permission.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      permission.code.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesModule = !selectedModule || permission.module_name === selectedModule;
-
-    return matchesSearch && matchesModule;
+  const filteredPermissions = permissions.filter((p) => {
+    const kw = searchTerm.toLowerCase();
+    const matchSearch = !kw || p.name.toLowerCase().includes(kw) || p.code.toLowerCase().includes(kw);
+    const matchModule = !selectedModule || p.module_name === selectedModule;
+    return matchSearch && matchModule;
   });
 
-  // Group permissions by module
   const groupedPermissions = filteredPermissions.reduce((acc, perm) => {
-    const module = perm.module_name || "General";
-    if (!acc[module]) {
-      acc[module] = [];
-    }
-    acc[module].push(perm);
+    const mod = perm.module_name || "General";
+    if (!acc[mod]) acc[mod] = [];
+    acc[mod].push(perm);
     return acc;
   }, {});
 
-  // Calculate stats
   const assignedCount = selectedPermissions.length;
   const totalCount = permissions.length;
-  const unassignedCount = totalCount - assignedCount;
 
+  // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="space-y-5">
-        <div className="text-center py-12 text-text-dim">
-          {t("common.loading")}...
-        </div>
+      <div className="space-y-4 pb-10">
+        <div className="animate-pulse h-14 rounded-2xl bg-slate-200 dark:bg-slate-700" />
+        <div className="animate-pulse h-32 rounded-2xl bg-slate-200 dark:bg-slate-700" />
+        <div className="animate-pulse h-64 rounded-2xl bg-slate-200 dark:bg-slate-700" />
       </div>
     );
   }
 
   if (!role) {
     return (
-      <div className="space-y-5">
-        <div className="text-center py-12 text-red-500">
-          {t("admin.roleNotFound")}
-        </div>
-        <div className="text-center">
-          <button
-            onClick={() => navigate("/admin/roles")}
-            className="px-4 py-2 bg-[#E06666] text-white rounded-lg hover:bg-[#D55555]"
-          >
-            {t("admin.backToRoles")}
-          </button>
-        </div>
+      <div className="flex flex-col items-center gap-4 py-20 text-center">
+        <p className="text-sm text-red-500">{t("admin.roleNotFound")}</p>
+        <button
+          onClick={() => navigate("/admin/roles")}
+          className="rounded-xl bg-[#E06666] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#D55555]"
+        >
+          {t("admin.backToRoles")}
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <button
-            onClick={() => navigate("/admin/roles")}
-            className="mb-4 px-4 py-2 border border-border-main text-text-main rounded-lg hover:bg-bg-app transition-colors text-sm"
-          >
-            ← {t("admin.backToRoles")}
-          </button>
-          <h1 className="text-3xl font-bold text-text-main">{role.name}</h1>
-          <p className="text-text-dim mt-2">
-            {t("admin.roleCode")}: <code className="bg-bg-app px-2 py-1 rounded">{role.code}</code>
-          </p>
+    <div className="space-y-5 pb-24">
+
+      {/* ── Nav bar ──────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <button
+          onClick={() => navigate("/admin/roles")}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-border-main px-3.5 py-2 text-sm font-medium text-text-main transition hover:bg-bg-app dark:hover:bg-slate-700"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Quay lại</span>
+        </button>
+
+        <div className="flex items-center gap-2">
+          {!role.is_system_role && (
+            <>
+              <button
+                onClick={() => navigate(`/admin/roles/${roleId}/edit`)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border-main px-3.5 py-2 text-sm font-medium text-text-main transition hover:bg-bg-app dark:hover:bg-slate-700"
+              >
+                <Pencil className="h-4 w-4" />
+                <span className="hidden sm:inline">Chỉnh sửa</span>
+              </button>
+              <button
+                onClick={handleSavePermissions}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#E06666] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#D55555] disabled:opacity-50"
+              >
+                {saving
+                  ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
+                  : <Save className="h-4 w-4" />}
+                <span className="hidden sm:inline">Lưu quyền</span>
+              </button>
+            </>
+          )}
         </div>
-        {role.is_system_role && (
-          <span className="px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-            {t("admin.systemRole")}
-          </span>
-        )}
       </div>
 
-      {/* Messages */}
+      {/* ── Alerts ───────────────────────────────────────────────── */}
       {success && (
-        <div className="mb-4 p-4 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-400">
-          {success}
+        <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-900/15 dark:text-emerald-400">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />{success}
         </div>
       )}
       {error && (
-        <div className="mb-4 p-4 border border-red-200 bg-red-50 text-red-700 rounded-lg dark:border-red-800/40 dark:bg-red-900/20 dark:text-red-400">
-          {error}
+        <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-900/15 dark:text-red-400">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Role Info */}
-        <div className="lg:col-span-1">
-          <div className="bg-bg-surface rounded-2xl border border-border-main p-6 dark:bg-slate-800">
-
-            <h2 className="text-xl font-bold text-text-main mb-4">
-              {t("admin.roleInformation")}
-            </h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm text-text-dim">{t("admin.name")}</label>
-                <p className="font-medium text-text-main">{role.name}</p>
-              </div>
-
-              <div>
-                <label className="text-sm text-text-dim">{t("admin.code")}</label>
-                <p className="font-monospace text-text-main">{role.code}</p>
-              </div>
-
-              <div>
-                <label className="text-sm text-text-dim">{t("admin.description")}</label>
-                <p className="text-text-main">{role.description || "-"}</p>
-              </div>
-
-              <div>
-                <label className="text-sm text-text-dim">{t("admin.status")}</label>
-                <p className="mt-1">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      role.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-bg-app text-text-dim"
-                    }`}
-                  >
-                    {role.status === "active"
-                      ? t("admin.statusActive")
-                      : t("admin.statusInactive")}
+      {/* ── Hero card ────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl border border-border-main bg-gradient-to-br from-slate-800 to-slate-900 p-5 sm:p-6 shadow-md">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-purple-500/20 blur-3xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-lg">
+              <Shield className="h-7 w-7" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-bold text-white sm:text-2xl">{role.name}</h1>
+                {role.is_system_role && (
+                  <span className="rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-bold text-purple-300 ring-1 ring-purple-500/30">
+                    Hệ thống
                   </span>
-                </p>
+                )}
               </div>
-
-              <div>
-                <label className="text-sm text-text-dim">{t("admin.userCount")}</label>
-                <p className="text-2xl font-bold text-[#E06666]">{role.user_count || 0}</p>
-              </div>
+              <code className="mt-1 text-sm text-slate-400">{role.code}</code>
+              {role.description && <p className="mt-1 text-sm text-slate-400">{role.description}</p>}
             </div>
           </div>
-
-          {/* Stats */}
-          <div className="bg-bg-surface rounded-2xl border border-border-main p-6 mt-6 dark:bg-slate-800">
-            <h3 className="text-lg font-bold text-text-main mb-4">
-              {t("admin.permissionStats")}
-            </h3>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-text-dim">{t("admin.assigned")}</span>
-                <span className="text-2xl font-bold text-green-600">{assignedCount}</span>
-              </div>
-              <div className="w-full bg-bg-app rounded-full h-2">
-                <div
-                  className="bg-green-500 h-2 rounded-full transition-all"
-                  style={{ width: `${totalCount > 0 ? (assignedCount / totalCount) * 100 : 0}%` }}
-                ></div>
-              </div>
-
-              <div className="flex items-center justify-between mt-4">
-                <span className="text-text-dim">{t("admin.unassigned")}</span>
-                <span className="text-2xl font-bold text-text-dim">{unassignedCount}</span>
-              </div>
-
-              <div className="text-sm text-text-dim mt-3">
-                {t("admin.totalPermissions")}: {totalCount}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column - Permissions */}
-        <div className="lg:col-span-2">
-          <div className="bg-bg-surface rounded-2xl border border-border-main p-6 dark:bg-slate-800">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-text-main">
-                {t("admin.permissionsManagement")}
-              </h2>
-              {!role.is_system_role && (
-                <button
-                  onClick={handleSavePermissions}
-                  disabled={saving}
-                  className="px-6 py-2 bg-[#E06666] text-white rounded-lg hover:bg-[#D55555] transition-colors disabled:opacity-50"
-                >
-                  {saving ? t("common.saving") : t("common.save")}
-                </button>
-              )}
-            </div>
-
-            {/* Filters */}
-            <div className="flex gap-4 flex-wrap mb-6">
-              <div className="flex-1 min-w-52">
-                <input
-                  type="text"
-                  placeholder={t("admin.search")}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 dark:bg-slate-700"
-                />
-              </div>
-              <select
-                value={selectedModule}
-                onChange={(e) => setSelectedModule(e.target.value)}
-                className="px-4 py-2 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 dark:bg-slate-700"
-              >
-                <option value="">{t("admin.allModules")}</option>
-                {modules.map((module) => (
-                  <option key={module} value={module}>
-                    {module}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Permissions List */}
-            {Object.keys(groupedPermissions).length === 0 ? (
-              <div className="text-center py-8 text-text-dim">
-                {t("admin.noPermissionsFound")}
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {Object.entries(groupedPermissions).map(([module, perms]) => (
-                  <div key={module} className="border border-border-main rounded-lg p-4">
-                    <h3 className="font-semibold text-text-main mb-3 flex items-center gap-2">
-                      <span className="text-lg">📦</span>
-                      {module}
-                      <span className="text-sm text-text-dim ml-2">
-                        ({perms.filter((p) => selectedPermissions.includes(p.id)).length}/{perms.length})
-                      </span>
-                    </h3>
-                    <div className="space-y-2">
-                      {perms.map((permission) => (
-                        <label
-                          key={permission.id}
-                          className="flex items-center gap-3 p-3 hover:bg-bg-app rounded cursor-pointer transition-colors dark:hover:bg-slate-700"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedPermissions.includes(permission.id)}
-                            onChange={() => handleTogglePermission(permission.id)}
-                            disabled={saving || role.is_system_role}
-                            className="w-4 h-4 text-[#E06666] rounded focus:ring-2 focus:ring-[#E06666]/30 disabled:opacity-50"
-                          />
-                          <div className="flex-1">
-                              <div className="text-sm font-medium text-text-main">
-                              {permission.name}
-                            </div>
-                            <div className="text-xs text-text-dim">
-                              {permission.code}
-                            </div>
-                            {permission.description && (
-                              <div className="text-xs text-text-dim mt-1">
-                                {permission.description}
-                              </div>
-                            )}
-                          </div>
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                              permission.status === "active"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-bg-app text-text-dim"
-                            }`}
-                          >
-                            {permission.status === "active"
-                              ? t("admin.statusActive")
-                              : t("admin.statusInactive")}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {role.is_system_role && (
-              <div className="mt-6 p-4 border border-amber-200 bg-amber-50 text-amber-800 rounded-lg dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-400">
-                <p className="text-sm">
-                  ⚠️ {t("admin.systemRolePermissionsWarning")}
-                </p>
-              </div>
-            )}
+          <div className="flex flex-wrap items-center gap-3 sm:flex-col sm:items-end sm:gap-2">
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+              role.status === "active"
+                ? "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30"
+                : "bg-slate-500/20 text-slate-400 ring-1 ring-slate-500/30"
+            }`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${role.status === "active" ? "bg-emerald-400" : "bg-slate-500"}`} />
+              {role.status === "active" ? "Hoạt động" : "Không hoạt động"}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white">
+              <Users className="h-3.5 w-3.5" />
+              {role.user_count || 0} người dùng
+            </span>
           </div>
         </div>
       </div>
+
+      {/* ── Permission stats (mini bar) ───────────────────────────── */}
+      <div className="flex items-center gap-4 rounded-2xl border border-border-main bg-bg-surface px-5 py-4 shadow-sm dark:bg-slate-800">
+        <Lock className="h-5 w-5 shrink-0 text-text-dim" />
+        <div className="flex-1">
+          <div className="mb-1.5 flex items-center justify-between text-xs">
+            <span className="text-text-dim">Quyền được gán</span>
+            <span className="font-semibold text-text-main">{assignedCount} / {totalCount}</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-bg-app dark:bg-slate-900">
+            <div
+              className="h-2 rounded-full bg-gradient-to-r from-purple-500 to-violet-600 transition-all"
+              style={{ width: `${totalCount > 0 ? (assignedCount / totalCount) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── System role warning ───────────────────────────────────── */}
+      {role.is_system_role && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800/40 dark:bg-amber-900/15 dark:text-amber-400">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{t("admin.systemRolePermissionsWarning")}</span>
+        </div>
+      )}
+
+      {/* ── Permissions section ───────────────────────────────────── */}
+      <div className="rounded-2xl border border-border-main bg-bg-surface shadow-sm dark:bg-slate-800">
+        {/* Section header */}
+        <div className="border-b border-border-main px-5 py-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-dim">
+            Danh sách quyền
+          </h2>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col gap-2.5 border-b border-border-main px-5 py-4 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-dim" />
+            <input
+              type="text"
+              placeholder="Tìm quyền..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-xl border border-border-main bg-bg-app py-2.5 pl-9 pr-4 text-sm text-text-main outline-none transition focus:ring-2 focus:ring-[#E06666]/40 dark:bg-slate-900"
+            />
+          </div>
+          <select
+            value={selectedModule}
+            onChange={(e) => setSelectedModule(e.target.value)}
+            className="rounded-xl border border-border-main bg-bg-app px-3.5 py-2.5 text-sm text-text-main outline-none transition focus:ring-2 focus:ring-[#E06666]/40 dark:bg-slate-900"
+          >
+            <option value="">Tất cả module</option>
+            {modules.map((mod) => (
+              <option key={mod} value={mod}>{mod}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Permission groups */}
+        <div className="divide-y divide-border-main">
+          {Object.keys(groupedPermissions).length === 0 ? (
+            <div className="py-14 text-center text-sm text-text-dim">
+              Không tìm thấy quyền nào
+            </div>
+          ) : Object.entries(groupedPermissions).map(([mod, perms]) => {
+            const assignedInModule = perms.filter((p) => selectedPermissions.includes(p.id)).length;
+            const allSelected = assignedInModule === perms.length;
+            const isCollapsed = collapsedModules[mod];
+
+            return (
+              <div key={mod}>
+                {/* Module header */}
+                <div className="flex items-center justify-between px-5 py-3 bg-bg-app/50 dark:bg-slate-900/30">
+                  <div className="flex items-center gap-3">
+                    {!role.is_system_role && (
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={() => handleToggleModule(mod, perms)}
+                        disabled={saving}
+                        className="h-4 w-4 rounded text-violet-600 focus:ring-violet-500/30"
+                        title="Chọn tất cả module"
+                      />
+                    )}
+                    <span className="text-sm font-semibold text-text-main">{mod}</span>
+                    <span className="text-xs text-text-dim">
+                      {assignedInModule}/{perms.length}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setCollapsedModules((s) => ({ ...s, [mod]: !s[mod] }))}
+                    className="rounded-lg p-1 text-text-dim transition hover:bg-bg-app dark:hover:bg-slate-700"
+                  >
+                    {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                  </button>
+                </div>
+
+                {/* Permission items */}
+                {!isCollapsed && (
+                  <div className="divide-y divide-border-main/50">
+                    {perms.map((perm) => (
+                      <label
+                        key={perm.id}
+                        className={`flex cursor-pointer items-start gap-3 px-5 py-3 transition sm:items-center ${
+                          !role.is_system_role ? "hover:bg-bg-app dark:hover:bg-slate-700/40" : "cursor-default"
+                        }`}
+                      >
+                        {!role.is_system_role && (
+                          <input
+                            type="checkbox"
+                            checked={selectedPermissions.includes(perm.id)}
+                            onChange={() => handleTogglePermission(perm.id)}
+                            disabled={saving}
+                            className="mt-0.5 h-4 w-4 shrink-0 rounded text-violet-600 focus:ring-violet-500/30 disabled:opacity-50 sm:mt-0"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-text-main leading-snug">{perm.name}</p>
+                          <p className="text-xs text-text-dim">{perm.code}</p>
+                          {perm.description && (
+                            <p className="mt-0.5 text-xs text-text-dim">{perm.description}</p>
+                          )}
+                        </div>
+                        <span className={`shrink-0 self-start rounded-full px-2 py-0.5 text-[10px] font-semibold sm:self-auto ${
+                          perm.status === "active"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                            : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
+                        }`}>
+                          {perm.status === "active" ? "Active" : "Off"}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Sticky save bar (mobile) ──────────────────────────────── */}
+      {!role.is_system_role && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border-main bg-bg-surface/95 px-4 py-3 shadow-xl backdrop-blur-sm dark:bg-slate-900/95 sm:hidden">
+          <button
+            onClick={handleSavePermissions}
+            disabled={saving}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#E06666] py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#D55555] disabled:opacity-50"
+          >
+            {saving
+              ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
+              : <Save className="h-4 w-4" />}
+            {saving ? "Đang lưu..." : "Lưu thay đổi quyền"}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
 export default RoleDetailPage;
+

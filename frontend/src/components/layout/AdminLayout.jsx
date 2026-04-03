@@ -1,21 +1,14 @@
 import React, { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
-import LanguageSwitcher from "../LanguageSwitcher";
+import NotificationBadge from "../NotificationBadge";
+import UserDropdown from "../UserDropdown";
 
 const AdminLayout = ({ children }) => {
-  const navigate = useNavigate();
-  const { user, role, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { user, role } = useAuth();
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   const navClass = ({ isActive }) =>
     isActive
@@ -105,13 +98,13 @@ const AdminLayout = ({ children }) => {
             )}
             {canViewDoctorAppointments && (
               <NavLink to="/doctor/appointments" className={navClass}>
-                📅 Lịch Hẹn Của Tôi
+                {t("admin.myAppointments")}
               </NavLink>
             )}
 
             {canViewSchedules && (
               <NavLink to="/admin/schedules" className={navClass}>
-                🗓️ Phân Ca Làm Việc
+                {t("admin.scheduleManagement")}
               </NavLink>
             )}
 
@@ -123,7 +116,7 @@ const AdminLayout = ({ children }) => {
 
             {canViewDoctorRequests && (
               <NavLink to="/doctor/consultations" className={navClass}>
-                🩺 Ca Tư vấn Bệnh nhân
+                {t("admin.patientConsultations")}
               </NavLink>
             )}
           </nav>
@@ -132,51 +125,28 @@ const AdminLayout = ({ children }) => {
         {/* Main content */}
         <div className="flex flex-1 flex-col">
           {/* Topbar */}
-          <header className="flex items-center justify-between bg-bg-surface px-4 py-4 shadow-sm border-b border-border-main">
-            <div className="flex items-center gap-3">
-              <button onClick={() => setSidebarOpen(v => !v)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 lg:hidden">
+          <header className="flex items-center justify-between bg-bg-surface px-4 py-3 shadow-sm border-b border-border-main">
+            <div className="flex items-center gap-3 min-w-0">
+              <button onClick={() => setSidebarOpen(v => !v)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 lg:hidden shrink-0">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
               </button>
-              <div>
-                <h1 className="text-xl font-semibold text-text-main">
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-semibold text-text-main truncate">
                   {t("admin.adminDashboard")}
                 </h1>
-                <p className="text-sm text-text-dim">
+                <p className="text-xs text-text-dim truncate hidden sm:block">
                   {t("admin.welcome")}, {user?.full_name || t("common.user")} ({role})
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-yellow-400 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
-              >
-                {theme === "light" ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
-                )}
-              </button>
-              <LanguageSwitcher />
-              
-              <Link
-                to="/"
-                className="rounded-lg border border-border-main px-4 py-2 text-sm text-text-main hover:bg-gray-50 dark:hover:bg-slate-800 transition"
-              >
-                {t("common.viewSite")}
-              </Link>
-
-              <button
-                onClick={handleLogout}
-                className="rounded-lg bg-gray-200 px-4 py-2 text-sm hover:bg-gray-300"
-              >
-                {t("common.logout")}
-              </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <NotificationBadge />
+              <UserDropdown profilePath="/admin/profile" showTheme showLanguage />
             </div>
           </header>
 
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex-1 p-3 sm:p-6">{children}</main>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Calendar,
+  CheckCircle,
   Clock,
   Phone,
   Mail,
@@ -12,11 +13,13 @@ import {
   Building2,
   FileText,
   AlertCircle,
-  CheckCircle,
   Loader2,
   Download,
+  Video,
+  XCircle,
 } from "lucide-react";
 import { appointmentService } from "../services/appointmentService";
+import { consultationService } from "../services/consultationService";
 
 const STATUS_STYLES = {
   scheduled: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
@@ -36,6 +39,8 @@ const DoctorAppointmentDetailPage = () => {
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [linkedConsultation, setLinkedConsultation] = useState(null);
 
   const statusLabels = {
     scheduled: t("doctor.appointmentDetail.status.scheduled"),
@@ -66,9 +71,26 @@ const DoctorAppointmentDetailPage = () => {
     }
   }, [id, t]);
 
+  const handleUpdateStatus = async (newStatus) => {
+    setUpdatingStatus(true);
+    try {
+      await appointmentService.updateStatus(appointment.id, newStatus);
+      setAppointment((prev) => ({ ...prev, status: newStatus }));
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || err.message || "Cập nhật thất bại");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   useEffect(() => {
     fetchAppointmentDetail();
-  }, [fetchAppointmentDetail]);
+    // Check for linked consultation
+    consultationService.getByAppointmentId(id)
+      .then((res) => setLinkedConsultation(res.data || null))
+      .catch(() => setLinkedConsultation(null));
+  }, [fetchAppointmentDetail, id]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";
@@ -397,6 +419,29 @@ const DoctorAppointmentDetailPage = () => {
               </div>
             </div>
 
+            {/* Linked Consultation */}
+            <div className="rounded-xl border border-violet-200 bg-violet-50 dark:bg-violet-900/10 dark:border-violet-800 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-violet-500 dark:text-violet-400 mb-2">
+                Tư vấn liên kết
+              </p>
+              {linkedConsultation ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-text-main">
+                    Ca tư vấn <span className="font-semibold">#{linkedConsultation.id}</span>
+                    {" "}— <span className="italic text-text-dim">{linkedConsultation.chief_complaint}</span>
+                  </p>
+                  <button
+                    onClick={() => navigate(`/doctor/consultations/${linkedConsultation.id}`)}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700"
+                  >
+                    Xem tư vấn liên kết
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-text-dim">Chưa có tư vấn nào được liên kết với lịch hẹn này.</p>
+              )}
+            </div>
+
             {/* Export Button */}
             <button
               onClick={() => window.print()}
@@ -405,6 +450,60 @@ const DoctorAppointmentDetailPage = () => {
               <Download className="h-4 w-4" />
               {t("doctor.appointmentDetail.actions.print")}
             </button>
+
+            {/* Status actions */}
+            {appointment.status === "scheduled" && (
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleUpdateStatus("confirmed")}
+                  disabled={updatingStatus}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 font-bold text-white transition hover:bg-emerald-600 disabled:opacity-60"
+                >
+                  <CheckCircle className="h-5 w-5" />
+                  {updatingStatus ? "Đang xử lý..." : "Xác nhận nhận lịch"}
+                </button>
+                <button
+                  onClick={() => handleUpdateStatus("cancelled")}
+                  disabled={updatingStatus}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 px-4 py-3 font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/10 dark:border-red-800 dark:text-red-400 disabled:opacity-60"
+                >
+                  <XCircle className="h-5 w-5" />
+                  Từ chối / Hủy lịch
+                </button>
+              </div>
+            )}
+            {appointment.status === "confirmed" && (
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleUpdateStatus("completed")}
+                  disabled={updatingStatus}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800 dark:text-emerald-400 disabled:opacity-60"
+                >
+                  <CheckCircle className="h-5 w-5" />
+                  {updatingStatus ? "Đang xử lý..." : "Đánh dấu hoàn thành"}
+                </button>
+                <button
+                  onClick={() => handleUpdateStatus("cancelled")}
+                  disabled={updatingStatus}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 px-4 py-3 font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/10 dark:border-red-800 dark:text-red-400 disabled:opacity-60"
+                >
+                  <XCircle className="h-5 w-5" />
+                  Hủy lịch hẹn
+                </button>
+              </div>
+            )}
+
+            {/* Enter Room Button - only for online appointments */}
+            {appointment.appointment_type === "online" &&
+              (appointment.status === "scheduled" || appointment.status === "confirmed") && (
+              <button
+                onClick={() => navigate(`/doctor/appointments/${appointment.id}/room`)}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 px-4 py-4 font-bold text-white shadow-md transition hover:shadow-lg hover:from-blue-600 hover:to-indigo-600"
+              >
+                <Video className="h-5 w-5" />
+                Vào phòng khám trực tuyến
+              </button>
+            )}
           </div>
         </div>
       )}

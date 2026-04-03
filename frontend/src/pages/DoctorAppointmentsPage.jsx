@@ -302,31 +302,41 @@ const DoctorAppointmentsPage = () => {
                         >
                           {t("doctor.appointmentsPage.viewDetails")}
                         </button>
+                        {app.appointment_type === "online" &&
+                          (app.status === "scheduled" || app.status === "confirmed") && (
+                          <button
+                            onClick={() => navigate(`/doctor/appointments/${app.id}/room`)}
+                            className="inline-flex items-center gap-1 rounded-lg bg-[#3B82F6] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#2563EB]"
+                          >
+                            <LogIn className="h-3 w-3" />
+                            {t("doctor.appointmentsPage.enterRoom")}
+                          </button>
+                        )}
                         {app.status === "confirmed" && (
-                          <>
-                            <button
-                              onClick={() => navigate(`/appointments/${app.id}/room`)}
-                              className="inline-flex items-center gap-1 rounded-lg bg-[#3B82F6] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#2563EB]"
-                            >
-                              <LogIn className="h-3 w-3" />
-                              {t("doctor.appointmentsPage.enterRoom")}
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(app.id, "completed")}
-                              className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
-                            >
-                              {t("doctor.appointmentsPage.completeAction")}
-                            </button>
-                          </>
+                          <button
+                            onClick={() => handleUpdateStatus(app.id, "completed")}
+                            className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                          >
+                            {t("doctor.appointmentsPage.completeAction")}
+                          </button>
                         )}
                         {app.status === "scheduled" && (
-                          <button
-                            onClick={() => handleUpdateStatus(app.id, "cancelled")}
-                            className="inline-flex items-center gap-1 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-600"
-                          >
-                            <X className="h-3 w-3" />
-                            {t("doctor.appointmentsPage.cancelAction")}
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleUpdateStatus(app.id, "confirmed")}
+                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                            >
+                              <CheckCircle className="h-3 w-3" />
+                              Xác nhận lịch
+                            </button>
+                            <button
+                              onClick={() => handleUpdateStatus(app.id, "cancelled")}
+                              className="inline-flex items-center gap-1 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-600"
+                            >
+                              <X className="h-3 w-3" />
+                              {t("doctor.appointmentsPage.cancelAction")}
+                            </button>
+                          </>
                         )}
                         {["completed", "cancelled", "no_show"].includes(app.status) && (
                           <span className="text-xs text-text-dim italic">

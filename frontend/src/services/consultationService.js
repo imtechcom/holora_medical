@@ -25,9 +25,21 @@ export const consultationService = {
     return response.data;
   },
 
+  // Get linked consultation for an appointment
+  getByAppointmentId: async (appointmentId) => {
+    const response = await api.get(`/appointments/${appointmentId}/consultation`);
+    return response.data;
+  },
+
   // Add response
   addResponse: async (id, data) => {
     const response = await api.post(`/consultations/${id}/responses`, data);
+    return response.data;
+  },
+
+  // Doctor reopens a completed consultation
+  reopenConsultation: async (id) => {
+    const response = await api.patch(`/consultations/${id}/reopen`);
     return response.data;
   },
 };

@@ -26,12 +26,16 @@ import PatientConsultationHistoryPage from "../pages/PatientConsultationHistoryP
 import VideoConsultationPage from "../pages/VideoConsultationPage";
 import PatientProfilePage from "../pages/PatientProfilePage";
 import PatientBranchesPage from "../pages/PatientBranchesPage";
+import PatientMyDoctorsPage from "../pages/PatientMyDoctorsPage";
+import PatientMyBranchesPage from "../pages/PatientMyBranchesPage";
 import PatientBranchDetailPage from "../pages/PatientBranchDetailPage";
 import DoctorPublicDetailPage from "../pages/DoctorPublicDetailPage";
 import HoloraMindPage from "../pages/HoloraMindPage";
 
 // Patient Zone Pages
 import PatientDashboardPage from "../pages/patient/PatientDashboardPage";
+import PatientConsultationDetailPage from "../pages/PatientConsultationDetailPage";
+import PatientAppointmentDetailPage from "../pages/PatientAppointmentDetailPage";
 
 // Doctor Zone Pages
 import DoctorDashboardPage from "../pages/doctor/DoctorDashboardPage";
@@ -47,6 +51,7 @@ import DoctorProfilePage from "../pages/DoctorProfilePage";
 import DashboardPage from "../pages/admin/DashboardPage";
 import UsersPage from "../pages/admin/UsersPage";
 import UserFormPage from "../pages/admin/UserFormPage";
+import UserDetailPage from "../pages/admin/UserDetailPage";
 import RolesPage from "../pages/admin/RolesPage";
 import RoleFormPage from "../pages/admin/RoleFormPage";
 import RoleDetailPage from "../pages/admin/RoleDetailPage";
@@ -250,7 +255,7 @@ const AppRoutes = () => {
           element={
             <PatientRoute>
               <PatientLayout>
-                <PatientBranchesPage />
+                <PatientMyBranchesPage />
               </PatientLayout>
             </PatientRoute>
           }
@@ -272,7 +277,7 @@ const AppRoutes = () => {
           element={
             <PatientRoute>
               <PatientLayout>
-                <DoctorsPage />
+                <PatientMyDoctorsPage />
               </PatientLayout>
             </PatientRoute>
           }
@@ -312,6 +317,17 @@ const AppRoutes = () => {
         />
 
         <Route
+          path="/patient/consultations/:id"
+          element={
+            <PatientRoute>
+              <PatientLayout>
+                <PatientConsultationDetailPage />
+              </PatientLayout>
+            </PatientRoute>
+          }
+        />
+
+        <Route
           path="/patient/consultations/new"
           element={
             <PatientRoute>
@@ -337,6 +353,17 @@ const AppRoutes = () => {
             <PatientRoute>
               <PatientLayout>
                 <PatientProfilePage />
+              </PatientLayout>
+            </PatientRoute>
+          }
+        />
+
+        <Route
+          path="/patient/appointments/:id"
+          element={
+            <PatientRoute>
+              <PatientLayout>
+                <PatientAppointmentDetailPage />
               </PatientLayout>
             </PatientRoute>
           }
@@ -383,6 +410,15 @@ const AppRoutes = () => {
               <DoctorLayout>
                 <DoctorAppointmentDetailPage />
               </DoctorLayout>
+            </DoctorRoute>
+          }
+        />
+
+        <Route
+          path="/doctor/appointments/:id/room"
+          element={
+            <DoctorRoute>
+              <VideoConsultationPage />
             </DoctorRoute>
           }
         />
@@ -570,6 +606,17 @@ const AppRoutes = () => {
             <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <UsersPage />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/users/:userId/view"
+          element={
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
+              <AdminLayout>
+                <UserDetailPage />
               </AdminLayout>
             </AdminRoute>
           }

@@ -1458,7 +1458,6 @@ const getMyPatients = async (req, res) => {
           WHERE doctor_id = ? AND status IN ('pending', 'in_progress', 'completed')
         )
       )
-      AND p.deleted_at IS NULL
       ORDER BY p.full_name ASC
     `;
 

@@ -14,5 +14,11 @@ export const aiService = {
   getAnalysisForConsultation: async (consultationId) => {
     const response = await api.get(`/ai/consultation/${consultationId}`);
     return response.data;
-  }
+  },
+
+  // Bác sĩ đánh giá kết quả AI: gán nhãn trạng thái và kiểm soát quyền xem
+  reviewAIResult: async (requestId, data) => {
+    const response = await api.patch(`/ai/review/${requestId}`, data);
+    return response.data;
+  },
 };

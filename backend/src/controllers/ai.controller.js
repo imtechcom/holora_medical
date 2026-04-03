@@ -82,27 +82,86 @@ const requestAnalysis = (req, res) => {
 // Lấy thông tin AI Status mới nhất cho một Ca khám
 const getAIAnalysisForConsultation = (req, res) => {
    const { consultation_id } = req.params;
+   const role = req.user.role;
 
-   const sql = `
-     SELECT 
-       req.id as request_id, req.consultation_image_id, req.status as request_status, req.requested_at,
-       req.error_message, img.image_url,
-       res.result_summary, res.confidence_score, res.risk_level, res.recommendation, res.created_at as completed_at
-     FROM ai_analysis_request req
-     LEFT JOIN ai_analysis_result res ON req.id = res.request_id
-     LEFT JOIN consultation_image img ON req.consultation_image_id = img.id
-     WHERE req.consultation_id = ?
-     ORDER BY req.created_at DESC
-   `;
+   let sql;
+   if (role === 'patient') {
+     // Bệnh nhân chỉ thấy kết quả được bác sĩ chia sẻ
+     sql = `
+       SELECT
+         req.id as request_id, req.consultation_image_id, req.status as request_status, req.requested_at,
+         img.image_url,
+         res.result_summary, res.confidence_score, res.risk_level, res.recommendation, res.created_at as completed_at,
+         res.doctor_review_status, res.shared_with_patient, res.review_note
+       FROM ai_analysis_request req
+       INNER JOIN ai_analysis_result res ON req.id = res.request_id AND res.shared_with_patient = 1
+       LEFT JOIN consultation_image img ON req.consultation_image_id = img.id
+       WHERE req.consultation_id = ?
+       ORDER BY req.created_at DESC
+     `;
+   } else {
+     // Bác sĩ / admin thấy tất cả + trạng thái đánh giá
+     sql = `
+       SELECT
+         req.id as request_id, req.consultation_image_id, req.status as request_status, req.requested_at,
+         req.error_message, img.image_url,
+         res.result_summary, res.confidence_score, res.risk_level, res.recommendation, res.created_at as completed_at,
+         res.doctor_review_status, res.shared_with_patient, res.review_note
+       FROM ai_analysis_request req
+       LEFT JOIN ai_analysis_result res ON req.id = res.request_id
+       LEFT JOIN consultation_image img ON req.consultation_image_id = img.id
+       WHERE req.consultation_id = ?
+       ORDER BY req.created_at DESC
+     `;
+   }
 
    db.query(sql, [consultation_id], (err, results) => {
-     if (err) return res.status(500).json({ error: err.message });
-     // Có thể trả null, hoặc list các AI requests
+     // Nếu query lỗi (ví dụ: chưa chạy migration), trả mảng rỗng thay vì crash
+     if (err) {
+       console.error('getAIAnalysisForConsultation error:', err.sqlMessage || err.message);
+       return res.json({ data: [] });
+     }
      return res.json({ data: results });
    });
+};
+
+// Bác sĩ đánh giá kết quả AI và kiểm soát quyền xem của bệnh nhân
+const reviewAIResult = (req, res) => {
+  const userId = req.user.id;
+  const { requestId } = req.params;
+  const { review_status, review_note } = req.body;
+
+  const VALID_STATUSES = ['pending_review', 'approved', 'approved_watch', 'not_standard', 'revoked'];
+  if (!review_status || !VALID_STATUSES.includes(review_status)) {
+    return res.status(400).json({ message: "Trạng thái đánh giá không hợp lệ." });
+  }
+
+  const isAdmin = ['admin', 'super_admin'].includes(req.user.role);
+  db.query("SELECT id FROM doctor WHERE user_id = ? LIMIT 1", [userId], (err, dResults) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!dResults.length && !isAdmin) {
+      return res.status(403).json({ message: "Chỉ bác sĩ mới có quyền đánh giá kết quả AI." });
+    }
+
+    const doctorId = dResults.length ? dResults[0].id : null;
+    const sharedWithPatient = ['approved', 'approved_watch'].includes(review_status) ? 1 : 0;
+
+    const updateSql = `
+      UPDATE ai_analysis_result
+      SET doctor_review_status = ?, shared_with_patient = ?, review_note = ?,
+          reviewed_by_doctor_id = ?, reviewed_at = NOW()
+      WHERE request_id = ?
+    `;
+    db.query(updateSql, [review_status, sharedWithPatient, review_note || null, doctorId, requestId], (err2, result) => {
+      if (err2) return res.status(500).json({ error: err2.message });
+      if (result.affectedRows === 0) return res.status(404).json({ message: "Không tìm thấy kết quả AI cần cập nhật." });
+      return res.json({ message: "Đã lưu đánh giá kết quả AI.", shared_with_patient: sharedWithPatient });
+    });
+  });
 };
 
 module.exports = {
   requestAnalysis,
   getAIAnalysisForConsultation,
+  reviewAIResult,
 };

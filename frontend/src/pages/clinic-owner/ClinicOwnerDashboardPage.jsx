@@ -44,99 +44,90 @@ const ClinicOwnerDashboardPage = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-[#E06666] to-[#D85555] rounded-xl shadow-md p-8 text-white">
-        <h1 className="text-3xl font-bold mb-1">
+      <div className="bg-gradient-to-r from-[#E06666] to-[#D85555] rounded-2xl sm:rounded-3xl shadow-md p-4 sm:p-8 text-white">
+        <h1 className="text-lg sm:text-3xl font-bold mb-1 leading-snug">
           {t("clinicOwner.welcomeTitle") || "Welcome back"}, {user?.full_name || "Provider"}! 🏥
         </h1>
-        <p className="text-white/85 text-base mt-1">
+        <p className="text-white/85 text-xs sm:text-base mt-1">
           {t("clinicOwner.welcomeSubtitle") || "Manage your branches and doctors from here."}
         </p>
-        <p className="mt-3 text-white/65 text-sm">
+        <p className="mt-2 sm:mt-3 text-white/65 text-[10px] sm:text-sm hidden xs:block sm:block">
           📅 {new Date().toLocaleDateString("vi-VN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
         </p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        <div className="bg-bg-surface dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-border-main">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-3xl">🏥</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-text-dim">
-              {t("clinicOwner.totalBranches") || "Branches"}
-            </span>
-          </div>
-          <p className="text-4xl font-bold text-[#E06666]">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        {/* Branches */}
+        <Link to="/clinic-owner/branches"
+          className="bg-bg-surface dark:bg-slate-800 rounded-xl sm:rounded-3xl shadow-sm border border-border-main p-2.5 sm:p-6 flex flex-col items-center sm:items-start text-center sm:text-left transition hover:border-[#E06666]/40 hover:shadow-md">
+          <span className="text-lg sm:text-3xl mb-1">🏥</span>
+          <p className="text-2xl sm:text-4xl font-bold text-[#E06666] leading-none">
             {branchCount === null ? "—" : branchCount}
           </p>
-          <Link
-            to="/clinic-owner/branches"
-            className="mt-3 inline-block text-sm text-[#E06666] hover:underline"
-          >
-            {t("clinicOwner.viewBranches") || "View all branches →"}
-          </Link>
-        </div>
+          <p className="text-[9px] sm:text-xs font-semibold uppercase tracking-wide text-text-dim mt-1 leading-tight">
+            {t("clinicOwner.totalBranches") || "Branches"}
+          </p>
+          <span className="mt-2 hidden sm:inline-block text-sm text-[#E06666] hover:underline">
+            {t("clinicOwner.viewBranches") || "View all →"}
+          </span>
+        </Link>
 
-        <div className="bg-bg-surface dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-border-main">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-3xl">👨‍⚕️</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-text-dim">
-              {t("clinicOwner.totalDoctors") || "Doctors"}
-            </span>
-          </div>
-          <p className="text-4xl font-bold text-[#E06666]">
+        {/* Doctors */}
+        <Link to="/clinic-owner/doctors"
+          className="bg-bg-surface dark:bg-slate-800 rounded-xl sm:rounded-3xl shadow-sm border border-border-main p-2.5 sm:p-6 flex flex-col items-center sm:items-start text-center sm:text-left transition hover:border-[#E06666]/40 hover:shadow-md">
+          <span className="text-lg sm:text-3xl mb-1">👨‍⚕️</span>
+          <p className="text-2xl sm:text-4xl font-bold text-[#E06666] leading-none">
             {doctorCount === null ? "—" : doctorCount}
           </p>
-          <Link
-            to="/clinic-owner/doctors"
-            className="mt-3 inline-block text-sm text-[#E06666] hover:underline"
-          >
-            {t("clinicOwner.viewDoctors") || "View all doctors →"}
-          </Link>
-        </div>
+          <p className="text-[9px] sm:text-xs font-semibold uppercase tracking-wide text-text-dim mt-1 leading-tight">
+            {t("clinicOwner.totalDoctors") || "Doctors"}
+          </p>
+          <span className="mt-2 hidden sm:inline-block text-sm text-[#E06666] hover:underline">
+            {t("clinicOwner.viewDoctors") || "View all →"}
+          </span>
+        </Link>
 
-        <div className="bg-bg-surface dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-border-main">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-3xl">💳</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-text-dim">
-              {t("clinicOwner.subscription") || "Subscription"}
-            </span>
-          </div>
-          <p className="text-lg font-bold text-[#E06666] capitalize">
+        {/* Subscription */}
+        <Link to="/clinic-owner/subscription"
+          className="bg-bg-surface dark:bg-slate-800 rounded-xl sm:rounded-3xl shadow-sm border border-border-main p-2.5 sm:p-6 flex flex-col items-center sm:items-start text-center sm:text-left transition hover:border-[#E06666]/40 hover:shadow-md">
+          <span className="text-lg sm:text-3xl mb-1">💳</span>
+          <p className="text-xs sm:text-lg font-bold text-[#E06666] capitalize leading-tight mt-0.5">
             {subscriptionSummary?.status || "none"}
           </p>
-          <p className="mt-2 text-sm text-text-dim">
+          <p className="text-[9px] sm:text-xs font-semibold uppercase tracking-wide text-text-dim mt-1 leading-tight">
+            {t("clinicOwner.subscription") || "Plan"}
+          </p>
+          <p className="mt-1 hidden sm:block text-sm text-text-dim truncate max-w-full">
             {subscriptionSummary?.plan_name || "No active plan yet"}
           </p>
-          <Link
-            to="/clinic-owner/subscription"
-            className="mt-3 inline-block text-sm text-[#E06666] hover:underline"
-          >
-            {t("clinicOwner.manageSubscription") || "Manage subscription →"}
-          </Link>
-        </div>
+          <span className="mt-2 hidden sm:inline-block text-sm text-[#E06666] hover:underline">
+            {t("clinicOwner.manageSubscription") || "Manage →"}
+          </span>
+        </Link>
       </div>
 
       {/* Quick actions */}
-      <div className="bg-bg-surface dark:bg-slate-800 rounded-xl shadow-sm p-6 border border-border-main">
-        <h2 className="text-base font-semibold text-text-main mb-4">
+      <div className="bg-bg-surface dark:bg-slate-800 rounded-2xl sm:rounded-3xl shadow-sm p-4 sm:p-6 border border-border-main">
+        <h2 className="text-sm sm:text-base font-semibold text-text-main mb-3 sm:mb-4">
           {t("clinicOwner.quickActions") || "Quick Actions"}
         </h2>
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
           <Link
             to="/clinic-owner/branches/new"
-            className="bg-[#E06666] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#D55555] transition shadow-sm"
+            className="col-span-1 bg-[#E06666] text-white px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-[#D55555] transition shadow-sm text-center"
           >
             + {t("branch.addTitle") || "Add Branch"}
           </Link>
           <Link
             to="/clinic-owner/doctors/new"
-            className="border border-[#E06666] text-[#E06666] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#FFF5F5] dark:hover:bg-slate-700 transition"
+            className="col-span-1 border border-[#E06666] text-[#E06666] px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-[#FFF5F5] dark:hover:bg-slate-700 transition text-center"
           >
             + {t("admin.addNewDoctor") || "Add Doctor"}
           </Link>
           <Link
             to="/clinic-owner/subscription"
-            className="border border-border-main text-text-main px-4 py-2 rounded-lg text-sm font-medium hover:bg-bg-app dark:hover:bg-slate-700 transition"
+            className="col-span-2 sm:col-span-1 border border-border-main text-text-main px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-bg-app dark:hover:bg-slate-700 transition text-center"
           >
             {t("clinicOwner.subscription") || "Subscription"}
           </Link>

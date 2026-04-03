@@ -1,24 +1,16 @@
 import React, { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
-import LanguageSwitcher from "../LanguageSwitcher";
 import Logo from "../Logo";
 import NotificationBadge from "../NotificationBadge";
 import Breadcrumb from "../Breadcrumb";
+import UserDropdown from "../UserDropdown";
 
 const ClinicOwnerLayout = ({ children }) => {
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   const navClass = ({ isActive }) =>
     isActive
@@ -82,57 +74,30 @@ const ClinicOwnerLayout = ({ children }) => {
             </NavLink>
           </nav>
 
-          <div className="border-t border-border-main p-4 space-y-3">
-            <p className="text-xs text-text-dim truncate">{user?.full_name || user?.email}</p>
-            <p className="text-xs text-[#E06666] font-medium capitalize">{t("clinicOwner.role") || "Clinic Owner"}</p>
-            <button
-              onClick={handleLogout}
-              className="w-full rounded-lg bg-gray-100 dark:bg-slate-700 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600 transition"
-            >
-              {t("common.logout")}
-            </button>
+          <div className="border-t border-border-main p-4">
+            <p className="text-xs font-semibold text-[#E06666] capitalize">{t("clinicOwner.role") || "Clinic Owner"}</p>
           </div>
         </aside>
 
         {/* Main content */}
         <div className="flex flex-1 flex-col">
           {/* Topbar */}
-          <header className="flex items-center justify-between bg-bg-surface dark:bg-slate-800 px-4 py-4 shadow-sm border-b border-border-main">
-            <div className="flex items-center gap-3">
-              <button onClick={() => setSidebarOpen(v => !v)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 lg:hidden">
+          <header className="flex items-center justify-between bg-bg-surface dark:bg-slate-800 px-4 py-3 shadow-sm border-b border-border-main">
+            <div className="flex items-center gap-3 min-w-0">
+              <button onClick={() => setSidebarOpen(v => !v)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 lg:hidden shrink-0">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
               </button>
-              <div>
-                <h1 className="text-xl font-semibold text-text-main">{t("clinicOwner.portal") || "Provider Portal"}</h1>
-                <p className="text-sm text-text-dim">
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-semibold text-text-main truncate">{t("clinicOwner.portal") || "Provider Portal"}</h1>
+                <p className="text-xs text-text-dim truncate hidden sm:block">
                   {t("admin.welcome")}, {user?.full_name || t("common.user")}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
               <NotificationBadge />
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-yellow-400 hover:bg-gray-200 dark:hover:bg-slate-600 transition"
-              >
-                {theme === "light" ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1m-16 0H1m15.364 5.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                )}
-              </button>
-              <LanguageSwitcher />
-              <Link
-                to="/"
-                className="rounded-lg border border-border-main px-4 py-2 text-sm text-text-main hover:bg-bg-app dark:hover:bg-slate-700 transition"
-              >
-                {t("common.viewSite") || "View Site"}
-              </Link>
+              <UserDropdown profilePath="/clinic-owner/profile" showTheme showLanguage />
             </div>
           </header>
 
@@ -140,7 +105,7 @@ const ClinicOwnerLayout = ({ children }) => {
           <Breadcrumb />
 
           {/* Main content area */}
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex-1 p-3 sm:p-6">{children}</main>
         </div>
       </div>
     </div>

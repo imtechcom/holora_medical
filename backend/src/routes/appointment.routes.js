@@ -19,6 +19,9 @@ router.get('/', appointmentController.getMyAppointments);
 // Admin: Lấy TẤT CẢ lịch khám (có filter)
 router.get('/admin/all', authorizeRole('super_admin', 'admin'), appointmentController.getAllAppointmentsAdmin);
 
+// Lấy tư vấn liên kết với lịch hẹn (phải đặt TRƯỚC /:id để tránh conflict)
+router.get('/:id/consultation', appointmentController.getConsultationByAppointmentId);
+
 // Lấy 1 ca khám cụ thể (để vào phòng Video)
 router.get('/:id', appointmentController.getAppointmentById);
 

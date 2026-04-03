@@ -63,6 +63,11 @@ const DoctorLayout = ({ children }) => {
               <span>{t("doctor.consultationRequests") || "Consultation Requests"}</span>
             </NavLink>
 
+            <NavLink to="/doctor/patients" className={navClass}>
+              <span>👥</span>
+              <span>{t("doctor.myPatients") || "My Patients"}</span>
+            </NavLink>
+
             <NavLink to="/doctor/schedule" className={navClass}>
               <span>🗓️</span>
               <span>{t("doctor.schedule") || "Work Schedule"}</span>

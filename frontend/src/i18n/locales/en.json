@@ -730,6 +730,7 @@
       "sending": "Sending...",
       "sendAction": "Send response",
       "completedNotice": "This consultation case has been completed.",
+      "reopenAction": "Reopen consultation",
       "columns": {
         "reason": "Consultation reason",
         "patient": "Patient name",

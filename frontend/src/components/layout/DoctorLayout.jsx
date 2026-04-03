@@ -75,6 +75,17 @@ const DoctorLayout = ({ children }) => {
 
             <div className="pt-3 pb-1">
               <p className="px-4 text-xs font-semibold uppercase tracking-wider text-text-dim">
+                {t("doctor.tools") || "Tools"}
+              </p>
+            </div>
+
+            <NavLink to="/doctor/holoramind" className={navClass}>
+              <span>🤖</span>
+              <span>{t("doctor.holoraMind") || "HoloraMind AI"}</span>
+            </NavLink>
+
+            <div className="pt-3 pb-1">
+              <p className="px-4 text-xs font-semibold uppercase tracking-wider text-text-dim">
                 {t("doctor.account") || "Account"}
               </p>
             </div>

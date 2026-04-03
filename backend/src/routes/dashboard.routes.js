@@ -8,5 +8,6 @@ const allowed = authorizeRole("super_admin", "admin", "doctor", "clinic_owner");
 
 router.get("/stats",     authenticateToken, allowed, dashboardController.getDashboardStats);
 router.get("/analytics", authenticateToken, allowed, dashboardController.getAnalytics);
+router.get("/doctor",    authenticateToken, authorizeRole("doctor"), dashboardController.getDoctorDashboard);
 
 module.exports = router;

@@ -115,5 +115,132 @@ const getAnalytics = async (req, res) => {
 module.exports = {
   getDashboardStats,
   getAnalytics,
+  getDoctorDashboard,
+};
+
+// ─── Doctor-specific dashboard ────────────────────────────────────────────────
+// Returns stats scoped to the authenticated doctor: today's appointments,
+// pending consultations, total patients, upcoming schedules, recent appointments.
+const getDoctorDashboard = async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ message: 'User not authenticated' });
+
+  try {
+    // Resolve doctor_id from user_id
+    const doctorRows = await queryAsync(
+      `SELECT id, full_name, doctor_code, avatar_url, specialty_id
+       FROM doctor WHERE user_id = ? AND status <> 'deleted' LIMIT 1`,
+      [userId]
+    );
+    if (!doctorRows.length) {
+      return res.status(404).json({ message: 'Doctor profile not found for this user' });
+    }
+    const doctor = doctorRows[0];
+    const doctorId = doctor.id;
+
+    // Get specialty name
+    const specRows = await queryAsync(
+      `SELECT name FROM specialty WHERE id = ? LIMIT 1`,
+      [doctor.specialty_id]
+    );
+
+    // Get branch names
+    const branchRows = await queryAsync(
+      `SELECT b.name FROM branch b
+       INNER JOIN doctor_branch db ON db.branch_id = b.id AND db.deleted_at IS NULL
+       WHERE db.doctor_id = ? AND b.deleted_at IS NULL`,
+      [doctorId]
+    );
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    const [
+      todayAppointments,
+      totalAppointments,
+      pendingConsultations,
+      totalConsultations,
+      totalPatients,
+      upcomingSchedules,
+      recentAppointments,
+      appointmentsByStatus,
+    ] = await Promise.all([
+      // Today's appointments count
+      queryAsync(
+        `SELECT COUNT(*) AS count FROM appointment
+         WHERE doctor_id = ? AND DATE(appointment_date) = ? AND status NOT IN ('cancelled','no_show')`,
+        [doctorId, today]
+      ),
+      // Total appointments
+      queryAsync(
+        `SELECT COUNT(*) AS count FROM appointment WHERE doctor_id = ?`,
+        [doctorId]
+      ),
+      // Pending consultations (unassigned or assigned to this doctor, status pending/in_progress)
+      queryAsync(
+        `SELECT COUNT(*) AS count FROM consultation
+         WHERE (doctor_id = ? OR (doctor_id IS NULL AND status = 'pending'))
+           AND status IN ('pending','in_progress')`,
+        [doctorId]
+      ),
+      // Total consultations
+      queryAsync(
+        `SELECT COUNT(*) AS count FROM consultation WHERE doctor_id = ?`,
+        [doctorId]
+      ),
+      // Total unique patients
+      queryAsync(
+        `SELECT COUNT(DISTINCT patient_id) AS count FROM appointment WHERE doctor_id = ?`,
+        [doctorId]
+      ),
+      // Next 5 upcoming schedules
+      queryAsync(
+        `SELECT id, work_date, start_time, end_time, slot_duration, status
+         FROM doctor_schedule
+         WHERE doctor_id = ? AND work_date >= ?
+         ORDER BY work_date ASC, start_time ASC LIMIT 5`,
+        [doctorId, today]
+      ),
+      // Recent 5 appointments
+      queryAsync(
+        `SELECT a.id, a.appointment_code, a.appointment_date, a.start_time, a.end_time,
+                a.status, a.appointment_type, a.reason,
+                p.full_name AS patient_name
+         FROM appointment a
+         LEFT JOIN patient p ON p.id = a.patient_id
+         WHERE a.doctor_id = ?
+         ORDER BY a.appointment_date DESC, a.start_time DESC LIMIT 5`,
+        [doctorId]
+      ),
+      // Appointments breakdown by status
+      queryAsync(
+        `SELECT status, COUNT(*) AS count FROM appointment WHERE doctor_id = ? GROUP BY status`,
+        [doctorId]
+      ),
+    ]);
+
+    return res.json({
+      doctor: {
+        id: doctorId,
+        full_name: doctor.full_name,
+        doctor_code: doctor.doctor_code,
+        avatar_url: doctor.avatar_url,
+        specialty_name: specRows[0]?.name || null,
+        branch_names: branchRows.map(r => r.name),
+      },
+      stats: {
+        today_appointments: todayAppointments[0]?.count || 0,
+        total_appointments: totalAppointments[0]?.count || 0,
+        pending_consultations: pendingConsultations[0]?.count || 0,
+        total_consultations: totalConsultations[0]?.count || 0,
+        total_patients: totalPatients[0]?.count || 0,
+      },
+      upcoming_schedules: upcomingSchedules,
+      recent_appointments: recentAppointments,
+      appointments_by_status: appointmentsByStatus,
+    });
+  } catch (err) {
+    console.error('Get doctor dashboard error:', err);
+    return res.status(500).json({ message: 'Database error', error: err.message });
+  }
 };
 

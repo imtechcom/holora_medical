@@ -1,243 +1,321 @@
-import React, { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
 import {
-  ArrowRight,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  ShieldCheck,
-  Sparkles,
-  Stethoscope,
-  UserCircle2,
-  Users,
+  Activity, ArrowRight, Calendar, CalendarClock, CheckCircle2, Clock,
+  MessageSquare, Sparkles, Stethoscope, UserCircle2, Users,
 } from "lucide-react";
+import { dashboardService } from "../../services/dashboardService";
 
+/* ── Helpers ─────────────────────────────── */
+const formatDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+const formatTime = (t) => {
+  if (!t) return "—";
+  const s = String(t);
+  return s.length >= 5 ? s.slice(0, 5) : s;
+};
+
+const STATUS_CLS = {
+  scheduled:   "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  confirmed:   "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  checked_in:  "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
+  in_progress: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  completed:   "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+  cancelled:   "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  no_show:     "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400",
+  active:      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  inactive:    "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400",
+};
+
+/* ── Skeleton ──────────────────────────────── */
+const SW = [75, 55, 40, 90, 60, 70, 50, 85];
+const SkeletonCard = ({ i }) => (
+  <div className="animate-pulse rounded-2xl border border-border-main bg-bg-surface p-5 dark:bg-slate-800">
+    <div className="h-4 w-1/2 rounded-full bg-slate-200 dark:bg-slate-700" />
+    <div className="mt-3 h-8 w-1/3 rounded-full bg-slate-200 dark:bg-slate-700" />
+    <div className="mt-2 h-3 rounded-full bg-slate-200 dark:bg-slate-700" style={{ width: `${SW[i % SW.length]}%` }} />
+  </div>
+);
+
+/* ══════════════════════════════════════════════
+   DoctorDashboardPage
+   ══════════════════════════════════════════════ */
 const DoctorDashboardPage = () => {
-  const { user } = useAuth();
   const { t } = useTranslation();
-  const [todayAppointments] = useState(3);
-  const [pendingConsultations] = useState(2);
-  const [totalPatients] = useState(45);
-  const doctorName = user?.full_name || t("common.user");
-  const specialtyName = user?.specialty || t("doctor.dashboardPage.notSpecified");
-  const branchName = user?.branch || t("doctor.dashboardPage.notAssigned");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const quickLinks = [
-    {
-      icon: <Calendar className="w-6 h-6" />,
-      title: t("doctor.myAppointments"),
-      description: t("doctor.dashboardPage.quickLinks.appointmentsDescription", { count: todayAppointments }),
-      link: "/doctor/appointments",
-      color: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300",
-    },
-    {
-      icon: <Stethoscope className="w-6 h-6" />,
-      title: t("doctor.consultationRequests"),
-      description: t("doctor.dashboardPage.quickLinks.consultationsDescription", { count: pendingConsultations }),
-      link: "/doctor/consultations",
-      color: "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-300",
-    },
-    {
-      icon: <Clock className="w-6 h-6" />,
-      title: t("doctor.schedule"),
-      description: t("doctor.dashboardPage.quickLinks.scheduleDescription"),
-      link: "/doctor/schedule",
-      color: "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300",
-    },
-    {
-      icon: <Users className="w-6 h-6" />,
-      title: t("doctor.myPatients"),
-      description: t("doctor.dashboardPage.quickLinks.patientsDescription", { count: totalPatients }),
-      link: "/doctor/patients",
-      color: "bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-300",
-    },
-  ];
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await dashboardService.getDoctorDashboard();
+      setData(res);
+    } catch (err) {
+      setError(err?.response?.data?.message || t("common.loadError", { defaultValue: "Failed to load data" }));
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
 
-  const stats = [
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const doctor = data?.doctor || {};
+  const stats = data?.stats || {};
+  const upcomingSchedules = data?.upcoming_schedules || [];
+  const recentAppointments = data?.recent_appointments || [];
+
+  const quickLinks = useMemo(() => [
     {
-      label: t("doctor.todayAppointments"),
-      value: todayAppointments,
-      icon: <Calendar className="w-10 h-10 text-blue-500 opacity-25" />,
-      accent: "border-blue-500",
+      icon: Calendar, title: t("doctor.myAppointments", { defaultValue: "My Appointments" }),
+      desc: t("doctor.dashboard.appointmentsDesc", { defaultValue: "{{count}} today", count: stats.today_appointments || 0 }),
+      link: "/doctor/appointments", accent: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300",
     },
     {
-      label: t("doctor.pendingRequests"),
-      value: pendingConsultations,
-      icon: <Stethoscope className="w-10 h-10 text-green-500 opacity-25" />,
-      accent: "border-green-500",
+      icon: Stethoscope, title: t("doctor.consultationRequests", { defaultValue: "Consultations" }),
+      desc: t("doctor.dashboard.consultationsDesc", { defaultValue: "{{count}} pending", count: stats.pending_consultations || 0 }),
+      link: "/doctor/consultations", accent: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300",
     },
     {
-      label: t("doctor.totalPatients"),
-      value: totalPatients,
-      icon: <Users className="w-10 h-10 text-amber-500 opacity-25" />,
-      accent: "border-amber-500",
+      icon: CalendarClock, title: t("doctor.schedule", { defaultValue: "Work Schedule" }),
+      desc: t("doctor.dashboard.scheduleDesc", { defaultValue: "Manage your availability" }),
+      link: "/doctor/schedule", accent: "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300",
     },
-  ];
+    {
+      icon: Users, title: t("doctor.myPatients", { defaultValue: "My Patients" }),
+      desc: t("doctor.dashboard.patientsDesc", { defaultValue: "{{count}} total", count: stats.total_patients || 0 }),
+      link: "/doctor/patients", accent: "bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-300",
+    },
+  ], [t, stats]);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <section className="overflow-hidden rounded-2xl sm:rounded-[28px] bg-gradient-to-br from-[#E06666] to-[#C04444] p-5 sm:p-8 md:p-10 text-white shadow-lg">
-        <div className="grid gap-5 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-end">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/75">{t("doctor.zone")}</p>
-            <h1 className="mt-2 sm:mt-3 text-xl sm:text-3xl font-bold tracking-tight md:text-4xl leading-tight">
-              {t("doctor.dashboardPage.heroTitle", { name: doctorName })}
-            </h1>
-            <p className="mt-2 sm:mt-3 max-w-2xl text-xs sm:text-sm leading-6 text-white/85 md:text-base">
-              {t("doctor.welcomeMessage")}
-            </p>
-
-            <div className="mt-3 sm:mt-5 flex flex-wrap gap-2">
-              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                {t("doctor.dashboardPage.specialtyLabel", { value: specialtyName })}
-              </span>
-              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                {t("doctor.dashboardPage.branchLabel", { value: branchName })}
-              </span>
+    <div className="space-y-6">
+      {/* ── Hero ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 px-6 py-8 shadow-lg sm:px-8 sm:py-10">
+        <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-cyan-500/10 blur-3xl" />
+        <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-teal-500/10 blur-2xl" />
+        <div className="relative">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                {t("doctor.zone", { defaultValue: "Doctor Zone" })}
+              </p>
+              <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+                {loading ? t("common.loading", { defaultValue: "Loading..." }) : t("doctor.dashboard.heroTitle", { defaultValue: "Welcome, Dr. {{name}}", name: doctor.full_name || "" })}
+              </h1>
+              <p className="mt-1 text-sm text-slate-400">
+                {t("doctor.dashboard.heroSub", { defaultValue: "Your workspace at a glance" })}
+              </p>
+              {!loading && (doctor.specialty_name || doctor.branch_names?.length > 0) && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {doctor.specialty_name && (
+                    <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-white">
+                      {doctor.specialty_name}
+                    </span>
+                  )}
+                  {doctor.branch_names?.map((b) => (
+                    <span key={b} className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-white">
+                      {b}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
+            {!loading && (
+              <div className="rounded-xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+                  <Sparkles className="h-4 w-4 text-cyan-400" />
+                  {t("doctor.dashboard.todayGlance", { defaultValue: "Today at a Glance" })}
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-2xl font-bold text-white">{stats.today_appointments || 0}</p>
+                    <p className="text-xs text-slate-400">{t("doctor.dashboard.appointmentsShort", { defaultValue: "Appointments" })}</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">{stats.pending_consultations || 0}</p>
+                    <p className="text-xs text-slate-400">{t("doctor.dashboard.pendingShort", { defaultValue: "Pending" })}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="rounded-xl sm:rounded-2xl border border-white/15 bg-white/10 p-4 sm:p-5 backdrop-blur">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white/80">
-              <Sparkles className="h-4 w-4" />
-              {t("doctor.dashboardPage.todayAtGlance")}
-            </div>
-            <div className="mt-4 sm:mt-5 grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xl sm:text-2xl font-bold">{todayAppointments}</p>
-                <p className="text-xs text-white/70">{t("doctor.dashboardPage.appointmentsShort")}</p>
+          {/* Stats bar */}
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {(loading ? Array.from({ length: 5 }) : [
+              { label: t("doctor.dashboard.todayAppts", { defaultValue: "Today" }), value: stats.today_appointments, icon: Clock, accent: "text-cyan-400" },
+              { label: t("doctor.dashboard.totalAppts", { defaultValue: "Appointments" }), value: stats.total_appointments, icon: Calendar, accent: "text-blue-400" },
+              { label: t("doctor.dashboard.pendingConsult", { defaultValue: "Pending" }), value: stats.pending_consultations, icon: MessageSquare, accent: "text-amber-400" },
+              { label: t("doctor.dashboard.totalConsult", { defaultValue: "Consultations" }), value: stats.total_consultations, icon: Stethoscope, accent: "text-emerald-400" },
+              { label: t("doctor.dashboard.patients", { defaultValue: "Patients" }), value: stats.total_patients, icon: Users, accent: "text-rose-400" },
+            ]).map((s, i) => loading ? (
+              <div key={i} className="animate-pulse rounded-xl bg-white/5 px-4 py-3">
+                <div className="h-3 w-16 rounded bg-slate-700" />
+                <div className="mt-2 h-6 w-10 rounded bg-slate-700" />
               </div>
-              <div>
-                <p className="text-xl sm:text-2xl font-bold">{pendingConsultations}</p>
-                <p className="text-xs text-white/70">{t("doctor.dashboardPage.pendingRequestsShort")}</p>
+            ) : (
+              <div key={s.label} className="rounded-xl bg-white/5 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <s.icon className={`h-4 w-4 ${s.accent}`} />
+                  <span className="text-xs text-slate-400">{s.label}</span>
+                </div>
+                <p className="mt-1 text-lg font-bold text-white">{s.value ?? 0}</p>
               </div>
-            </div>
-            <div className="mt-3 sm:mt-4 rounded-xl sm:rounded-2xl border border-white/10 bg-black/10 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-white/85">
-              {t("doctor.dashboardPage.performanceHint")}
-            </div>
+            ))}
           </div>
         </div>
-      </section>
+      </div>
 
-      <section className="grid grid-cols-3 gap-3 sm:gap-4">
-        {stats.map((item) => (
-          <div
-            key={item.label}
-            className={`rounded-xl sm:rounded-2xl border-l-4 ${item.accent} border border-border-main bg-bg-surface p-3 sm:p-6 shadow-sm dark:bg-slate-800`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-medium text-text-dim truncate">{item.label}</p>
-                <p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-text-main">{item.value}</p>
-              </div>
-              <div className="hidden sm:block shrink-0">{item.icon}</div>
-            </div>
-          </div>
-        ))}
-      </section>
-
-      <section>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold text-text-main">
-              {t("doctor.quickAccess")}
-            </h2>
-            <p className="mt-1 text-sm text-text-dim">
-              {t("doctor.dashboardPage.quickAccessDescription")}
-            </p>
-          </div>
-        </div>
-
+      {/* ── Quick Access ── */}
+      <div>
+        <h2 className="text-lg font-bold text-text-main mb-4">
+          {t("doctor.quickAccess", { defaultValue: "Quick Access" })}
+        </h2>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           {quickLinks.map((link) => (
             <Link
               key={link.link}
               to={link.link}
-              className="group rounded-xl sm:rounded-2xl border border-border-main bg-bg-surface p-4 sm:p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:bg-slate-800"
+              className="group rounded-2xl border border-border-main bg-bg-surface p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:bg-slate-800 sm:p-5"
             >
-              <div className={`mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl ${link.color}`}>
-                {React.cloneElement(link.icon, { className: "w-5 h-5 sm:w-6 sm:h-6" })}
+              <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${link.accent}`}>
+                <link.icon className="h-5 w-5" />
               </div>
-              <h3 className="text-sm sm:text-base font-semibold text-text-main leading-tight">{link.title}</h3>
-              <p className="mt-1 text-xs sm:text-sm text-text-dim line-clamp-2">{link.description}</p>
-              <div className="mt-3 sm:mt-4 inline-flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-semibold text-[#E06666] transition group-hover:gap-2 sm:group-hover:gap-3">
-                {t("doctor.dashboardPage.openAction")}
-                <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
+              <h3 className="text-sm font-semibold text-text-main">{link.title}</h3>
+              <p className="mt-1 text-xs text-text-dim">{link.desc}</p>
+              <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-cyan-600 dark:text-cyan-400 transition group-hover:gap-2">
+                {t("common.open", { defaultValue: "Open" })}
+                <ArrowRight className="h-3 w-3" />
               </div>
             </Link>
           ))}
         </div>
-      </section>
+      </div>
 
-      <section className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl sm:rounded-3xl border border-border-main bg-[linear-gradient(135deg,#eef6ff_0%,#f4ecff_100%)] p-5 sm:p-8 shadow-sm dark:border-slate-700 dark:bg-[linear-gradient(135deg,rgba(30,41,59,1)_0%,rgba(51,65,85,0.92)_100%)]">
-          <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="flex items-center gap-2 text-base sm:text-xl font-semibold text-text-main">
-                <UserCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-[#E06666] shrink-0" />
-                {t("doctor.updateProfile")}
-              </h2>
-              <p className="mt-1 sm:mt-2 text-xs sm:text-sm leading-6 text-text-dim">
-                {t("doctor.updateProfileDesc")}
-              </p>
-            </div>
-            <Link
-              to="/doctor/profile"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#E06666] px-4 py-2.5 sm:px-5 sm:py-3 text-xs sm:text-sm font-semibold text-white transition hover:bg-[#D85555] shrink-0"
-            >
-              {t("common.editProfile")}
-            </Link>
-          </div>
-
-          <div className="mt-4 sm:mt-6 grid gap-2 sm:gap-3 grid-cols-2">
-            <div className="rounded-xl sm:rounded-2xl border border-white/40 bg-white/70 p-3 sm:p-4 dark:border-slate-600 dark:bg-slate-900/40">
-              <p className="text-xs uppercase tracking-[0.2em] text-text-dim">{t("doctor.dashboardPage.profileTrustTitle")}</p>
-              <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-medium text-text-main">
-                {t("doctor.dashboardPage.profileTrustDescription")}
-              </p>
-            </div>
-            <div className="rounded-xl sm:rounded-2xl border border-white/40 bg-white/70 p-3 sm:p-4 dark:border-slate-600 dark:bg-slate-900/40">
-              <p className="text-xs uppercase tracking-[0.2em] text-text-dim">{t("doctor.dashboardPage.visibilityImpactTitle")}</p>
-              <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-medium text-text-main">
-                {t("doctor.dashboardPage.visibilityImpactDescription")}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl sm:rounded-3xl border border-border-main bg-bg-surface p-5 sm:p-8 shadow-sm dark:bg-slate-800">
-          <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h3 className="flex items-center gap-2 text-base sm:text-xl font-semibold text-text-main">
-                <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-[#E06666] shrink-0" />
-                {t("doctor.setAvailability")}
+      {/* ── Recent Appointments + Upcoming Schedule ── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Recent appointments */}
+        <div className="rounded-2xl border border-border-main bg-bg-surface shadow-sm dark:bg-slate-800">
+          <div className="flex items-center justify-between border-b border-border-main px-5 py-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-500" />
+              <h3 className="text-base font-semibold text-text-main">
+                {t("doctor.dashboard.recentAppointments", { defaultValue: "Recent Appointments" })}
               </h3>
-              <p className="mt-1 sm:mt-2 text-xs sm:text-sm leading-6 text-text-dim">
-                {t("doctor.setAvailabilityDesc")}
-              </p>
             </div>
-            <Link
-              to="/doctor/schedule"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#E06666] px-4 py-2.5 sm:px-5 sm:py-3 text-xs sm:text-sm font-semibold text-white transition hover:bg-[#D55555] shrink-0"
-            >
-              {t("doctor.configureSchedule")}
+            <Link to="/doctor/appointments" className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:underline">
+              {t("common.viewAll", { defaultValue: "View all" })}
             </Link>
           </div>
-
-          <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-3">
-            <div className="flex items-start gap-3 rounded-xl sm:rounded-2xl border border-border-main bg-bg-app p-3 sm:p-4 dark:bg-slate-900">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-500 shrink-0" />
-              <p className="text-xs sm:text-sm text-text-main">{t("doctor.dashboardPage.scheduleTipOne")}</p>
+          {loading ? (
+            <div className="space-y-3 p-5">
+              {[0, 1, 2].map((i) => <SkeletonCard key={i} i={i} />)}
             </div>
-            <div className="flex items-start gap-3 rounded-xl sm:rounded-2xl border border-border-main bg-bg-app p-3 sm:p-4 dark:bg-slate-900">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-500 shrink-0" />
-              <p className="text-xs sm:text-sm text-text-main">{t("doctor.dashboardPage.scheduleTipTwo")}</p>
+          ) : recentAppointments.length === 0 ? (
+            <div className="flex flex-col items-center py-10 text-sm text-text-dim">
+              <Calendar className="h-10 w-10 text-slate-300 dark:text-slate-600 mb-2" />
+              {t("doctor.dashboard.noAppointments", { defaultValue: "No appointments yet" })}
+            </div>
+          ) : (
+            <div className="divide-y divide-border-main">
+              {recentAppointments.map((a) => (
+                <Link key={a.id} to={`/doctor/appointments/${a.id}`} className="flex items-center justify-between gap-3 px-5 py-3.5 transition hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-cyan-600 dark:text-cyan-400">{a.appointment_code}</span>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_CLS[a.status] || ""}`}>
+                        {a.status}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-sm font-medium text-text-main truncate">{a.patient_name || "—"}</p>
+                    <p className="text-xs text-text-dim">{a.reason || "—"}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs font-medium text-text-main">{formatDate(a.appointment_date)}</p>
+                    <p className="text-xs text-text-dim">{formatTime(a.start_time)} – {formatTime(a.end_time)}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Upcoming schedules */}
+        <div className="rounded-2xl border border-border-main bg-bg-surface shadow-sm dark:bg-slate-800">
+          <div className="flex items-center justify-between border-b border-border-main px-5 py-4">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-5 w-5 text-amber-500" />
+              <h3 className="text-base font-semibold text-text-main">
+                {t("doctor.dashboard.upcomingSchedule", { defaultValue: "Upcoming Schedule" })}
+              </h3>
+            </div>
+            <Link to="/doctor/schedule" className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:underline">
+              {t("common.manage", { defaultValue: "Manage" })}
+            </Link>
+          </div>
+          {loading ? (
+            <div className="space-y-3 p-5">
+              {[0, 1, 2].map((i) => <SkeletonCard key={i} i={i} />)}
+            </div>
+          ) : upcomingSchedules.length === 0 ? (
+            <div className="flex flex-col items-center py-10 text-sm text-text-dim">
+              <CalendarClock className="h-10 w-10 text-slate-300 dark:text-slate-600 mb-2" />
+              {t("doctor.dashboard.noSchedule", { defaultValue: "No upcoming schedule" })}
+            </div>
+          ) : (
+            <div className="divide-y divide-border-main">
+              {upcomingSchedules.map((s) => (
+                <div key={s.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+                  <div>
+                    <p className="text-sm font-medium text-text-main">{formatDate(s.work_date)}</p>
+                    <p className="text-xs text-text-dim">{formatTime(s.start_time)} – {formatTime(s.end_time)}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_CLS[s.status] || ""}`}>
+                      {s.status}
+                    </span>
+                    <p className="mt-0.5 text-xs text-text-dim">{s.slot_duration}{t("common.minShort", { defaultValue: "min" })}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Bottom cards ── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Link
+          to="/doctor/profile"
+          className="group rounded-2xl border border-border-main bg-gradient-to-br from-slate-50 to-cyan-50/50 p-6 shadow-sm transition hover:shadow-md dark:from-slate-800 dark:to-cyan-900/10 dark:border-slate-700"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400">
+              <UserCircle2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-text-main">{t("doctor.updateProfile", { defaultValue: "Update Profile" })}</h3>
+              <p className="mt-1 text-xs text-text-dim">{t("doctor.updateProfileDesc", { defaultValue: "Keep your profile up to date for better visibility" })}</p>
             </div>
           </div>
-        </div>
-      </section>
+        </Link>
+        <Link
+          to="/doctor/schedule"
+          className="group rounded-2xl border border-border-main bg-gradient-to-br from-slate-50 to-amber-50/50 p-6 shadow-sm transition hover:shadow-md dark:from-slate-800 dark:to-amber-900/10 dark:border-slate-700"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+              <Activity className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-text-main">{t("doctor.setAvailability", { defaultValue: "Set Availability" })}</h3>
+              <p className="mt-1 text-xs text-text-dim">{t("doctor.setAvailabilityDesc", { defaultValue: "Configure your working schedule so patients can book" })}</p>
+            </div>
+          </div>
+        </Link>
+      </div>
     </div>
   );
 };

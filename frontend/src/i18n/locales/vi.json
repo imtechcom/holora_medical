@@ -730,6 +730,7 @@
       "sending": "Đang gửi...",
       "sendAction": "Gửi phản hồi",
       "completedNotice": "Đã hoàn tất ca tư vấn này.",
+      "reopenAction": "Mở lại ca tư vấn",
       "columns": {
         "reason": "Lý do tư vấn",
         "patient": "Tên bệnh nhân",

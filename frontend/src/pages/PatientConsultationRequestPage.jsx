@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AlertCircle, ArrowLeft, Building2, CheckCircle2, ImagePlus, Loader2, Send, Stethoscope, UserCheck, X } from "lucide-react";
 import { consultationService } from "../services/consultationService";
@@ -12,6 +12,13 @@ const MAX_FILES = 5;
 const PatientConsultationRequestPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const fromAppointmentId = searchParams.get("appointmentId") || null;
+  const fromBranchId = searchParams.get("branchId") || null;
+  const fromDoctorId = searchParams.get("doctorId") || null;
+
+  // Whether this form was opened from an appointment (locks branch+doctor)
+  const isFromAppointment = Boolean(fromAppointmentId && fromBranchId && fromDoctorId);
 
   const [formData, setFormData] = useState({ chief_complaint: "", symptoms: "" });
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -40,6 +47,27 @@ const PatientConsultationRequestPage = () => {
       .catch(() => setBranches([]))
       .finally(() => setLoadingBranches(false));
   }, []);
+
+  // When branches are loaded and fromBranchId is set → auto-select branch & load doctors
+  useEffect(() => {
+    if (fromBranchId && branches.length > 0 && selectedBranchId === "") {
+      setSelectedBranchId(fromBranchId);
+      setLoadingDoctors(true);
+      api.get(`/doctors/search?branch_id=${fromBranchId}&status=active&limit=50`)
+        .then((res) => setDoctors(res.data?.data || []))
+        .catch(() => setDoctors([]))
+        .finally(() => setLoadingDoctors(false));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromBranchId, branches]);
+
+  // When doctors are loaded and fromDoctorId is set → auto-select doctor
+  useEffect(() => {
+    if (fromDoctorId && doctors.length > 0 && selectedDoctorId === "") {
+      setSelectedDoctorId(fromDoctorId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromDoctorId, doctors]);
 
   // Load doctors when branch changes
   const handleBranchChange = async (branchId) => {
@@ -93,6 +121,7 @@ const PatientConsultationRequestPage = () => {
         ...formData,
         attachments: attachmentUrls,
         doctor_id: selectedDoctorId ? Number(selectedDoctorId) : null,
+        ...(fromAppointmentId ? { appointment_id: Number(fromAppointmentId) } : {}),
       });
       setSuccess(true);
       setTimeout(() => navigate("/patient/consultations"), 1800);
@@ -155,6 +184,24 @@ const PatientConsultationRequestPage = () => {
         </div>
       )}
 
+      {/* Appointment link banner */}
+      {fromAppointmentId && (
+        <div className="flex items-center gap-3 rounded-2xl border border-violet-200 bg-violet-50 dark:border-violet-800 dark:bg-violet-900/10 p-4 text-sm text-violet-700 dark:text-violet-400">
+          <span className="text-lg">🔗</span>
+          <span>
+            Tư vấn này sẽ được liên kết với{" "}
+            <strong>lịch hẹn #{fromAppointmentId}</strong>.{" "}
+            <button
+              type="button"
+              onClick={() => navigate(`/patient/appointments/${fromAppointmentId}`)}
+              className="underline hover:no-underline"
+            >
+              Xem lịch hẹn
+            </button>
+          </span>
+        </div>
+      )}
+
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -164,10 +211,26 @@ const PatientConsultationRequestPage = () => {
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-dim flex items-center gap-2">
               <Building2 className="h-3.5 w-3.5" />
               {t("patient.consultationRequestPage.stepBranchLabel") || "Bước 1 — Chọn chi nhánh"}  <span className="text-[#E06666]">*</span>
+              {isFromAppointment && (
+                <span className="ml-auto rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
+                  Tự động điền
+                </span>
+              )}
             </p>
           </div>
           <div className="p-4 sm:p-5">
-            {loadingBranches ? (
+            {isFromAppointment ? (
+              /* Read-only display when pre-filled from appointment */
+              <div className="flex items-center gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 dark:border-violet-800/40 dark:bg-violet-900/10">
+                <Building2 className="h-4 w-4 flex-shrink-0 text-violet-500" />
+                <div>
+                  <p className="text-sm font-semibold text-text-main">
+                    {branches.find((b) => String(b.id) === String(fromBranchId))?.name || `Chi nhánh #${fromBranchId}`}
+                  </p>
+                  <p className="text-xs text-text-dim">Lấy từ lịch hẹn · Không thể thay đổi</p>
+                </div>
+              </div>
+            ) : loadingBranches ? (
               <div className="flex items-center gap-2 text-sm text-text-dim">
                 <Loader2 className="h-4 w-4 animate-spin" /> Đang tải danh sách chi nhánh...
               </div>
@@ -195,10 +258,38 @@ const PatientConsultationRequestPage = () => {
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-dim flex items-center gap-2">
               <UserCheck className="h-3.5 w-3.5" />
               {t("patient.consultationRequestPage.stepDoctorLabel") || "Bước 2 — Chọn bác sĩ"} <span className="text-[#E06666]">*</span>
+              {isFromAppointment && (
+                <span className="ml-auto rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
+                  Tự động điền
+                </span>
+              )}
             </p>
           </div>
           <div className="p-4 sm:p-5">
-            {loadingDoctors ? (
+            {isFromAppointment && selectedDoctorId ? (
+              /* Read-only display when pre-filled from appointment */
+              (() => {
+                const doc = doctors.find((d) => String(d.id) === String(selectedDoctorId));
+                return (
+                  <div className="flex items-center gap-3 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 dark:border-violet-800/40 dark:bg-violet-900/10">
+                    <UserCheck className="h-4 w-4 flex-shrink-0 text-violet-500" />
+                    <div>
+                      <p className="text-sm font-semibold text-text-main">
+                        {doc ? doc.full_name : `Bác sĩ #${selectedDoctorId}`}
+                      </p>
+                      {doc?.specialty_name && (
+                        <p className="text-xs text-text-dim">{doc.specialty_name}</p>
+                      )}
+                      <p className="text-xs text-text-dim">Lấy từ lịch hẹn · Không thể thay đổi</p>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : isFromAppointment && loadingDoctors ? (
+              <div className="flex items-center gap-2 text-sm text-text-dim">
+                <Loader2 className="h-4 w-4 animate-spin" /> Đang tải thông tin bác sĩ...
+              </div>
+            ) : loadingDoctors ? (
               <div className="flex items-center gap-2 text-sm text-text-dim">
                 <Loader2 className="h-4 w-4 animate-spin" /> Đang tải danh sách bác sĩ...
               </div>

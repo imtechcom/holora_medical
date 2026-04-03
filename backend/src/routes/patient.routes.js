@@ -10,6 +10,8 @@ const {
   updateMyProfile,
   getPatientsByOwnerBranches,
   getMyStats,
+  getMyDoctors,
+  getMyBranches,
 } = require("../controllers/patient.controller");
 const { authenticateToken } = require("../middleware/auth.middleware");
 const { requireProviderRole } = require("../middleware/provider.middleware");
@@ -20,6 +22,8 @@ const router = express.Router();
 router.get("/me", authenticateToken, getMyProfile);
 router.put("/me", authenticateToken, updateMyProfile);
 router.get("/me/stats", authenticateToken, getMyStats);
+router.get("/me/doctors", authenticateToken, getMyDoctors);
+router.get("/me/branches", authenticateToken, getMyBranches);
 
 // Get patients in branches owned by the authenticated clinic_owner
 router.get("/my-branches", authenticateToken, requireProviderRole, getPatientsByOwnerBranches);

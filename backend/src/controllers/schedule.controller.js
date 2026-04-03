@@ -14,26 +14,49 @@ const findDoctorIdByUserId = (userId, callback) => {
 
 exports.getDoctorSchedules = (req, res) => {
   const { doctor_id, start_date, end_date } = req.query;
+  const userRole = req.user?.role;
+  const isAdmin = userRole === 'super_admin' || userRole === 'admin';
 
   const runQuery = (effectiveDoctorId) => {
-    // Lấy danh sách ca làm việc của 1 bác sĩ trong một khoảng thời gian
-    let query = 'SELECT * FROM doctor_schedule WHERE 1=1';
+    let query;
     const params = [];
 
+    if (isAdmin) {
+      // Admin view: join doctor + branch info
+      query = `
+        SELECT ds.*,
+               d.full_name AS doctor_name, d.doctor_code, d.avatar_url AS doctor_avatar,
+               s.name AS specialty_name,
+               GROUP_CONCAT(DISTINCT b.name ORDER BY b.name SEPARATOR ', ') AS branch_names
+        FROM doctor_schedule ds
+        LEFT JOIN doctor d ON ds.doctor_id = d.id
+        LEFT JOIN specialty s ON d.specialty_id = s.id
+        LEFT JOIN doctor_branch db ON db.doctor_id = d.id AND db.deleted_at IS NULL
+        LEFT JOIN branch b ON b.id = db.branch_id AND b.deleted_at IS NULL
+        WHERE 1=1
+      `;
+    } else {
+      query = 'SELECT * FROM doctor_schedule ds WHERE 1=1';
+    }
+
     if (effectiveDoctorId) {
-      query += ' AND doctor_id = ?';
+      query += ' AND ds.doctor_id = ?';
       params.push(effectiveDoctorId);
     }
     if (start_date) {
-      query += ' AND work_date >= ?';
+      query += ' AND ds.work_date >= ?';
       params.push(start_date);
     }
     if (end_date) {
-      query += ' AND work_date <= ?';
+      query += ' AND ds.work_date <= ?';
       params.push(end_date);
     }
 
-    query += ' ORDER BY work_date, start_time';
+    if (isAdmin) {
+      query += ' GROUP BY ds.id ORDER BY ds.work_date DESC, ds.start_time DESC';
+    } else {
+      query += ' ORDER BY ds.work_date, ds.start_time';
+    }
 
     db.query(query, params, (err, results) => {
       if (err) {

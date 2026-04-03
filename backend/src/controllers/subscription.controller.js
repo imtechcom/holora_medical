@@ -365,6 +365,41 @@ const createPayment = async (req, res) => {
   }
 };
 
+// ─── getPaymentHistory ────────────────────────────────────────────────────────
+const getPaymentHistory = async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ message: "User not authenticated" });
+
+  try {
+    const rows = await queryAsync(
+      `SELECT
+         po.id,
+         po.plan_code,
+         po.scope_type,
+         po.months,
+         po.amount_cents,
+         po.currency,
+         po.payment_method,
+         po.status,
+         po.invoice_number,
+         po.paid_at,
+         po.description,
+         po.created_at,
+         sp.name AS plan_name
+       FROM payment_order po
+       LEFT JOIN subscription_plan sp ON sp.code = po.plan_code AND sp.deleted_at IS NULL
+       WHERE po.user_id = ?
+       ORDER BY po.created_at DESC`,
+      [userId]
+    );
+
+    return res.json({ message: "Payment history fetched", data: rows });
+  } catch (err) {
+    console.error("Get payment history error:", err);
+    return res.status(500).json({ message: "Database error", error: err.message });
+  }
+};
+
 // ─── confirmPayment ───────────────────────────────────────────────────────────
 // Validates the payment token, marks the order as paid, then activates the
 // subscription.  In production this would be called by the gateway callback;
@@ -400,10 +435,18 @@ const confirmPayment = async (req, res) => {
       return res.status(400).json({ message: "Payment order has expired. Please try again." });
     }
 
+    // Generate invoice number: INV-YYYYMMDD-ORDERID
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
+    const invoiceNumber = `INV-${dateStr}-${String(order.id).padStart(4, "0")}`;
+    const description = `${order.plan_code} × ${order.months} month(s)`;
+
     // Mark order as paid
     await queryAsync(
-      `UPDATE payment_order SET status = 'paid', updated_at = NOW() WHERE id = ?`,
-      [order.id]
+      `UPDATE payment_order
+       SET status = 'paid', paid_at = NOW(), invoice_number = ?, description = ?, updated_at = NOW()
+       WHERE id = ?`,
+      [invoiceNumber, description, order.id]
     );
 
     // Activate the subscription
@@ -466,4 +509,5 @@ module.exports = {
   activateSubscription,
   createPayment,
   confirmPayment,
+  getPaymentHistory,
 };

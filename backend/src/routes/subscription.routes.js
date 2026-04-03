@@ -7,6 +7,7 @@ const {
   activateSubscription,
   createPayment,
   confirmPayment,
+  getPaymentHistory,
 } = require("../controllers/subscription.controller");
 const { authenticateToken } = require("../middleware/auth.middleware");
 const { authorizeRole } = require("../middleware/role.middleware");
@@ -32,6 +33,13 @@ router.post(
   authenticateToken,
   authorizeRole(["clinic_owner"]),
   confirmPayment
+);
+
+router.get(
+  "/payment-history",
+  authenticateToken,
+  authorizeRole(["clinic_owner"]),
+  getPaymentHistory
 );
 
 module.exports = router;

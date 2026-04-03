@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import {
+  AlertCircle, ArrowLeft, CheckCircle2, Key, Loader2, Save,
+} from "lucide-react";
 import { getAllPermissionsApi, createPermissionApi, updatePermissionApi } from "../../services/permissionService";
 
 const PermissionFormPage = () => {
@@ -22,7 +25,6 @@ const PermissionFormPage = () => {
     status: "active",
   });
 
-  // Fetch permission data if editing
   useEffect(() => {
     if (isEdit) {
       const fetchPermission = async () => {
@@ -49,178 +51,131 @@ const PermissionFormPage = () => {
     }
   }, [permissionId, isEdit, t]);
 
+  useEffect(() => {
+    if (!successMessage) return;
+    const id = setTimeout(() => setSuccessMessage(""), 3000);
+    return () => clearTimeout(id);
+  }, [successMessage]);
+
   const validateForm = () => {
-    if (!formData.name?.trim()) {
-      setError(t("admin.nameRequired"));
-      return false;
-    }
-    if (!formData.code?.trim()) {
-      setError(t("admin.codeRequired"));
-      return false;
-    }
-    if (!formData.module_name?.trim()) {
-      setError(t("admin.moduleNameRequired"));
-      return false;
-    }
+    if (!formData.name?.trim()) { setError(t("admin.nameRequired")); return false; }
+    if (!formData.code?.trim()) { setError(t("admin.codeRequired")); return false; }
+    if (!formData.module_name?.trim()) { setError(t("admin.moduleNameRequired")); return false; }
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccessMessage("");
-
-    if (!validateForm()) {
-      return;
-    }
+    setError(""); setSuccessMessage("");
+    if (!validateForm()) return;
 
     try {
       setSubmitting(true);
-      const submitData = {
-        name: formData.name,
-        code: formData.code,
-        module_name: formData.module_name,
-        description: formData.description,
-        status: formData.status,
-      };
-
+      const submitData = { name: formData.name, code: formData.code, module_name: formData.module_name, description: formData.description, status: formData.status };
       if (isEdit) {
         await updatePermissionApi(permissionId, submitData);
         setSuccessMessage(t("admin.permissionUpdatedSuccess"));
-        setTimeout(() => navigate("/admin/permissions"), 1500);
       } else {
         await createPermissionApi(submitData);
         setSuccessMessage(t("admin.permissionCreatedSuccess"));
-        setTimeout(() => navigate("/admin/permissions"), 1500);
       }
+      setTimeout(() => navigate("/admin/permissions"), 1500);
     } catch (err) {
-      const errorMsg = err?.response?.data?.message || t("admin.errorSubmittingForm");
-      setError(errorMsg);
-      console.error("Error submitting form:", err);
-    } finally {
-      setSubmitting(false);
-    }
+      setError(err?.response?.data?.message || t("admin.errorSubmittingForm"));
+    } finally { setSubmitting(false); }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   if (loading) {
     return (
-      <div className="rounded-2xl bg-bg-surface p-6 shadow-sm text-center dark:bg-slate-800">
-        <div className="animate-spin inline-block w-8 h-8 border-4 border-[#E06666] border-r-transparent rounded-full"></div>
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-amber-500 border-r-transparent" />
+        <p className="mt-3 text-sm text-text-dim">{t("common.loading")}</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-bg-surface p-8 shadow-sm dark:bg-slate-800">
-      {/* Header */}
-      <div className="border-b border-border-main pb-6 mb-6">
-        <h2 className="text-3xl font-bold text-[#E06666] mb-2">
-          {isEdit ? t("admin.editPermission") : t("admin.addNewPermission")}
-        </h2>
-        <p className="text-text-dim">
-          {isEdit ? t("admin.updatePermissionInfo") : t("admin.fillFormToAddPermission")}
-        </p>
+    <div className="space-y-5">
+      {/* ── Hero Header ─────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 p-6 sm:p-8 text-white">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl" />
+        <div className="absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-amber-400/10 blur-2xl" />
+        <div className="relative">
+          <button onClick={() => navigate("/admin/permissions")}
+            className="mb-3 inline-flex items-center gap-1.5 rounded-lg text-sm text-slate-300 transition hover:text-white">
+            <ArrowLeft className="h-4 w-4" />{t("admin.permissionsManagement")}
+          </button>
+          <div className="flex items-center gap-2">
+            <Key className="h-6 w-6 text-amber-400" />
+            <h1 className="text-xl sm:text-2xl font-bold">
+              {isEdit ? t("admin.editPermission") : t("admin.addNewPermission")}
+            </h1>
+          </div>
+          <p className="mt-1 text-sm text-slate-300">
+            {isEdit ? t("admin.updatePermissionInfo") : t("admin.fillFormToAddPermission")}
+          </p>
+        </div>
       </div>
 
-      {/* Success Message */}
+      {/* ── Messages ────────────────────────────────── */}
       {successMessage && (
-        <div className="mb-6 p-4 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg flex items-start gap-3 dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-400">
-          <span className="text-xl flex-shrink-0">✓</span>
-          <div>
-            <p className="font-semibold">{t("common.success")}</p>
-            <p className="text-sm">{successMessage}</p>
-          </div>
+        <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-900/15 dark:text-emerald-400">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />{successMessage}
         </div>
       )}
-
-      {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 border border-red-200 bg-red-50 text-red-700 rounded-lg flex items-start gap-3 dark:border-red-800/40 dark:bg-red-900/20 dark:text-red-400">
-          <span className="text-xl flex-shrink-0">!</span>
-          <div>
-            <p className="font-semibold">{t("common.error")}</p>
-            <p className="text-sm">{error}</p>
-          </div>
+        <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-900/15 dark:text-red-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />{error}
         </div>
       )}
 
-      {/* Form */}
-      <form onSubmit={handleSubmit}>
+      {/* ── Form Card ───────────────────────────────── */}
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Section 1: Basic Information */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-text-main mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
-              1
-            </span>
+        <div className="rounded-2xl border border-border-main bg-bg-surface p-5 sm:p-6 dark:bg-slate-800">
+          <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-text-main">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">1</span>
             {t("admin.basicInformation")}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Name */}
             <div>
-              <label className="block text-sm font-semibold text-text-main mb-2">
+              <label className="mb-1.5 block text-sm font-semibold text-text-main">
                 {t("admin.name")} <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
+              <input type="text" name="name" value={formData.name} onChange={handleInputChange}
                 placeholder="e.g., Create User, Edit Role"
-                className="w-full px-4 py-2.5 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 focus:border-transparent transition dark:bg-slate-700"
-              />
+                className="w-full rounded-xl border border-border-main bg-bg-app px-4 py-2.5 text-sm text-text-main outline-none transition focus:ring-2 focus:ring-amber-500/40 dark:bg-slate-900" />
             </div>
-
+            {/* Code */}
             <div>
-              <label className="block text-sm font-semibold text-text-main mb-2">
+              <label className="mb-1.5 block text-sm font-semibold text-text-main">
                 {t("admin.code")} <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                name="code"
-                value={formData.code}
-                onChange={handleInputChange}
-                placeholder="e.g., create_user, edit_role"
-                disabled={isEdit}
-                className="w-full px-4 py-2.5 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 focus:border-transparent transition disabled:bg-bg-app disabled:cursor-not-allowed dark:bg-slate-700"
-              />
-              {isEdit && (
-                <p className="text-xs text-text-dim mt-1">
-                  {t("admin.codeCannotChange")}
-                </p>
-              )}
+              <input type="text" name="code" value={formData.code} onChange={handleInputChange}
+                placeholder="e.g., create_user, edit_role" disabled={isEdit}
+                className="w-full rounded-xl border border-border-main bg-bg-app px-4 py-2.5 text-sm text-text-main outline-none transition focus:ring-2 focus:ring-amber-500/40 disabled:bg-bg-app disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-900" />
+              {isEdit && <p className="mt-1 text-xs text-text-dim">{t("admin.codeCannotChange")}</p>}
             </div>
-
+            {/* Module */}
             <div>
-              <label className="block text-sm font-semibold text-text-main mb-2">
+              <label className="mb-1.5 block text-sm font-semibold text-text-main">
                 {t("admin.moduleName")} <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                name="module_name"
-                value={formData.module_name}
-                onChange={handleInputChange}
+              <input type="text" name="module_name" value={formData.module_name} onChange={handleInputChange}
                 placeholder="e.g., users, roles, permissions"
-                className="w-full px-4 py-2.5 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 focus:border-transparent transition dark:bg-slate-700"
-              />
+                className="w-full rounded-xl border border-border-main bg-bg-app px-4 py-2.5 text-sm text-text-main outline-none transition focus:ring-2 focus:ring-amber-500/40 dark:bg-slate-900" />
             </div>
-
+            {/* Status */}
             <div>
-              <label className="block text-sm font-semibold text-text-main mb-2">
-                {t("admin.status")}
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 focus:border-transparent transition dark:bg-slate-700"
-              >
+              <label className="mb-1.5 block text-sm font-semibold text-text-main">{t("admin.status")}</label>
+              <select name="status" value={formData.status} onChange={handleInputChange}
+                className="w-full appearance-none rounded-xl border border-border-main bg-bg-app px-4 py-2.5 text-sm text-text-main outline-none transition focus:ring-2 focus:ring-amber-500/40 dark:bg-slate-900">
                 <option value="active">{t("admin.statusActive")}</option>
                 <option value="inactive">{t("admin.statusInactive")}</option>
               </select>
@@ -229,54 +184,32 @@ const PermissionFormPage = () => {
         </div>
 
         {/* Section 2: Description */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-text-main mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 bg-[#E06666] text-white rounded-full flex items-center justify-center text-sm">
-              2
-            </span>
+        <div className="rounded-2xl border border-border-main bg-bg-surface p-5 sm:p-6 dark:bg-slate-800">
+          <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-text-main">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">2</span>
             {t("admin.description")}
           </h3>
-          <div>
-            <label className="block text-sm font-semibold text-text-main mb-2">
-              {t("admin.description")}
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              placeholder={t("admin.descriptionPlaceholder")}
-              rows="4"
-              className="w-full px-4 py-2.5 border border-border-main bg-bg-app rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E06666]/30 focus:border-transparent transition resize-none dark:bg-slate-700"
-            />
-          </div>
+          <textarea name="description" value={formData.description} onChange={handleInputChange}
+            placeholder={t("admin.descriptionPlaceholder")} rows="4"
+            className="w-full rounded-xl border border-border-main bg-bg-app px-4 py-2.5 text-sm text-text-main outline-none transition focus:ring-2 focus:ring-amber-500/40 resize-none dark:bg-slate-900" />
         </div>
 
-        {/* Actions */}
-        <div className="border-t border-border-main pt-6 flex justify-end gap-4">
-          <button
-            type="button"
-            onClick={() => navigate("/admin/permissions")}
-            disabled={submitting}
-            className="px-6 py-2.5 border border-border-main text-text-main rounded-lg hover:bg-bg-app transition disabled:opacity-50 disabled:cursor-not-allowed font-medium dark:hover:bg-slate-700"
-          >
-            {t("common.cancel")}
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-6 py-2.5 bg-[#E06666] text-white rounded-lg hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
-          >
-            {submitting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-r-transparent rounded-full animate-spin"></div>
-                {t("common.saving")}
-              </>
-            ) : (
-              <>
-                ✓ {isEdit ? t("common.update") : t("common.save")}
-              </>
-            )}
-          </button>
+        {/* ── Sticky Action Bar ─────────────────────── */}
+        <div className="sticky bottom-0 z-10 -mx-1 rounded-2xl border border-border-main bg-bg-surface/80 px-5 py-4 shadow-lg backdrop-blur dark:bg-slate-800/80">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
+            <button type="button" onClick={() => navigate("/admin/permissions")} disabled={submitting}
+              className="w-full sm:w-auto rounded-xl border border-border-main px-5 py-2.5 text-sm font-semibold text-text-main transition hover:bg-bg-app disabled:opacity-50">
+              {t("common.cancel")}
+            </button>
+            <button type="submit" disabled={submitting}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition hover:bg-amber-600 disabled:opacity-50">
+              {submitting ? (
+                <><Loader2 className="h-4 w-4 animate-spin" />{t("common.saving")}</>
+              ) : (
+                <><Save className="h-4 w-4" />{isEdit ? t("common.update") : t("common.save")}</>
+              )}
+            </button>
+          </div>
         </div>
       </form>
     </div>

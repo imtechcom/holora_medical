@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
+  AlertCircle, ArrowLeft, CheckCircle2, Heart, Loader2, Save,
+} from "lucide-react";
+import {
   getPatientByIdApi,
   getNextPatientCodeApi,
   createPatientApi,
@@ -108,6 +111,12 @@ const PatientFormPage = () => {
       setLoading(false);
     }
   }, [patientId, isEdit, t]);
+
+  useEffect(() => {
+    if (!successMessage) return;
+    const id = setTimeout(() => setSuccessMessage(""), 3000);
+    return () => clearTimeout(id);
+  }, [successMessage]);
 
   const validateForm = () => {
     if (!formData.full_name?.trim()) {
@@ -230,69 +239,81 @@ const PatientFormPage = () => {
     },
   ];
   const inputClassName =
-    "w-full rounded-xl border border-border-main bg-bg-app dark:bg-slate-900 px-4 py-3 text-sm text-text-main placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-[#E06666]";
+    "w-full rounded-xl border border-border-main bg-bg-app dark:bg-slate-900 px-4 py-3 text-sm text-text-main placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-rose-500/40";
   const cardClassName =
     "rounded-2xl border border-border-main bg-bg-surface dark:bg-slate-800 shadow-sm";
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-border-main bg-bg-surface dark:bg-slate-800 p-8 text-center shadow-sm">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#E06666] border-r-transparent"></div>
-        <p className="mt-4 text-sm text-text-dim">
-          {t("admin.loading", { defaultValue: "Loading patient form..." })}
-        </p>
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-rose-500 border-r-transparent" />
+        <p className="mt-3 text-sm text-text-dim">{t("common.loading")}</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-[28px] border border-[#f0c9c2] bg-[linear-gradient(135deg,#fff7f2_0%,#ffe6dc_52%,#fff0ea_100%)] p-6 shadow-sm dark:border-[#7a3d3b] dark:bg-[linear-gradient(135deg,rgba(127,29,29,0.30)_0%,rgba(51,65,85,0.92)_56%,rgba(15,23,42,1)_100%)] lg:p-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#B85757] dark:text-[#F2B4A8]">
-              Patient onboarding
-            </p>
-            <h1 className="mt-3 text-3xl font-bold text-text-main lg:text-4xl">
-              {isEdit ? t("admin.editPatient") : t("admin.addNewPatient")}
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-text-dim lg:text-base">
-              {isEdit
-                ? t("admin.updatePatientInfo")
-                : "A guided 3-step flow so the operator only sees the information needed at each moment."}
-            </p>
-          </div>
-          <div className="min-w-[280px] rounded-2xl border border-white/60 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/50">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-text-dim">
-              {t("admin.patientCode")}
-            </p>
-            <p className="mt-3 break-all font-mono text-lg font-semibold text-text-main">
-              {formData.patient_code || "HLR_MED_ddmmyyyy_PT0001"}
-            </p>
-            <p className="mt-3 text-sm text-text-dim">
-              {isEdit
-                ? "Patient code stays fixed after creation."
-                : "Code is reserved automatically before the record is saved."}
-            </p>
+      {/* ── Hero Header ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 p-6 sm:p-8 text-white">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-rose-500/10 blur-3xl" />
+        <div className="absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-rose-400/10 blur-2xl" />
+        <div className="relative">
+          <button onClick={() => navigate("/admin/patients")}
+            className="mb-3 inline-flex items-center gap-1.5 rounded-lg text-sm text-slate-300 transition hover:text-white">
+            <ArrowLeft className="h-4 w-4" />{t("admin.patientsManagement")}
+          </button>
+
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Heart className="h-6 w-6 text-rose-400" />
+                <h1 className="text-xl sm:text-2xl font-bold">
+                  {isEdit ? t("admin.editPatient") : t("admin.addNewPatient")}
+                </h1>
+              </div>
+              <p className="mt-1 text-sm text-slate-300">
+                {isEdit
+                  ? t("admin.updatePatientInfo")
+                  : "A guided 3-step flow so the operator only sees the information needed at each moment."}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium">
+                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur">
+                  Step {currentStep} / 3
+                </span>
+                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur">
+                  {formData.branch_ids.length > 0
+                    ? `${formData.branch_ids.length} branch${formData.branch_ids.length > 1 ? "es" : ""}`
+                    : "No branch yet"}
+                </span>
+                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur">
+                  Status: {formData.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="min-w-[240px] rounded-xl bg-white/5 p-4 backdrop-blur">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">{t("admin.patientCode")}</p>
+              <p className="mt-2 break-all font-mono text-lg font-semibold text-white">
+                {formData.patient_code || "HLR_MED_ddmmyyyy_PT0001"}
+              </p>
+              <p className="mt-2 text-xs text-slate-400">
+                {isEdit ? "Patient code stays fixed after creation." : "Reserved automatically when this form opens."}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       {successMessage && (
-        <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
-          <div>
-            <p className="font-semibold">{t("common.success")}</p>
-            <p className="mt-1 text-sm">{successMessage}</p>
-          </div>
+        <div className="flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-900/15 dark:text-emerald-400">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />{successMessage}
         </div>
       )}
 
       {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
-          <div>
-            <p className="font-semibold">{t("common.error")}</p>
-            <p className="mt-1 text-sm">{error}</p>
-          </div>
+        <div className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-900/15 dark:text-red-400">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}
         </div>
       )}
 
@@ -316,7 +337,7 @@ const PatientFormPage = () => {
                     }}
                     className={`rounded-2xl border px-4 py-4 text-left transition ${
                       isActive
-                        ? "border-[#E06666] bg-[#fff4f2] dark:bg-red-950/20"
+                        ? "border-rose-500 bg-rose-50 dark:bg-rose-950/20"
                         : isDone
                           ? "border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
                           : "border-border-main bg-bg-app dark:bg-slate-900"
@@ -326,7 +347,7 @@ const PatientFormPage = () => {
                       <span
                         className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold ${
                           isActive
-                            ? "bg-[#E06666] text-white"
+                            ? "bg-rose-500 text-white"
                             : isDone
                               ? "bg-green-600 text-white"
                               : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
@@ -476,7 +497,7 @@ const PatientFormPage = () => {
                             key={branch.id}
                             className={`cursor-pointer rounded-2xl border p-4 transition ${
                               checked
-                                ? "border-[#E06666] bg-[#fff4f2] dark:bg-red-950/20"
+                                ? "border-rose-500 bg-rose-50 shadow-sm dark:bg-rose-950/20"
                                 : "border-border-main bg-bg-app dark:bg-slate-900"
                             }`}
                           >
@@ -485,7 +506,7 @@ const PatientFormPage = () => {
                                 type="checkbox"
                                 checked={checked}
                                 onChange={() => handleBranchToggle(branch.id)}
-                                className="mt-1 h-4 w-4 rounded border-border-main text-[#E06666] focus:ring-[#E06666]"
+                                className="mt-1 h-4 w-4 rounded border-border-main text-rose-500 focus:ring-rose-500"
                               />
                               <div>
                                 <p className="text-sm font-semibold text-text-main">{branch.name}</p>
@@ -659,55 +680,65 @@ const PatientFormPage = () => {
             </section>
           )}
 
-          <section className={`${cardClassName} p-5`}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="button"
-                onClick={() => navigate("/admin/patients")}
-                disabled={submitting}
-                className="rounded-xl border border-border-main px-5 py-3 text-sm font-medium text-text-main transition hover:bg-bg-app dark:hover:bg-slate-700 disabled:opacity-50"
-              >
+          {/* ── Desktop Step Actions ── */}
+          <section className={`${cardClassName} hidden sm:block p-5`}>
+            <div className="flex items-center justify-between">
+              <button type="button" onClick={() => navigate("/admin/patients")} disabled={submitting}
+                className="rounded-xl border border-border-main px-5 py-3 text-sm font-semibold text-text-main transition hover:bg-bg-app dark:hover:bg-slate-700 disabled:opacity-50">
                 {t("common.cancel")}
               </button>
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex gap-3">
                 {currentStep > 1 && (
-                  <button
-                    type="button"
-                    onClick={handlePreviousStep}
-                    className="rounded-xl border border-border-main px-5 py-3 text-sm font-medium text-text-main transition hover:bg-bg-app dark:hover:bg-slate-700"
-                  >
+                  <button type="button" onClick={handlePreviousStep}
+                    className="rounded-xl border border-border-main px-5 py-3 text-sm font-semibold text-text-main transition hover:bg-bg-app dark:hover:bg-slate-700">
                     {t("common.previous", { defaultValue: "Previous" })}
                   </button>
                 )}
                 {currentStep < 3 ? (
-                  <button
-                    type="button"
-                    onClick={handleNextStep}
-                    className="rounded-xl bg-[#E06666] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#D55555]"
-                  >
+                  <button type="button" onClick={handleNextStep}
+                    className="rounded-xl bg-rose-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-600">
                     {t("common.next", { defaultValue: "Next step" })}
                   </button>
                 ) : (
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-[#E06666] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#D55555] disabled:bg-gray-400"
-                  >
+                  <button type="submit" disabled={submitting}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-600 disabled:opacity-50">
                     {submitting ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent" />
-                        {t("common.saving")}
-                      </>
-                    ) : isEdit ? (
-                      t("common.update")
+                      <><Loader2 className="h-4 w-4 animate-spin" />{t("common.saving")}</>
                     ) : (
-                      t("common.save")
+                      <><Save className="h-4 w-4" />{isEdit ? t("common.update") : t("common.save")}</>
                     )}
                   </button>
                 )}
               </div>
             </div>
           </section>
+
+          {/* ── Mobile Sticky Actions ── */}
+          <div className="sm:hidden sticky bottom-0 z-10 -mx-1 rounded-2xl border border-border-main bg-bg-surface/80 px-4 py-3 shadow-lg backdrop-blur dark:bg-slate-800/80">
+            <div className="flex gap-2">
+              {currentStep > 1 && (
+                <button type="button" onClick={handlePreviousStep}
+                  className="flex-1 rounded-xl border border-border-main py-2.5 text-sm font-semibold text-text-main transition hover:bg-bg-app">
+                  {t("common.previous", { defaultValue: "Previous" })}
+                </button>
+              )}
+              {currentStep < 3 ? (
+                <button type="button" onClick={handleNextStep}
+                  className="flex-1 rounded-xl bg-rose-500 py-2.5 text-sm font-bold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-600">
+                  {t("common.next", { defaultValue: "Next step" })}
+                </button>
+              ) : (
+                <button type="submit" disabled={submitting}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 py-2.5 text-sm font-bold text-white shadow-lg shadow-rose-500/25 transition hover:bg-rose-600 disabled:opacity-50">
+                  {submitting ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" />{t("common.saving")}</>
+                  ) : (
+                    <><Save className="h-4 w-4" />{isEdit ? t("common.update") : t("common.save")}</>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
         </form>
 
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">

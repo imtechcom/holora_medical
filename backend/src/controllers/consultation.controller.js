@@ -61,11 +61,16 @@ const getDoctorConsultations = (req, res) => {
   if (role === 'admin' || role === 'super_admin') {
     const adminSql = `
       SELECT 
-        c.id, c.chief_complaint, c.status, c.priority, c.created_at,
-        p.full_name as patient_name, p.gender, p.date_of_birth
+        c.id, c.chief_complaint, c.symptoms, c.status, c.priority, c.created_at, c.started_at, c.completed_at,
+        p.full_name as patient_name, p.gender, p.date_of_birth,
+        d.full_name as doctor_name, d.doctor_code,
+        (SELECT COUNT(*) FROM consultation_response cr WHERE cr.consultation_id = c.id) as response_count
       FROM consultation c
       JOIN patient p ON c.patient_id = p.id
-      ORDER BY c.created_at DESC
+      LEFT JOIN doctor d ON c.doctor_id = d.id
+      ORDER BY 
+        CASE c.status WHEN 'pending' THEN 0 WHEN 'in_progress' THEN 1 ELSE 2 END,
+        c.created_at DESC
     `;
     db.query(adminSql, (err, results) => {
       if (err) return res.status(500).json({ message: "Lỗi cơ sở dữ liệu", error: err.message });
@@ -308,6 +313,68 @@ const reopenConsultation = (req, res) => {
   });
 };
 
+// Clinic Owner: Lấy tất cả tư vấn thuộc bác sĩ trong chi nhánh của owner
+const getOwnerConsultations = (req, res) => {
+  const userId = req.user.id;
+  const { status, priority, start_date, end_date, search, branch_id, doctor_id } = req.query;
+
+  let query = `
+    SELECT DISTINCT
+      c.id, c.chief_complaint, c.symptoms, c.status, c.priority,
+      c.created_at, c.started_at, c.completed_at,
+      p.full_name AS patient_name, p.gender, p.date_of_birth,
+      d.full_name AS doctor_name, d.doctor_code,
+      (SELECT COUNT(*) FROM consultation_response cr WHERE cr.consultation_id = c.id) AS response_count,
+      GROUP_CONCAT(DISTINCT b.name ORDER BY b.name SEPARATOR ', ') AS branch_names
+    FROM consultation c
+    JOIN patient p ON c.patient_id = p.id
+    INNER JOIN doctor d ON c.doctor_id = d.id
+    INNER JOIN doctor_branch db ON db.doctor_id = d.id AND db.deleted_at IS NULL
+    INNER JOIN branch b ON b.id = db.branch_id AND b.owner_user_id = ? AND b.deleted_at IS NULL
+    WHERE 1=1
+  `;
+  const params = [userId];
+
+  if (status) {
+    query += ' AND c.status = ?';
+    params.push(status);
+  }
+  if (priority) {
+    query += ' AND c.priority = ?';
+    params.push(priority);
+  }
+  if (start_date) {
+    query += ' AND DATE(c.created_at) >= ?';
+    params.push(start_date);
+  }
+  if (end_date) {
+    query += ' AND DATE(c.created_at) <= ?';
+    params.push(end_date);
+  }
+  if (branch_id) {
+    query += ' AND b.id = ?';
+    params.push(branch_id);
+  }
+  if (doctor_id) {
+    query += ' AND c.doctor_id = ?';
+    params.push(doctor_id);
+  }
+  if (search) {
+    query += ' AND (p.full_name LIKE ? OR c.chief_complaint LIKE ? OR d.full_name LIKE ?)';
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+
+  query += ` GROUP BY c.id
+    ORDER BY
+      CASE c.status WHEN 'pending' THEN 0 WHEN 'in_progress' THEN 1 ELSE 2 END,
+      c.created_at DESC`;
+
+  db.query(query, params, (err, results) => {
+    if (err) return res.status(500).json({ message: "Database error", error: err.message });
+    return res.json({ message: "OK", data: results });
+  });
+};
+
 module.exports = {
   createConsultation,
   getDoctorConsultations,
@@ -315,4 +382,5 @@ module.exports = {
   addConsultationResponse,
   getPatientConsultations,
   reopenConsultation,
+  getOwnerConsultations,
 };

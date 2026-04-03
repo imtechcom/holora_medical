@@ -19,6 +19,9 @@ router.get('/', appointmentController.getMyAppointments);
 // Admin: Lấy TẤT CẢ lịch khám (có filter)
 router.get('/admin/all', authorizeRole('super_admin', 'admin'), appointmentController.getAllAppointmentsAdmin);
 
+// Clinic Owner: Lấy lịch khám thuộc chi nhánh của owner
+router.get('/owner/all', authorizeRole('clinic_owner'), appointmentController.getAllAppointmentsOwner);
+
 // Lấy tư vấn liên kết với lịch hẹn (phải đặt TRƯỚC /:id để tránh conflict)
 router.get('/:id/consultation', appointmentController.getConsultationByAppointmentId);
 
@@ -26,6 +29,6 @@ router.get('/:id/consultation', appointmentController.getConsultationByAppointme
 router.get('/:id', appointmentController.getAppointmentById);
 
 // Cập nhật trạng thái (Bác sĩ/Admin duyệt ca, hoàn thành ca, huỷ ca)
-router.put('/:id/status', authorizeRole('super_admin', 'admin', 'doctor'), appointmentController.updateAppointmentStatus);
+router.put('/:id/status', authorizeRole('super_admin', 'admin', 'doctor', 'clinic_owner'), appointmentController.updateAppointmentStatus);
 
 module.exports = router;

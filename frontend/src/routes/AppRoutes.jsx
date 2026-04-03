@@ -67,6 +67,7 @@ import BranchesPage from "../pages/admin/BranchesPage";
 import BranchFormPage from "../pages/admin/BranchFormPage";
 import AppointmentsAdminPage from "../pages/admin/AppointmentsAdminPage";
 import DoctorSchedulePage from "../pages/admin/DoctorSchedulePage";
+import SchedulesAdminPage from "../pages/admin/SchedulesAdminPage";
 import ConsultationsPage from "../pages/admin/ConsultationsPage";
 
 // Clinic Owner Zone Pages
@@ -74,6 +75,8 @@ import ClinicOwnerDashboardPage from "../pages/clinic-owner/ClinicOwnerDashboard
 import MyBranchesPage from "../pages/clinic-owner/MyBranchesPage";
 import MyDoctorsPage from "../pages/clinic-owner/MyDoctorsPage";
 import MyPatientsPage from "../pages/clinic-owner/MyPatientsPage";
+import MyAppointmentsPage from "../pages/clinic-owner/MyAppointmentsPage";
+import MyConsultationsPage from "../pages/clinic-owner/MyConsultationsPage";
 import SubscriptionPage from "../pages/clinic-owner/SubscriptionPage";
 
 // Receptionist Zone Pages
@@ -576,6 +579,28 @@ const AppRoutes = () => {
         />
 
         <Route
+          path="/clinic-owner/appointments"
+          element={
+            <ClinicOwnerRoute>
+              <ClinicOwnerLayout>
+                <MyAppointmentsPage />
+              </ClinicOwnerLayout>
+            </ClinicOwnerRoute>
+          }
+        />
+
+        <Route
+          path="/clinic-owner/consultations"
+          element={
+            <ClinicOwnerRoute>
+              <ClinicOwnerLayout>
+                <MyConsultationsPage />
+              </ClinicOwnerLayout>
+            </ClinicOwnerRoute>
+          }
+        />
+
+        <Route
           path="/clinic-owner/subscription"
           element={
             <ClinicOwnerRoute>
@@ -869,7 +894,7 @@ const AppRoutes = () => {
           element={
             <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
-                <DoctorSchedulePage />
+                <SchedulesAdminPage />
               </AdminLayout>
             </AdminRoute>
           }

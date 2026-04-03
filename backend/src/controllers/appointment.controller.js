@@ -366,3 +366,56 @@ exports.getAppointmentById = (req, res) => {
     checkAndFetch(null, null); // Admin
   }
 };
+
+// Clinic Owner: Lấy TẤT CẢ lịch khám thuộc chi nhánh của owner, với filter
+exports.getAllAppointmentsOwner = (req, res) => {
+  const userId = req.user.id;
+  const { status, start_date, end_date, search, branch_id, doctor_id } = req.query;
+
+  let query = `
+    SELECT a.*,
+           d.full_name AS doctor_name, d.avatar_url AS doctor_avatar, d.doctor_code,
+           s.name AS specialty_name,
+           p.full_name AS patient_name, p.phone AS patient_phone,
+           b.name AS branch_name, b.code AS branch_code
+    FROM appointment a
+    LEFT JOIN doctor d ON a.doctor_id = d.id
+    LEFT JOIN specialty s ON d.specialty_id = s.id
+    LEFT JOIN patient p ON a.patient_id = p.id
+    INNER JOIN branch b ON a.branch_id = b.id AND b.owner_user_id = ? AND b.deleted_at IS NULL
+    WHERE 1=1
+  `;
+  const params = [userId];
+
+  if (status) {
+    query += ' AND a.status = ?';
+    params.push(status);
+  }
+  if (start_date) {
+    query += ' AND a.appointment_date >= ?';
+    params.push(start_date);
+  }
+  if (end_date) {
+    query += ' AND a.appointment_date <= ?';
+    params.push(end_date);
+  }
+  if (branch_id) {
+    query += ' AND a.branch_id = ?';
+    params.push(branch_id);
+  }
+  if (doctor_id) {
+    query += ' AND a.doctor_id = ?';
+    params.push(doctor_id);
+  }
+  if (search) {
+    query += ' AND (p.full_name LIKE ? OR a.appointment_code LIKE ? OR d.full_name LIKE ?)';
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+
+  query += ' ORDER BY a.appointment_date DESC, a.start_time DESC';
+
+  db.query(query, params, (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(results);
+  });
+};

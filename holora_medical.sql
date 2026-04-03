@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql
--- Generation Time: Mar 31, 2026 at 12:23 PM
+-- Generation Time: Apr 03, 2026 at 07:02 AM
 -- Server version: 8.0.45
 -- PHP Version: 8.3.26
 
@@ -56,7 +56,10 @@ CREATE TABLE `ai_analysis_result` (
   `risk_level` enum('low','medium','high','critical') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `recommendation` text COLLATE utf8mb4_unicode_ci,
   `reviewed_by_doctor_id` bigint UNSIGNED DEFAULT NULL,
+  `doctor_review_status` enum('pending_review','approved','approved_watch','not_standard','revoked') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending_review',
+  `shared_with_patient` tinyint(1) NOT NULL DEFAULT '0',
   `review_note` text COLLATE utf8mb4_unicode_ci,
+  `reviewed_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -72,6 +75,7 @@ CREATE TABLE `appointment` (
   `patient_id` bigint UNSIGNED NOT NULL,
   `doctor_id` bigint UNSIGNED NOT NULL,
   `specialty_id` bigint UNSIGNED DEFAULT NULL,
+  `branch_id` bigint UNSIGNED DEFAULT NULL,
   `appointment_code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `appointment_date` date NOT NULL,
   `start_time` datetime NOT NULL,
@@ -85,6 +89,16 @@ CREATE TABLE `appointment` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `appointment`
+--
+
+INSERT INTO `appointment` (`id`, `patient_id`, `doctor_id`, `specialty_id`, `branch_id`, `appointment_code`, `appointment_date`, `start_time`, `end_time`, `appointment_type`, `reason`, `status`, `cancellation_reason`, `fee`, `created_by`, `created_at`, `updated_at`) VALUES
+(1, 2, 6, 1, 3, 'APP61798061', '2026-04-01', '2026-04-01 08:30:00', '2026-04-01 09:00:00', 'offline', 'Test', 'scheduled', NULL, 0.00, NULL, '2026-03-31 12:56:38', '2026-03-31 12:56:38'),
+(2, 2, 3, 1, 3, 'APP32006031', '2026-04-02', '2026-04-02 19:30:00', '2026-04-02 20:00:00', 'offline', 'Test', 'completed', NULL, 0.00, NULL, '2026-04-02 12:13:26', '2026-04-02 12:49:55'),
+(3, 2, 3, 1, 3, 'APP33234937', '2026-04-02', '2026-04-02 18:00:00', '2026-04-02 18:30:00', 'online', 'Khám', 'scheduled', NULL, 0.00, NULL, '2026-04-02 12:33:54', '2026-04-02 12:33:54'),
+(4, 2, 3, 1, 3, 'APP99643024', '2026-04-03', '2026-04-03 14:00:00', '2026-04-03 14:30:00', 'online', 'Test', 'scheduled', NULL, 0.00, NULL, '2026-04-03 07:00:43', '2026-04-03 07:00:43');
 
 -- --------------------------------------------------------
 
@@ -167,8 +181,10 @@ CREATE TABLE `consultation` (
 --
 
 INSERT INTO `consultation` (`id`, `patient_id`, `doctor_id`, `appointment_id`, `consultation_type`, `chief_complaint`, `symptoms`, `notes`, `status`, `priority`, `started_at`, `completed_at`, `created_at`, `updated_at`) VALUES
-(1, 1, NULL, NULL, 'text', 'Tôi bị đau răng', 'Đau răng số 8', NULL, 'pending', 'normal', NULL, NULL, '2026-03-29 06:12:56', '2026-03-29 06:13:20'),
-(2, 2, NULL, NULL, 'text', 'Test', 'Test', NULL, 'pending', 'normal', NULL, NULL, '2026-03-29 07:37:11', '2026-03-29 07:37:11');
+(1, 1, 6, NULL, 'text', 'Tôi bị đau răng', 'Đau răng số 8', NULL, 'in_progress', 'normal', '2026-04-01 03:06:31', NULL, '2026-03-29 06:12:56', '2026-04-01 03:06:31'),
+(2, 2, NULL, NULL, 'text', 'Test', 'Test', NULL, 'pending', 'normal', NULL, NULL, '2026-03-29 07:37:11', '2026-03-29 07:37:11'),
+(3, 2, 3, NULL, 'text', 'This is test feature', 'This is test feature: Symtom details', NULL, 'in_progress', 'normal', '2026-04-02 08:35:07', NULL, '2026-04-02 06:50:29', '2026-04-02 10:17:11'),
+(4, 2, 3, 3, 'text', 'Test', 'Test', NULL, 'pending', 'normal', NULL, NULL, '2026-04-02 13:11:06', '2026-04-02 13:11:06');
 
 -- --------------------------------------------------------
 
@@ -195,7 +211,9 @@ CREATE TABLE `consultation_image` (
 
 INSERT INTO `consultation_image` (`id`, `consultation_id`, `uploaded_by`, `image_url`, `image_type`, `caption`, `file_name`, `mime_type`, `file_size`, `created_at`) VALUES
 (1, 1, 5, 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=300', 'symptom', NULL, NULL, NULL, NULL, '2026-03-29 13:12:56'),
-(2, 2, 4, 'http://localhost:5000/public/uploads/attachments-1774769831886-360672272.png', 'symptom', NULL, NULL, NULL, NULL, '2026-03-29 14:37:12');
+(2, 2, 4, 'http://localhost:5000/public/uploads/attachments-1774769831886-360672272.png', 'symptom', NULL, NULL, NULL, NULL, '2026-03-29 14:37:12'),
+(3, 3, 4, 'http://localhost:5000/public/uploads/attachments-1775112629562-248331293.png', 'symptom', NULL, NULL, NULL, NULL, '2026-04-02 13:50:30'),
+(4, 4, 4, 'http://localhost:5000/public/uploads/attachments-1775135466116-794057544.png', 'symptom', NULL, NULL, NULL, NULL, '2026-04-02 20:11:06');
 
 -- --------------------------------------------------------
 
@@ -219,7 +237,15 @@ CREATE TABLE `consultation_response` (
 --
 
 INSERT INTO `consultation_response` (`id`, `consultation_id`, `responder_user_id`, `response_type`, `content`, `is_from_ai`, `created_at`, `updated_at`) VALUES
-(1, 1, 5, 'message', 'Xin chào', 0, '2026-03-29 06:13:20', '2026-03-29 06:13:20');
+(1, 1, 5, 'message', 'Xin chào', 0, '2026-03-29 06:13:20', '2026-03-29 06:13:20'),
+(2, 1, 19, 'message', 'Trả lời', 0, '2026-04-01 03:06:31', '2026-04-01 03:06:31'),
+(3, 3, 15, 'message', 'Xin chào', 0, '2026-04-02 08:35:07', '2026-04-02 08:35:07'),
+(4, 3, 4, 'message', 'Chào bác sĩ', 0, '2026-04-02 08:35:44', '2026-04-02 08:35:44'),
+(5, 3, 15, 'diagnosis', 'Bạn hoàn toàn khỏe mạnh', 0, '2026-04-02 08:36:55', '2026-04-02 08:36:55'),
+(6, 3, 15, 'recommendation', 'Bạn nên về ngủ\n', 0, '2026-04-02 09:18:10', '2026-04-02 09:18:10'),
+(7, 3, 15, 'prescription_note', 'Đây là toa thuốc\n', 0, '2026-04-02 09:48:39', '2026-04-02 09:48:39'),
+(8, 3, 4, 'message', 'What your doctor name?\n', 0, '2026-04-02 09:53:03', '2026-04-02 09:53:03'),
+(9, 3, 15, 'message', 'Kết thúc cuộc trò chuyện', 0, '2026-04-02 09:54:22', '2026-04-02 09:54:22');
 
 -- --------------------------------------------------------
 
@@ -331,7 +357,9 @@ INSERT INTO `doctor_schedule` (`id`, `doctor_id`, `work_date`, `start_time`, `en
 (2, 1, '2026-04-01', '13:00:00', '17:00:00', 30, 'active', '2026-03-31 11:46:38', '2026-03-31 11:46:38'),
 (3, 1, '2026-04-02', '08:00:00', '12:00:00', 30, 'active', '2026-03-31 11:46:38', '2026-03-31 11:46:38'),
 (5, 6, '2026-04-01', '08:00:00', '20:00:00', 30, 'active', '2026-03-31 11:54:53', '2026-03-31 11:54:53'),
-(6, 6, '2026-04-02', '08:00:00', '20:00:00', 30, 'active', '2026-03-31 11:56:27', '2026-03-31 11:56:27');
+(6, 6, '2026-04-02', '08:00:00', '20:00:00', 30, 'active', '2026-03-31 11:56:27', '2026-03-31 11:56:27'),
+(7, 3, '2026-04-02', '08:00:00', '20:00:00', 30, 'active', '2026-04-02 08:44:20', '2026-04-02 08:44:20'),
+(8, 3, '2026-04-03', '08:00:00', '23:00:00', 30, 'active', '2026-04-02 12:11:58', '2026-04-03 07:00:28');
 
 -- --------------------------------------------------------
 
@@ -490,31 +518,70 @@ CREATE TABLE `permission` (
 --
 
 INSERT INTO `permission` (`id`, `name`, `code`, `module_name`, `description`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'Manage Users', 'user.manage', 'user', 'Quản lý người dùng', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
-(2, 'Manage Roles', 'role.manage', 'rbac', 'Quản lý vai trò', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
-(3, 'Manage Permissions', 'permission.manage', 'rbac', 'Quản lý quyền', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
-(4, 'Manage Patients', 'patient.manage', 'patient', 'Quản lý bệnh nhân', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
-(5, 'Manage Doctors', 'doctor.manage', 'doctor', 'Quản lý bác sĩ', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
-(6, 'Manage Consultations', 'consultation.manage', 'consultation', 'Quản lý tư vấn', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
-(7, 'Manage AI Analysis', 'ai.manage', 'ai', 'Quản lý phân tích AI', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
-(8, 'Manage Appointments', 'appointment.manage', 'appointment', 'Quản lý lịch hẹn', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
+(1, 'Manage Users', 'user.manage', 'user', 'Toàn quyền quản lý người dùng', 'active', '2026-03-28 09:52:25', '2026-04-03 02:11:42'),
+(2, 'Manage Roles', 'role.manage', 'rbac', 'Toàn quyền quản lý vai trò', 'active', '2026-03-28 09:52:25', '2026-04-03 02:11:42'),
+(3, 'Manage Permissions', 'permission.manage', 'rbac', 'Toàn quyền quản lý phân quyền', 'active', '2026-03-28 09:52:25', '2026-04-03 02:11:42'),
+(4, 'Manage Patients', 'patient.manage', 'patient', 'Toàn quyền quản lý bệnh nhân', 'active', '2026-03-28 09:52:25', '2026-04-03 02:11:42'),
+(5, 'Manage Doctors', 'doctor.manage', 'doctor', 'Toàn quyền quản lý bác sĩ', 'active', '2026-03-28 09:52:25', '2026-04-03 02:11:42'),
+(6, 'Manage Consultations', 'consultation.manage', 'consultation', 'Toàn quyền quản lý ca tư vấn', 'active', '2026-03-28 09:52:25', '2026-04-03 02:11:42'),
+(7, 'Manage AI Analysis', 'ai.manage', 'ai', 'Toàn quyền quản lý phân tích AI', 'active', '2026-03-28 09:52:25', '2026-04-03 02:11:42'),
+(8, 'Manage Appointments', 'appointment.manage', 'appointment', 'Toàn quyền quản lý lịch hẹn', 'active', '2026-03-28 09:52:25', '2026-04-03 02:11:42'),
 (9, 'Manage Video Sessions', 'video.manage', 'video', 'Quản lý phiên tư vấn video', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
 (10, 'Manage Reviews', 'review.manage', 'review', 'Quản lý đánh giá', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
 (11, 'Manage Notifications', 'notification.manage', 'notification', 'Quản lý thông báo', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
 (12, 'View Audit Logs', 'audit.view', 'audit', 'Xem nhật ký hệ thống', 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
-(13, 'Access Dashboard', 'dashboard.access', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
-(14, 'View Users', 'user.view', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
-(15, 'Create User', 'user.create', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
-(16, 'Update User', 'user.update', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
-(17, 'Delete User', 'user.delete', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
-(18, 'View Patients', 'patient.view', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
-(19, 'Create Patient', 'patient.create', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
-(20, 'Update Patient', 'patient.update', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
-(21, 'View Appointments', 'appointment.view', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
-(22, 'Create Appointment', 'appointment.create', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
-(23, 'Update Appointment', 'appointment.update', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
-(24, 'View Consultations', 'consultation.view', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40'),
-(25, 'Respond Consultation', 'consultation.respond', NULL, NULL, 'active', '2026-03-28 14:55:40', '2026-03-28 14:55:40');
+(13, 'Access Dashboard', 'dashboard.access', 'dashboard', 'Truy cập bảng điều khiển tổng quan', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(14, 'View Users', 'user.view', 'user', 'Xem danh sách và thông tin người dùng', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(15, 'Create User', 'user.create', 'user', 'Tạo tài khoản người dùng mới', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(16, 'Update User', 'user.update', 'user', 'Cập nhật thông tin người dùng', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(17, 'Delete User', 'user.delete', 'user', 'Xóa tài khoản người dùng', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(18, 'View Patients', 'patient.view', 'patient', 'Xem danh sách và hồ sơ bệnh nhân', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(19, 'Create Patient', 'patient.create', 'patient', 'Thêm hồ sơ bệnh nhân mới', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(20, 'Update Patient', 'patient.update', 'patient', 'Cập nhật hồ sơ bệnh nhân', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(21, 'View Appointments', 'appointment.view', 'appointment', 'Xem lịch hẹn của mình', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(22, 'Create Appointment', 'appointment.create', 'appointment', 'Đặt lịch hẹn mới', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(23, 'Update Appointment Status', 'appointment.update', 'appointment', 'Cập nhật trạng thái lịch hẹn', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(24, 'View Consultations', 'consultation.view', 'consultation', 'Xem ca tư vấn của mình', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(25, 'Respond to Consultation', 'consultation.respond', 'consultation', 'Phản hồi / chẩn đoán ca tư vấn', 'active', '2026-03-28 14:55:40', '2026-04-03 02:11:42'),
+(26, 'View Analytics', 'dashboard.analytics', 'dashboard', 'Xem báo cáo thống kê phân tích', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(27, 'Assign Role to User', 'user.assign_role', 'user', 'Gán hoặc gỡ vai trò khỏi người dùng', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(28, 'View Roles', 'role.view', 'rbac', 'Xem danh sách vai trò', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(29, 'Create Role', 'role.create', 'rbac', 'Tạo vai trò mới', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(30, 'Update Role', 'role.update', 'rbac', 'Cập nhật vai trò', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(31, 'Delete Role', 'role.delete', 'rbac', 'Xóa vai trò', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(32, 'View Permissions', 'permission.view', 'rbac', 'Xem danh sách phân quyền', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(33, 'Create Permission', 'permission.create', 'rbac', 'Tạo phân quyền mới', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(34, 'Update Permission', 'permission.update', 'rbac', 'Cập nhật phân quyền', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(35, 'Delete Permission', 'permission.delete', 'rbac', 'Xóa phân quyền', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(36, 'Delete Patient', 'patient.delete', 'patient', 'Xóa hồ sơ bệnh nhân', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(37, 'View Doctors', 'doctor.view', 'doctor', 'Xem danh sách và hồ sơ bác sĩ', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(38, 'Create Doctor', 'doctor.create', 'doctor', 'Thêm hồ sơ bác sĩ mới', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(39, 'Update Doctor', 'doctor.update', 'doctor', 'Cập nhật hồ sơ bác sĩ', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(40, 'Delete Doctor', 'doctor.delete', 'doctor', 'Xóa hồ sơ bác sĩ', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(41, 'Manage Branches', 'branch.manage', 'branch', 'Toàn quyền quản lý chi nhánh', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(42, 'View Branches', 'branch.view', 'branch', 'Xem danh sách và thông tin chi nhánh', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(43, 'Create Branch', 'branch.create', 'branch', 'Thêm chi nhánh mới', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(44, 'Update Branch', 'branch.update', 'branch', 'Cập nhật thông tin chi nhánh', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(45, 'Delete Branch', 'branch.delete', 'branch', 'Xóa chi nhánh', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(46, 'View All Appointments', 'appointment.admin', 'appointment', 'Xem tất cả lịch hẹn trong hệ thống (admin)', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(47, 'Delete Appointment', 'appointment.delete', 'appointment', 'Hủy / xóa lịch hẹn', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(48, 'Create Consultation', 'consultation.create', 'consultation', 'Gửi yêu cầu tư vấn mới', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(49, 'Reopen Consultation', 'consultation.reopen', 'consultation', 'Mở lại ca tư vấn đã hoàn thành', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(50, 'View Schedules', 'schedule.view', 'schedule', 'Xem lịch làm việc của bác sĩ', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(51, 'Create Schedule', 'schedule.create', 'schedule', 'Tạo ca làm việc mới', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(52, 'Update Schedule', 'schedule.update', 'schedule', 'Cập nhật ca làm việc', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(53, 'Delete Schedule', 'schedule.delete', 'schedule', 'Xóa ca làm việc', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(54, 'View Specialties', 'specialty.view', 'specialty', 'Xem danh mục chuyên khoa', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(55, 'Create Specialty', 'specialty.create', 'specialty', 'Thêm chuyên khoa mới', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(56, 'Update Specialty', 'specialty.update', 'specialty', 'Cập nhật chuyên khoa', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(57, 'Delete Specialty', 'specialty.delete', 'specialty', 'Xóa chuyên khoa', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(58, 'Request AI Analysis', 'ai.analyze', 'ai', 'Gửi yêu cầu AI phân tích ảnh ca khám', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(59, 'View AI Results', 'ai.view', 'ai', 'Xem kết quả phân tích AI', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(60, 'Review AI Results', 'ai.review', 'ai', 'Bác sĩ đánh giá và kiểm soát kết quả AI', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(61, 'View Subscriptions', 'subscription.view', 'subscription', 'Xem gói dịch vụ và trạng thái đăng ký', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(62, 'Activate Subscription', 'subscription.activate', 'subscription', 'Kích hoạt gói dịch vụ', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(63, 'Manage Subscriptions', 'subscription.manage', 'subscription', 'Quản lý thanh toán và xác nhận đăng ký', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42'),
+(64, 'Upload Files', 'upload.file', 'upload', 'Tải ảnh / tệp đính kèm lên hệ thống', 'active', '2026-04-03 02:11:42', '2026-04-03 02:11:42');
 
 -- --------------------------------------------------------
 
@@ -925,7 +992,8 @@ ALTER TABLE `appointment`
   ADD KEY `idx_appointment_specialty_id` (`specialty_id`),
   ADD KEY `idx_appointment_date` (`appointment_date`),
   ADD KEY `idx_appointment_status` (`status`),
-  ADD KEY `idx_appointment_start_time` (`start_time`);
+  ADD KEY `idx_appointment_start_time` (`start_time`),
+  ADD KEY `idx_appointment_branch_id` (`branch_id`);
 
 --
 -- Indexes for table `audit_log`
@@ -1198,7 +1266,7 @@ ALTER TABLE `ai_analysis_result`
 -- AUTO_INCREMENT for table `appointment`
 --
 ALTER TABLE `appointment`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `audit_log`
@@ -1216,19 +1284,19 @@ ALTER TABLE `branch`
 -- AUTO_INCREMENT for table `consultation`
 --
 ALTER TABLE `consultation`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `consultation_image`
 --
 ALTER TABLE `consultation_image`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `consultation_response`
 --
 ALTER TABLE `consultation_response`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `doctor`
@@ -1252,7 +1320,7 @@ ALTER TABLE `doctor_invite`
 -- AUTO_INCREMENT for table `doctor_schedule`
 --
 ALTER TABLE `doctor_schedule`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `holora_mind_chats`
@@ -1288,7 +1356,7 @@ ALTER TABLE `payment_order`
 -- AUTO_INCREMENT for table `permission`
 --
 ALTER TABLE `permission`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
 
 --
 -- AUTO_INCREMENT for table `provider_subscription`
@@ -1373,6 +1441,7 @@ ALTER TABLE `ai_analysis_result`
 -- Constraints for table `appointment`
 --
 ALTER TABLE `appointment`
+  ADD CONSTRAINT `fk_appointment_branch` FOREIGN KEY (`branch_id`) REFERENCES `branch` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_appointment_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_appointment_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_appointment_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,

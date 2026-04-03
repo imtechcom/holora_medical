@@ -1,24 +1,25 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle, Calendar, CalendarCheck, CheckCircle2, ChevronDown,
-  Clock, Filter, Loader2, RefreshCw, Search, Video, X, XCircle,
+  Clock, Filter, RefreshCw, Search, Video, X, XCircle, Building2, Stethoscope,
 } from "lucide-react";
 import { appointmentService } from "../../services/appointmentService";
+import branchService from "../../services/branchService";
+import { getDoctorsByOwnerBranchesApi } from "../../services/doctorService";
 
 /* ── Constants ──────────────────────────────── */
 const PAGE_SIZE = 15;
 
 const STATUS_OPTIONS = [
-  { value: "",            labelKey: "admin.allStatuses",         fallback: "All statuses" },
-  { value: "scheduled",   labelKey: "admin.statusScheduled",    fallback: "Scheduled" },
-  { value: "confirmed",   labelKey: "admin.statusConfirmed",    fallback: "Confirmed" },
-  { value: "checked_in",  labelKey: "admin.statusCheckedIn",    fallback: "Checked in" },
-  { value: "in_progress", labelKey: "admin.statusInProgress",   fallback: "In progress" },
-  { value: "completed",   labelKey: "admin.statusCompleted",    fallback: "Completed" },
-  { value: "cancelled",   labelKey: "admin.statusCancelled",    fallback: "Cancelled" },
-  { value: "no_show",     labelKey: "admin.statusNoShow",       fallback: "No show" },
+  { value: "",            fallback: "All statuses" },
+  { value: "scheduled",   fallback: "Scheduled" },
+  { value: "confirmed",   fallback: "Confirmed" },
+  { value: "checked_in",  fallback: "Checked in" },
+  { value: "in_progress", fallback: "In progress" },
+  { value: "completed",   fallback: "Completed" },
+  { value: "cancelled",   fallback: "Cancelled" },
+  { value: "no_show",     fallback: "No show" },
 ];
 
 const STATUS_CLS = {
@@ -31,9 +32,9 @@ const STATUS_CLS = {
   no_show:     "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400",
 };
 
-const statusLabel = (status, t) => {
+const statusLabel = (status) => {
   const opt = STATUS_OPTIONS.find((o) => o.value === status);
-  return opt ? t(opt.labelKey, { defaultValue: opt.fallback }) : status;
+  return opt ? opt.fallback : status;
 };
 
 const fmtDate = (d) => {
@@ -49,7 +50,7 @@ const fmtTime = (d) => {
 const SW = [75, 55, 40, 90, 60, 70, 50, 85];
 const SkeletonRow = ({ i }) => (
   <tr className="animate-pulse">
-    {Array.from({ length: 6 }).map((_, c) => (
+    {Array.from({ length: 7 }).map((_, c) => (
       <td key={c} className="px-4 py-3.5">
         <div className="h-4 rounded-full bg-slate-200 dark:bg-slate-700" style={{ width: `${SW[(i + c) % SW.length]}%` }} />
       </td>
@@ -70,17 +71,20 @@ const SkeletonCard = ({ i }) => (
 );
 
 /* ── Main Component ──────────────────────── */
-const AppointmentsAdminPage = () => {
+const MyAppointmentsPage = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const [appointments, setAppointments] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   // Filters
   const [statusFilter, setStatusFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
+  const [doctorFilter, setDoctorFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -88,31 +92,49 @@ const AppointmentsAdminPage = () => {
   const [showFilters, setShowFilters] = useState(false);
 
   // Modals
-  const [confirmState, setConfirmState] = useState(null);   // { id, newStatus, cancelReason }
-  const [cancelModal, setCancelModal] = useState(null);      // { id, newStatus }
+  const [confirmState, setConfirmState] = useState(null);
+  const [cancelModal, setCancelModal] = useState(null);
   const [cancelReasonInput, setCancelReasonInput] = useState("");
 
   // Pagination
   const [page, setPage] = useState(1);
 
+  /* ── Load branches & doctors for filters ── */
+  useEffect(() => {
+    const loadFilters = async () => {
+      try {
+        const [branchRes, doctorRes] = await Promise.all([
+          branchService.getMyBranches(),
+          getDoctorsByOwnerBranchesApi(),
+        ]);
+        setBranches(Array.isArray(branchRes?.data) ? branchRes.data : []);
+        setDoctors(Array.isArray(doctorRes) ? doctorRes : []);
+      } catch {
+        // silent — filters will be empty
+      }
+    };
+    loadFilters();
+  }, []);
+
   /* ── Fetch ── */
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const data = await appointmentService.getAllAppointmentsAdmin({
-        status: statusFilter, start_date: startDate, end_date: endDate, search,
+      const data = await appointmentService.getAllAppointmentsOwner({
+        status: statusFilter, start_date: startDate, end_date: endDate,
+        search, branch_id: branchFilter, doctor_id: doctorFilter,
       });
       setAppointments(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err?.response?.data?.error || t("admin.errorFetchingAppointments", { defaultValue: "Failed to load appointments" }));
+      setError(err?.response?.data?.error || t("owner.errorFetchingAppointments", { defaultValue: "Failed to load appointments" }));
       setAppointments([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, startDate, endDate, search, branchFilter, doctorFilter, t]);
 
-  useEffect(() => { fetchAppointments(); }, [statusFilter, startDate, endDate, search]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
 
   useEffect(() => {
     if (!success) return;
@@ -120,7 +142,7 @@ const AppointmentsAdminPage = () => {
     return () => clearTimeout(id);
   }, [success]);
 
-  useEffect(() => { setPage(1); }, [statusFilter, startDate, endDate, search]);
+  useEffect(() => { setPage(1); }, [statusFilter, startDate, endDate, search, branchFilter, doctorFilter]);
 
   /* ── Stats ── */
   const stats = useMemo(() => {
@@ -159,10 +181,10 @@ const AppointmentsAdminPage = () => {
     try {
       setError("");
       await appointmentService.updateStatus(confirmState.id, confirmState.newStatus, confirmState.cancelReason);
-      setSuccess(t("admin.appointmentStatusUpdated", { defaultValue: "Appointment status updated" }));
+      setSuccess(t("owner.appointmentStatusUpdated", { defaultValue: "Appointment status updated" }));
       fetchAppointments();
     } catch (err) {
-      setError(err?.response?.data?.message || t("admin.errorUpdatingStatus", { defaultValue: "Failed to update status" }));
+      setError(err?.response?.data?.message || t("owner.errorUpdatingStatus", { defaultValue: "Failed to update status" }));
     } finally {
       setConfirmState(null);
     }
@@ -180,8 +202,11 @@ const AppointmentsAdminPage = () => {
     setSearch(searchInput.trim());
   };
 
-  const hasFilter = statusFilter || startDate || endDate;
-  const clearFilters = () => { setStatusFilter(""); setStartDate(""); setEndDate(""); };
+  const hasFilter = statusFilter || startDate || endDate || branchFilter || doctorFilter;
+  const filterCount = [statusFilter, startDate, endDate, branchFilter, doctorFilter].filter(Boolean).length;
+  const clearFilters = () => {
+    setStatusFilter(""); setStartDate(""); setEndDate(""); setBranchFilter(""); setDoctorFilter("");
+  };
 
   /* ── Render action buttons for a row ── */
   const renderActions = (app, mobile = false) => {
@@ -194,11 +219,11 @@ const AppointmentsAdminPage = () => {
         <>
           <button onClick={() => handleUpdateStatus(app.id, "confirmed")}
             className={`${btnBase} bg-emerald-500 text-white hover:bg-emerald-600`}>
-            <CheckCircle2 className="h-3 w-3" />{t("admin.approve", { defaultValue: "Approve" })}
+            <CheckCircle2 className="h-3 w-3" />{t("owner.approve", { defaultValue: "Approve" })}
           </button>
           <button onClick={() => handleUpdateStatus(app.id, "cancelled")}
             className={`${btnBase} bg-red-500 text-white hover:bg-red-600`}>
-            <XCircle className="h-3 w-3" />{t("admin.reject", { defaultValue: "Reject" })}
+            <XCircle className="h-3 w-3" />{t("owner.reject", { defaultValue: "Reject" })}
           </button>
         </>
       );
@@ -206,13 +231,13 @@ const AppointmentsAdminPage = () => {
     if (app.status === "confirmed") {
       return (
         <>
-          <button onClick={() => navigate(`/admin/appointments/${app.id}/room`)}
-            className={`${btnBase} bg-indigo-600 text-white hover:bg-indigo-700`}>
-            <Video className="h-3 w-3" />{t("admin.enterRoom", { defaultValue: "Enter room" })}
-          </button>
           <button onClick={() => handleUpdateStatus(app.id, "completed")}
             className={`${btnBase} border border-border-main text-text-dim hover:bg-bg-app`}>
-            <CheckCircle2 className="h-3 w-3" />{t("admin.complete", { defaultValue: "Complete" })}
+            <CheckCircle2 className="h-3 w-3" />{t("owner.complete", { defaultValue: "Complete" })}
+          </button>
+          <button onClick={() => handleUpdateStatus(app.id, "cancelled")}
+            className={`${btnBase} bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400`}>
+            <XCircle className="h-3 w-3" />{t("owner.cancel", { defaultValue: "Cancel" })}
           </button>
         </>
       );
@@ -231,23 +256,28 @@ const AppointmentsAdminPage = () => {
           <div>
             <div className="flex items-center gap-2">
               <CalendarCheck className="h-6 w-6 text-indigo-400" />
-              <h1 className="text-xl sm:text-2xl font-bold">{t("admin.appointmentsManagement", { defaultValue: "Appointments" })}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold">
+                {t("owner.appointmentsManagement", { defaultValue: "Appointments" })}
+              </h1>
             </div>
-            <p className="mt-1 text-sm text-slate-300">{t("admin.manageAppointmentsDesc", { defaultValue: "Review and manage all appointment bookings across branches" })}</p>
+            <p className="mt-1 text-sm text-slate-300">
+              {t("owner.manageAppointmentsDesc", { defaultValue: "Manage all appointment bookings across your branches" })}
+            </p>
           </div>
           <button onClick={fetchAppointments} disabled={loading}
             className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm font-medium backdrop-blur transition hover:bg-white/10 disabled:opacity-60">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />{t("common.refresh")}
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            {t("common.refresh", { defaultValue: "Refresh" })}
           </button>
         </div>
 
         {/* Stats */}
         <div className="relative mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: t("admin.total", { defaultValue: "Total" }), value: stats.total, icon: Calendar },
-            { label: t("admin.statusScheduled", { defaultValue: "Scheduled" }), value: stats.scheduled, icon: Clock },
-            { label: t("admin.statusConfirmed", { defaultValue: "Confirmed" }), value: stats.confirmed, icon: CalendarCheck },
-            { label: t("admin.statusCompleted", { defaultValue: "Completed" }), value: stats.completed, icon: CheckCircle2 },
+            { label: t("owner.total", { defaultValue: "Total" }), value: stats.total, icon: Calendar },
+            { label: t("owner.scheduled", { defaultValue: "Scheduled" }), value: stats.scheduled, icon: Clock },
+            { label: t("owner.confirmed", { defaultValue: "Confirmed" }), value: stats.confirmed, icon: CalendarCheck },
+            { label: t("owner.completed", { defaultValue: "Completed" }), value: stats.completed, icon: CheckCircle2 },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="rounded-xl bg-white/5 px-4 py-3 backdrop-blur">
               <div className="flex items-center gap-2 text-slate-400">
@@ -277,7 +307,7 @@ const AppointmentsAdminPage = () => {
           <form onSubmit={handleSearchSubmit} className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-dim" />
             <input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
-              placeholder={t("admin.searchAppointments", { defaultValue: "Search patient, code, doctor..." })}
+              placeholder={t("owner.searchAppointments", { defaultValue: "Search patient, code, doctor..." })}
               className="w-full rounded-xl border border-border-main bg-bg-app py-2.5 pl-9 pr-9 text-sm text-text-main outline-none transition focus:ring-2 focus:ring-indigo-500/40 dark:bg-slate-900" />
             {(search || searchInput) && (
               <button type="button" onClick={() => { setSearch(""); setSearchInput(""); }}
@@ -293,8 +323,12 @@ const AppointmentsAdminPage = () => {
                 : "border-border-main text-text-main hover:bg-bg-app"
             }`}>
             <Filter className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("admin.filters", { defaultValue: "Filters" })}</span>
-            {hasFilter && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">{[statusFilter, startDate, endDate].filter(Boolean).length}</span>}
+            <span className="hidden sm:inline">{t("owner.filters", { defaultValue: "Filters" })}</span>
+            {hasFilter && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">
+                {filterCount}
+              </span>
+            )}
             <ChevronDown className={`h-3 w-3 transition ${showFilters ? "rotate-180" : ""}`} />
           </button>
         </div>
@@ -302,32 +336,72 @@ const AppointmentsAdminPage = () => {
         {/* Expandable filters */}
         {showFilters && (
           <div className="rounded-xl border border-border-main bg-bg-surface p-4 dark:bg-slate-800">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="min-w-[160px]">
-                <label className="mb-1 block text-xs font-medium text-text-dim">{t("admin.status")}</label>
-                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {/* Branch */}
+              <div>
+                <label className="mb-1 flex items-center gap-1 text-xs font-medium text-text-dim">
+                  <Building2 className="h-3 w-3" />
+                  {t("owner.branch", { defaultValue: "Branch" })}
+                </label>
+                <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)}
                   className="w-full rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-900">
-                  {STATUS_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{t(o.labelKey, { defaultValue: o.fallback })}</option>
+                  <option value="">{t("owner.allBranches", { defaultValue: "All branches" })}</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
               </div>
+              {/* Doctor */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-text-dim">{t("admin.fromDate", { defaultValue: "From" })}</label>
+                <label className="mb-1 flex items-center gap-1 text-xs font-medium text-text-dim">
+                  <Stethoscope className="h-3 w-3" />
+                  {t("owner.doctor", { defaultValue: "Doctor" })}
+                </label>
+                <select value={doctorFilter} onChange={(e) => setDoctorFilter(e.target.value)}
+                  className="w-full rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-900">
+                  <option value="">{t("owner.allDoctors", { defaultValue: "All doctors" })}</option>
+                  {doctors.map((d) => (
+                    <option key={d.id} value={d.id}>{d.full_name}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Status */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-text-dim">
+                  {t("owner.status", { defaultValue: "Status" })}
+                </label>
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-900">
+                  {STATUS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.fallback}</option>
+                  ))}
+                </select>
+              </div>
+              {/* From date */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-text-dim">
+                  {t("owner.fromDate", { defaultValue: "From date" })}
+                </label>
                 <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                  className="rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-900" />
+                  className="w-full rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-900" />
               </div>
+              {/* To date */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-text-dim">{t("admin.toDate", { defaultValue: "To" })}</label>
+                <label className="mb-1 block text-xs font-medium text-text-dim">
+                  {t("owner.toDate", { defaultValue: "To date" })}
+                </label>
                 <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-                  className="rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-900" />
+                  className="w-full rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-900" />
               </div>
-              {hasFilter && (
-                <button onClick={clearFilters}
-                  className="rounded-lg border border-border-main px-3 py-2 text-xs font-medium text-text-dim transition hover:bg-bg-app">
-                  {t("admin.clearFilters", { defaultValue: "Clear filters" })}
-                </button>
-              )}
+              {/* Clear */}
+              <div className="flex items-end">
+                {hasFilter && (
+                  <button onClick={clearFilters}
+                    className="rounded-lg border border-border-main px-3 py-2 text-xs font-medium text-text-dim transition hover:bg-bg-app">
+                    {t("owner.clearFilters", { defaultValue: "Clear filters" })}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -340,14 +414,15 @@ const AppointmentsAdminPage = () => {
             <thead className="bg-bg-app dark:bg-slate-900/60">
               <tr>
                 {[
-                  t("admin.codeDate", { defaultValue: "Code / Date" }),
-                  t("admin.patient"),
-                  t("admin.doctorBranch", { defaultValue: "Doctor / Branch" }),
-                  t("admin.reasonType", { defaultValue: "Reason / Type" }),
-                  t("admin.status"),
-                  t("common.actions"),
+                  t("owner.codeDate", { defaultValue: "Code / Date" }),
+                  t("owner.patient", { defaultValue: "Patient" }),
+                  t("owner.doctorLabel", { defaultValue: "Doctor" }),
+                  t("owner.branchLabel", { defaultValue: "Branch" }),
+                  t("owner.reasonType", { defaultValue: "Reason / Type" }),
+                  t("owner.statusLabel", { defaultValue: "Status" }),
+                  t("common.actions", { defaultValue: "Actions" }),
                 ].map((h, i) => (
-                  <th key={i} className={`px-4 py-3 text-xs font-semibold uppercase tracking-[0.07em] text-text-dim ${i >= 5 ? "text-right" : "text-left"}`}>{h}</th>
+                  <th key={i} className={`px-4 py-3 text-xs font-semibold uppercase tracking-[0.07em] text-text-dim ${i >= 6 ? "text-right" : "text-left"}`}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -355,7 +430,7 @@ const AppointmentsAdminPage = () => {
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} i={i} />)
               ) : paged.length === 0 ? (
-                <tr><td colSpan={6} className="py-16 text-center text-sm text-text-dim">{t("admin.noAppointmentsFound", { defaultValue: "No appointments found" })}</td></tr>
+                <tr><td colSpan={7} className="py-16 text-center text-sm text-text-dim">{t("owner.noAppointmentsFound", { defaultValue: "No appointments found" })}</td></tr>
               ) : paged.map((app) => (
                 <tr key={app.id} className="group hover:bg-bg-app dark:hover:bg-slate-900/40 transition">
                   {/* Code + Date */}
@@ -369,14 +444,18 @@ const AppointmentsAdminPage = () => {
                     <p className="text-sm font-semibold text-text-main">{app.patient_name || "—"}</p>
                     {app.patient_phone && <p className="text-xs text-text-dim">{app.patient_phone}</p>}
                   </td>
-                  {/* Doctor / Branch */}
+                  {/* Doctor */}
                   <td className="px-4 py-3">
                     <p className="text-sm text-text-main">{app.doctor_name || "—"}</p>
-                    {app.branch_name && (
-                      <span className="mt-0.5 inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300">
+                    {app.specialty_name && <p className="text-xs text-text-dim">{app.specialty_name}</p>}
+                  </td>
+                  {/* Branch */}
+                  <td className="px-4 py-3">
+                    {app.branch_name ? (
+                      <span className="inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300">
                         {app.branch_name}
                       </span>
-                    )}
+                    ) : "—"}
                   </td>
                   {/* Reason / Type */}
                   <td className="px-4 py-3">
@@ -388,7 +467,7 @@ const AppointmentsAdminPage = () => {
                   {/* Status */}
                   <td className="whitespace-nowrap px-4 py-3">
                     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_CLS[app.status] || "bg-slate-100 text-slate-600"}`}>
-                      {statusLabel(app.status, t)}
+                      {statusLabel(app.status)}
                     </span>
                   </td>
                   {/* Actions */}
@@ -409,9 +488,10 @@ const AppointmentsAdminPage = () => {
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} i={i} />)
         ) : paged.length === 0 ? (
-          <p className="py-12 text-center text-sm text-text-dim">{t("admin.noAppointmentsFound", { defaultValue: "No appointments found" })}</p>
+          <p className="py-12 text-center text-sm text-text-dim">{t("owner.noAppointmentsFound", { defaultValue: "No appointments found" })}</p>
         ) : paged.map((app) => (
           <div key={app.id} className="rounded-2xl border border-border-main bg-bg-surface p-4 shadow-sm dark:bg-slate-800">
+            {/* Header */}
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{app.appointment_code}</p>
@@ -420,29 +500,37 @@ const AppointmentsAdminPage = () => {
                 </p>
               </div>
               <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_CLS[app.status] || "bg-slate-100 text-slate-600"}`}>
-                {statusLabel(app.status, t)}
+                {statusLabel(app.status)}
               </span>
             </div>
 
+            {/* Info grid */}
             <div className="mt-3 space-y-1.5 text-sm">
               <div className="flex items-center gap-2">
-                <span className="text-text-dim">{t("admin.patient")}:</span>
+                <span className="text-text-dim">{t("owner.patient", { defaultValue: "Patient" })}:</span>
                 <span className="font-semibold text-text-main">{app.patient_name || "—"}</span>
                 {app.patient_phone && <span className="text-xs text-text-dim">({app.patient_phone})</span>}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-text-dim">{t("admin.doctor", { defaultValue: "Doctor" })}:</span>
+                <span className="text-text-dim">{t("owner.doctor", { defaultValue: "Doctor" })}:</span>
                 <span className="text-text-main">{app.doctor_name || "—"}</span>
               </div>
-              {app.branch_name && (
-                <span className="inline-flex rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300">
-                  {app.branch_name}
+              <div className="flex flex-wrap items-center gap-2">
+                {app.branch_name && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300">
+                    <Building2 className="h-3 w-3" />{app.branch_name}
+                  </span>
+                )}
+                {app.specialty_name && (
+                  <span className="inline-flex rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-900/20 dark:text-teal-300">
+                    {app.specialty_name}
+                  </span>
+                )}
+                <span className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
+                  {app.appointment_type}
                 </span>
-              )}
+              </div>
               {app.reason && <p className="truncate text-xs text-text-dim">{app.reason}</p>}
-              <span className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
-                {app.appointment_type}
-              </span>
             </div>
 
             {/* Mobile actions */}
@@ -480,18 +568,18 @@ const AppointmentsAdminPage = () => {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4 pb-4 sm:pb-0 backdrop-blur-sm">
           <div className="w-full max-w-sm overflow-hidden rounded-3xl border border-border-main bg-bg-surface p-6 shadow-2xl dark:bg-slate-900">
             <h3 className="text-base font-bold text-text-main">
-              {t("admin.confirmStatusChange", { defaultValue: "Confirm status change" })}
+              {t("owner.confirmStatusChange", { defaultValue: "Confirm status change" })}
             </h3>
             <p className="mt-2 text-sm text-text-dim">
-              {t("admin.changeStatusTo", { defaultValue: "Change status to" })}{" "}
+              {t("owner.changeStatusTo", { defaultValue: "Change status to" })}{" "}
               <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_CLS[confirmState.newStatus] || ""}`}>
-                {statusLabel(confirmState.newStatus, t)}
+                {statusLabel(confirmState.newStatus)}
               </span>
             </p>
             <div className="mt-5 flex gap-3">
               <button onClick={() => setConfirmState(null)}
                 className="flex-1 rounded-xl border border-border-main py-2.5 text-sm font-semibold text-text-main transition hover:bg-bg-app">
-                {t("common.cancel")}
+                {t("common.cancel", { defaultValue: "Cancel" })}
               </button>
               <button onClick={confirmUpdateStatus}
                 className={`flex-1 rounded-xl py-2.5 text-sm font-bold text-white transition ${
@@ -508,20 +596,24 @@ const AppointmentsAdminPage = () => {
       {cancelModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4 pb-4 sm:pb-0 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-3xl border border-border-main bg-bg-surface p-6 shadow-2xl dark:bg-slate-900">
-            <h3 className="text-base font-bold text-text-main">{t("admin.cancelReason", { defaultValue: "Cancellation reason" })}</h3>
-            <p className="mt-1 text-sm text-text-dim">{t("admin.cancelReasonDesc", { defaultValue: "Provide a reason to notify the patient." })}</p>
+            <h3 className="text-base font-bold text-text-main">
+              {t("owner.cancelReason", { defaultValue: "Cancellation reason" })}
+            </h3>
+            <p className="mt-1 text-sm text-text-dim">
+              {t("owner.cancelReasonDesc", { defaultValue: "Provide a reason to notify the patient." })}
+            </p>
             <textarea value={cancelReasonInput} onChange={(e) => setCancelReasonInput(e.target.value)}
-              placeholder={t("admin.cancelReasonPlaceholder", { defaultValue: "e.g. Doctor unavailable, schedule conflict..." })}
+              placeholder={t("owner.cancelReasonPlaceholder", { defaultValue: "e.g. Doctor unavailable, schedule conflict..." })}
               rows={3}
               className="mt-3 w-full resize-none rounded-xl border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main placeholder:text-text-dim focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:bg-slate-800" />
             <div className="mt-4 flex gap-3">
               <button onClick={() => { setCancelModal(null); setCancelReasonInput(""); }}
                 className="flex-1 rounded-xl border border-border-main py-2.5 text-sm font-semibold text-text-main transition hover:bg-bg-app">
-                {t("common.cancel")}
+                {t("common.cancel", { defaultValue: "Cancel" })}
               </button>
               <button onClick={confirmCancelWithReason}
                 className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-bold text-white transition hover:bg-red-700">
-                {t("admin.confirmCancel", { defaultValue: "Confirm cancel" })}
+                {t("owner.confirmCancel", { defaultValue: "Confirm cancel" })}
               </button>
             </div>
           </div>
@@ -531,4 +623,4 @@ const AppointmentsAdminPage = () => {
   );
 };
 
-export default AppointmentsAdminPage;
+export default MyAppointmentsPage;

@@ -3,22 +3,24 @@ import { useTranslation } from "react-i18next";
 import {
   AlertCircle, CheckCircle2, ChevronDown, Clock, Filter,
   MessageSquare, RefreshCw, Search, Send, Stethoscope, X,
-  Image as ImageIcon, User, FileText,
+  Image as ImageIcon, User, FileText, Building2,
 } from "lucide-react";
 import { resolveApiUrl } from "../../services/api";
 import { consultationService } from "../../services/consultationService";
+import branchService from "../../services/branchService";
+import { getDoctorsByOwnerBranchesApi } from "../../services/doctorService";
 
 /* ── Constants ─────────────────────────────── */
 const PAGE_SIZE = 15;
 
 const STATUS_MAP = {
-  pending: { label: "Pending", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+  pending:     { label: "Pending",     cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
   in_progress: { label: "In progress", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  completed: { label: "Completed", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  completed:   { label: "Completed",   cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
 };
 
 const PRIORITY_MAP = {
-  high: { label: "High", cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+  high:   { label: "High",   cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
   normal: { label: "Normal", cls: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300" },
 };
 
@@ -38,7 +40,7 @@ const fmtDateTime = (d) => {
 const SW = [75, 55, 40, 90, 60, 70, 50, 85];
 const SkeletonRow = ({ i }) => (
   <tr className="animate-pulse">
-    {Array.from({ length: 6 }).map((_, c) => (
+    {Array.from({ length: 7 }).map((_, c) => (
       <td key={c} className="px-4 py-3.5">
         <div className="h-4 rounded-full bg-slate-200 dark:bg-slate-700" style={{ width: `${SW[(i + c) % SW.length]}%` }} />
       </td>
@@ -59,10 +61,12 @@ const SkeletonCard = ({ i }) => (
 );
 
 /* ── Main Component ──────────────────────── */
-const ConsultationsPage = () => {
+const MyConsultationsPage = () => {
   const { t } = useTranslation();
 
   const [consultations, setConsultations] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -72,6 +76,10 @@ const ConsultationsPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
+  const [doctorFilter, setDoctorFilter] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
   // Pagination
@@ -82,7 +90,7 @@ const ConsultationsPage = () => {
   const [detailData, setDetailData] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState("");
-  const [detailTab, setDetailTab] = useState("info"); // info | chat
+  const [detailTab, setDetailTab] = useState("info");
 
   // Response form
   const [replyText, setReplyText] = useState("");
@@ -90,20 +98,41 @@ const ConsultationsPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const chatEndRef = useRef(null);
 
+  /* ── Load branches & doctors for filters ── */
+  useEffect(() => {
+    const loadFilters = async () => {
+      try {
+        const [branchRes, doctorRes] = await Promise.all([
+          branchService.getMyBranches(),
+          getDoctorsByOwnerBranchesApi(),
+        ]);
+        setBranches(Array.isArray(branchRes?.data) ? branchRes.data : []);
+        setDoctors(Array.isArray(doctorRes) ? doctorRes : []);
+      } catch {
+        // silent
+      }
+    };
+    loadFilters();
+  }, []);
+
   /* ── Fetch List ── */
   const fetchConsultations = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const res = await consultationService.getDoctorRequests();
+      const res = await consultationService.getOwnerConsultations({
+        status: statusFilter, priority: priorityFilter,
+        start_date: startDate, end_date: endDate,
+        search, branch_id: branchFilter, doctor_id: doctorFilter,
+      });
       setConsultations(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      setError(err?.response?.data?.message || t("admin.errorFetchingConsultations", { defaultValue: "Failed to load consultations" }));
+      setError(err?.response?.data?.message || t("owner.errorFetchingConsultations", { defaultValue: "Failed to load consultations" }));
       setConsultations([]);
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [statusFilter, priorityFilter, startDate, endDate, search, branchFilter, doctorFilter, t]);
 
   useEffect(() => { fetchConsultations(); }, [fetchConsultations]);
 
@@ -113,7 +142,7 @@ const ConsultationsPage = () => {
     return () => clearTimeout(id);
   }, [success]);
 
-  useEffect(() => { setPage(1); }, [search, statusFilter, priorityFilter]);
+  useEffect(() => { setPage(1); }, [statusFilter, priorityFilter, startDate, endDate, search, branchFilter, doctorFilter]);
 
   /* ── Detail ── */
   const handleOpenDetail = async (id) => {
@@ -128,7 +157,7 @@ const ConsultationsPage = () => {
       const res = await consultationService.getConsultationDetails(id);
       setDetailData(res.data);
     } catch {
-      setDetailError(t("admin.errorLoadingDetail", { defaultValue: "Could not load consultation details" }));
+      setDetailError(t("owner.errorLoadingDetail", { defaultValue: "Could not load consultation details" }));
     } finally {
       setLoadingDetail(false);
     }
@@ -159,7 +188,7 @@ const ConsultationsPage = () => {
         complete: markComplete,
       });
       setReplyText("");
-      setSuccess(t("admin.responseSent", { defaultValue: "Response sent successfully" }));
+      setSuccess(t("owner.responseSent", { defaultValue: "Response sent successfully" }));
       if (markComplete) {
         handleCloseDetail();
         fetchConsultations();
@@ -168,7 +197,7 @@ const ConsultationsPage = () => {
         setDetailData(res.data);
       }
     } catch {
-      setError(t("admin.errorSendingResponse", { defaultValue: "Failed to send response" }));
+      setError(t("owner.errorSendingResponse", { defaultValue: "Failed to send response" }));
     } finally {
       setSubmitting(false);
     }
@@ -182,31 +211,16 @@ const ConsultationsPage = () => {
       await consultationService.reopenConsultation(selectedId);
       const res = await consultationService.getConsultationDetails(selectedId);
       setDetailData(res.data);
-      setSuccess(t("admin.consultationReopened", { defaultValue: "Consultation reopened" }));
+      setSuccess(t("owner.consultationReopened", { defaultValue: "Consultation reopened" }));
       fetchConsultations();
     } catch {
-      setError(t("admin.errorReopening", { defaultValue: "Failed to reopen consultation" }));
+      setError(t("owner.errorReopening", { defaultValue: "Failed to reopen consultation" }));
     } finally {
       setSubmitting(false);
     }
   };
 
-  /* ── Derived data ── */
-  const filtered = useMemo(() => {
-    let list = consultations;
-    if (statusFilter) list = list.filter((c) => c.status === statusFilter);
-    if (priorityFilter) list = list.filter((c) => c.priority === priorityFilter);
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter((c) =>
-        c.patient_name?.toLowerCase().includes(q) ||
-        c.chief_complaint?.toLowerCase().includes(q) ||
-        c.doctor_name?.toLowerCase().includes(q)
-      );
-    }
-    return list;
-  }, [consultations, statusFilter, priorityFilter, search]);
-
+  /* ── Stats ── */
   const stats = useMemo(() => {
     const pending = consultations.filter((c) => c.status === "pending").length;
     const inProgress = consultations.filter((c) => c.status === "in_progress").length;
@@ -214,9 +228,10 @@ const ConsultationsPage = () => {
     return { total: consultations.length, pending, inProgress, completed };
   }, [consultations]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  /* ── Pagination ── */
+  const totalPages = Math.max(1, Math.ceil(consultations.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const paged = consultations.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const pageNumbers = [];
   for (let i = 1; i <= totalPages; i++) {
@@ -224,18 +239,21 @@ const ConsultationsPage = () => {
     else if (pageNumbers[pageNumbers.length - 1] !== "...") pageNumbers.push("...");
   }
 
-  const hasFilter = statusFilter || priorityFilter;
-  const clearFilters = () => { setStatusFilter(""); setPriorityFilter(""); };
+  const hasFilter = statusFilter || priorityFilter || branchFilter || doctorFilter || startDate || endDate;
+  const filterCount = [statusFilter, priorityFilter, branchFilter, doctorFilter, startDate, endDate].filter(Boolean).length;
+  const clearFilters = () => {
+    setStatusFilter(""); setPriorityFilter(""); setBranchFilter(""); setDoctorFilter(""); setStartDate(""); setEndDate("");
+  };
 
   const handleSearchSubmit = (e) => { e.preventDefault(); setSearch(searchInput.trim()); };
 
   const statusBadge = (status) => {
     const m = STATUS_MAP[status] || STATUS_MAP.pending;
-    return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${m.cls}`}>{t(`admin.status_${status}`, { defaultValue: m.label })}</span>;
+    return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${m.cls}`}>{m.label}</span>;
   };
   const priorityBadge = (priority) => {
     const m = PRIORITY_MAP[priority] || PRIORITY_MAP.normal;
-    return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${m.cls}`}>{t(`admin.priority_${priority}`, { defaultValue: m.label })}</span>;
+    return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${m.cls}`}>{m.label}</span>;
   };
 
   return (
@@ -249,23 +267,28 @@ const ConsultationsPage = () => {
           <div>
             <div className="flex items-center gap-2">
               <Stethoscope className="h-6 w-6 text-emerald-400" />
-              <h1 className="text-xl sm:text-2xl font-bold">{t("admin.consultationsManagement", { defaultValue: "Consultations" })}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold">
+                {t("owner.consultationsManagement", { defaultValue: "Consultations" })}
+              </h1>
             </div>
-            <p className="mt-1 text-sm text-slate-300">{t("admin.consultationsDesc", { defaultValue: "Monitor and manage all patient consultation requests" })}</p>
+            <p className="mt-1 text-sm text-slate-300">
+              {t("owner.consultationsDesc", { defaultValue: "Monitor all patient consultations across your branches" })}
+            </p>
           </div>
           <button onClick={fetchConsultations} disabled={loading}
             className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm font-medium backdrop-blur transition hover:bg-white/10 disabled:opacity-60">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />{t("common.refresh", { defaultValue: "Refresh" })}
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            {t("common.refresh", { defaultValue: "Refresh" })}
           </button>
         </div>
 
         {/* Stats */}
         <div className="relative mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: t("admin.totalConsultations", { defaultValue: "Total" }), value: stats.total, icon: FileText },
-            { label: t("admin.statusPending", { defaultValue: "Pending" }), value: stats.pending, icon: Clock },
-            { label: t("admin.statusInProgress", { defaultValue: "In progress" }), value: stats.inProgress, icon: MessageSquare },
-            { label: t("admin.statusCompleted", { defaultValue: "Completed" }), value: stats.completed, icon: CheckCircle2 },
+            { label: t("owner.totalConsultations", { defaultValue: "Total" }), value: stats.total, icon: FileText },
+            { label: t("owner.pending", { defaultValue: "Pending" }), value: stats.pending, icon: Clock },
+            { label: t("owner.inProgress", { defaultValue: "In progress" }), value: stats.inProgress, icon: MessageSquare },
+            { label: t("owner.completed", { defaultValue: "Completed" }), value: stats.completed, icon: CheckCircle2 },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="rounded-xl bg-white/5 px-4 py-3 backdrop-blur">
               <div className="flex items-center gap-2 text-slate-400">
@@ -296,7 +319,7 @@ const ConsultationsPage = () => {
           <form onSubmit={handleSearchSubmit} className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-dim" />
             <input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
-              placeholder={t("admin.searchConsultations", { defaultValue: "Search patient, doctor, complaint..." })}
+              placeholder={t("owner.searchConsultations", { defaultValue: "Search patient, doctor, complaint..." })}
               className="w-full rounded-xl border border-border-main bg-bg-app py-2.5 pl-9 pr-9 text-sm text-text-main outline-none transition focus:ring-2 focus:ring-emerald-500/40 dark:bg-slate-900" />
             {(search || searchInput) && (
               <button type="button" onClick={() => { setSearch(""); setSearchInput(""); }}
@@ -312,41 +335,97 @@ const ConsultationsPage = () => {
                 : "border-border-main text-text-main hover:bg-bg-app"
             }`}>
             <Filter className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("admin.filters", { defaultValue: "Filters" })}</span>
-            {hasFilter && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">{[statusFilter, priorityFilter].filter(Boolean).length}</span>}
+            <span className="hidden sm:inline">{t("owner.filters", { defaultValue: "Filters" })}</span>
+            {hasFilter && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">
+                {filterCount}
+              </span>
+            )}
             <ChevronDown className={`h-3 w-3 transition ${showFilters ? "rotate-180" : ""}`} />
           </button>
         </div>
 
         {showFilters && (
           <div className="rounded-xl border border-border-main bg-bg-surface p-4 dark:bg-slate-800">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="min-w-[140px]">
-                <label className="mb-1 block text-xs font-medium text-text-dim">{t("admin.status")}</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {/* Branch */}
+              <div>
+                <label className="mb-1 flex items-center gap-1 text-xs font-medium text-text-dim">
+                  <Building2 className="h-3 w-3" />
+                  {t("owner.branch", { defaultValue: "Branch" })}
+                </label>
+                <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)}
+                  className="w-full rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-900">
+                  <option value="">{t("owner.allBranches", { defaultValue: "All branches" })}</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Doctor */}
+              <div>
+                <label className="mb-1 flex items-center gap-1 text-xs font-medium text-text-dim">
+                  <Stethoscope className="h-3 w-3" />
+                  {t("owner.doctor", { defaultValue: "Doctor" })}
+                </label>
+                <select value={doctorFilter} onChange={(e) => setDoctorFilter(e.target.value)}
+                  className="w-full rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-900">
+                  <option value="">{t("owner.allDoctors", { defaultValue: "All doctors" })}</option>
+                  {doctors.map((d) => (
+                    <option key={d.id} value={d.id}>{d.full_name}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Status */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-text-dim">
+                  {t("owner.status", { defaultValue: "Status" })}
+                </label>
                 <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
                   className="w-full rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-900">
-                  <option value="">{t("admin.allStatuses", { defaultValue: "All statuses" })}</option>
-                  <option value="pending">{t("admin.statusPending", { defaultValue: "Pending" })}</option>
-                  <option value="in_progress">{t("admin.statusInProgress", { defaultValue: "In progress" })}</option>
-                  <option value="completed">{t("admin.statusCompleted", { defaultValue: "Completed" })}</option>
+                  <option value="">{t("owner.allStatuses", { defaultValue: "All statuses" })}</option>
+                  <option value="pending">{t("owner.statusPending", { defaultValue: "Pending" })}</option>
+                  <option value="in_progress">{t("owner.statusInProgress", { defaultValue: "In progress" })}</option>
+                  <option value="completed">{t("owner.statusCompleted", { defaultValue: "Completed" })}</option>
                 </select>
               </div>
-              <div className="min-w-[140px]">
-                <label className="mb-1 block text-xs font-medium text-text-dim">{t("admin.priority", { defaultValue: "Priority" })}</label>
+              {/* Priority */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-text-dim">
+                  {t("owner.priority", { defaultValue: "Priority" })}
+                </label>
                 <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}
                   className="w-full rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-900">
-                  <option value="">{t("admin.allPriorities", { defaultValue: "All priorities" })}</option>
-                  <option value="high">{t("admin.priority_high", { defaultValue: "High" })}</option>
-                  <option value="normal">{t("admin.priority_normal", { defaultValue: "Normal" })}</option>
+                  <option value="">{t("owner.allPriorities", { defaultValue: "All priorities" })}</option>
+                  <option value="high">{t("owner.priorityHigh", { defaultValue: "High" })}</option>
+                  <option value="normal">{t("owner.priorityNormal", { defaultValue: "Normal" })}</option>
                 </select>
               </div>
-              {hasFilter && (
+              {/* From date */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-text-dim">
+                  {t("owner.fromDate", { defaultValue: "From date" })}
+                </label>
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-900" />
+              </div>
+              {/* To date */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-text-dim">
+                  {t("owner.toDate", { defaultValue: "To date" })}
+                </label>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full rounded-lg border border-border-main bg-bg-app px-3 py-2 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:bg-slate-900" />
+              </div>
+            </div>
+            {hasFilter && (
+              <div className="mt-3">
                 <button onClick={clearFilters}
                   className="rounded-lg border border-border-main px-3 py-2 text-xs font-medium text-text-dim transition hover:bg-bg-app">
-                  {t("admin.clearFilters", { defaultValue: "Clear filters" })}
+                  {t("owner.clearFilters", { defaultValue: "Clear filters" })}
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -358,12 +437,13 @@ const ConsultationsPage = () => {
             <thead className="bg-bg-app dark:bg-slate-900/60">
               <tr>
                 {[
-                  t("admin.patient", { defaultValue: "Patient" }),
-                  t("admin.doctor", { defaultValue: "Doctor" }),
-                  t("admin.chiefComplaint", { defaultValue: "Chief complaint" }),
-                  t("admin.createdAt", { defaultValue: "Created" }),
-                  t("admin.priority", { defaultValue: "Priority" }),
-                  t("admin.status"),
+                  t("owner.patient", { defaultValue: "Patient" }),
+                  t("owner.doctorLabel", { defaultValue: "Doctor" }),
+                  t("owner.branchLabel", { defaultValue: "Branch" }),
+                  t("owner.chiefComplaint", { defaultValue: "Chief complaint" }),
+                  t("owner.createdAt", { defaultValue: "Created" }),
+                  t("owner.priority", { defaultValue: "Priority" }),
+                  t("owner.statusLabel", { defaultValue: "Status" }),
                 ].map((h, i) => (
                   <th key={i} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.07em] text-text-dim">{h}</th>
                 ))}
@@ -373,7 +453,7 @@ const ConsultationsPage = () => {
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} i={i} />)
               ) : paged.length === 0 ? (
-                <tr><td colSpan={6} className="py-16 text-center text-sm text-text-dim">{t("admin.noConsultationsFound", { defaultValue: "No consultations found" })}</td></tr>
+                <tr><td colSpan={7} className="py-16 text-center text-sm text-text-dim">{t("owner.noConsultationsFound", { defaultValue: "No consultations found" })}</td></tr>
               ) : paged.map((c) => (
                 <tr key={c.id} onClick={() => handleOpenDetail(c.id)}
                   className="group cursor-pointer hover:bg-bg-app dark:hover:bg-slate-900/40 transition">
@@ -383,10 +463,20 @@ const ConsultationsPage = () => {
                   </td>
                   <td className="px-4 py-3">
                     {c.doctor_name ? (
-                      <p className="text-sm text-text-main">{c.doctor_name}</p>
+                      <>
+                        <p className="text-sm text-text-main">{c.doctor_name}</p>
+                        {c.doctor_code && <p className="text-xs text-text-dim">{c.doctor_code}</p>}
+                      </>
                     ) : (
-                      <span className="text-xs italic text-text-dim">{t("admin.unassigned", { defaultValue: "Unassigned" })}</span>
+                      <span className="text-xs italic text-text-dim">{t("owner.unassigned", { defaultValue: "Unassigned" })}</span>
                     )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.branch_names ? (
+                      <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+                        {c.branch_names}
+                      </span>
+                    ) : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <p className="max-w-[240px] truncate text-sm text-text-main" title={c.chief_complaint}>{c.chief_complaint}</p>
@@ -411,7 +501,7 @@ const ConsultationsPage = () => {
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} i={i} />)
         ) : paged.length === 0 ? (
-          <p className="py-12 text-center text-sm text-text-dim">{t("admin.noConsultationsFound", { defaultValue: "No consultations found" })}</p>
+          <p className="py-12 text-center text-sm text-text-dim">{t("owner.noConsultationsFound", { defaultValue: "No consultations found" })}</p>
         ) : paged.map((c) => (
           <div key={c.id} onClick={() => handleOpenDetail(c.id)}
             className="cursor-pointer rounded-2xl border border-border-main bg-bg-surface p-4 shadow-sm transition active:scale-[0.99] dark:bg-slate-800">
@@ -425,21 +515,27 @@ const ConsultationsPage = () => {
 
             <p className="mt-2 line-clamp-2 text-sm text-text-dim">{c.chief_complaint}</p>
 
-            <div className="mt-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {priorityBadge(c.priority)}
-                {c.doctor_name ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
-                    <User className="h-3 w-3" />{c.doctor_name}
-                  </span>
-                ) : (
-                  <span className="text-xs italic text-text-dim">{t("admin.unassigned", { defaultValue: "Unassigned" })}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-text-dim">
-                {c.response_count > 0 && <span className="inline-flex items-center gap-0.5"><MessageSquare className="h-3 w-3" />{c.response_count}</span>}
-                <span>{fmtDate(c.created_at)}</span>
-              </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {priorityBadge(c.priority)}
+              {c.doctor_name ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+                  <User className="h-3 w-3" />{c.doctor_name}
+                </span>
+              ) : (
+                <span className="text-xs italic text-text-dim">{t("owner.unassigned", { defaultValue: "Unassigned" })}</span>
+              )}
+              {c.branch_names && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300">
+                  <Building2 className="h-3 w-3" />{c.branch_names}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-2 flex items-center justify-between text-xs text-text-dim">
+              {c.response_count > 0 && (
+                <span className="inline-flex items-center gap-0.5"><MessageSquare className="h-3 w-3" />{c.response_count}</span>
+              )}
+              <span>{fmtDate(c.created_at)}</span>
             </div>
           </div>
         ))}
@@ -475,7 +571,7 @@ const ConsultationsPage = () => {
             <div className="flex items-center justify-between border-b border-border-main bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 sm:px-6 py-4 text-white">
               <div className="flex items-center gap-2">
                 <Stethoscope className="h-5 w-5" />
-                <h3 className="font-bold">{t("admin.consultationDetail", { defaultValue: "Consultation Detail" })}</h3>
+                <h3 className="font-bold">{t("owner.consultationDetail", { defaultValue: "Consultation Detail" })}</h3>
               </div>
               <button onClick={handleCloseDetail} className="rounded-lg p-1 transition hover:bg-white/20">
                 <X className="h-5 w-5" />
@@ -485,8 +581,8 @@ const ConsultationsPage = () => {
             {/* Mobile Tab Switcher */}
             <div className="flex border-b border-border-main md:hidden">
               {[
-                { key: "info", label: t("admin.information", { defaultValue: "Info" }), icon: FileText },
-                { key: "chat", label: t("admin.chatHistory", { defaultValue: "Chat" }), icon: MessageSquare },
+                { key: "info", label: t("owner.information", { defaultValue: "Info" }), icon: FileText },
+                { key: "chat", label: t("owner.chatHistory", { defaultValue: "Chat" }), icon: MessageSquare },
               ].map(({ key, label, icon: TabIcon }) => (
                 <button key={key} onClick={() => setDetailTab(key)}
                   className={`flex flex-1 items-center justify-center gap-1.5 py-3 text-sm font-medium transition ${
@@ -542,11 +638,15 @@ const ConsultationsPage = () => {
 
                   {/* Chief Complaint */}
                   <div className="mt-3 rounded-xl border border-border-main bg-bg-surface p-4 shadow-sm dark:bg-slate-800">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-text-dim">{t("admin.chiefComplaint", { defaultValue: "Chief complaint" })}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-text-dim">
+                      {t("owner.chiefComplaint", { defaultValue: "Chief complaint" })}
+                    </p>
                     <p className="mt-1 text-sm text-text-main">{detailData.chief_complaint}</p>
                     {detailData.symptoms && (
                       <>
-                        <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-text-dim">{t("admin.symptoms", { defaultValue: "Symptoms" })}</p>
+                        <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-text-dim">
+                          {t("owner.symptoms", { defaultValue: "Symptoms" })}
+                        </p>
                         <p className="mt-1 whitespace-pre-wrap text-sm text-text-main">{detailData.symptoms}</p>
                       </>
                     )}
@@ -557,13 +657,17 @@ const ConsultationsPage = () => {
                     <div className="mt-3 rounded-xl border border-border-main bg-bg-surface p-4 shadow-sm dark:bg-slate-800">
                       {detailData.medical_history && (
                         <>
-                          <p className="text-xs font-semibold uppercase tracking-wider text-text-dim">{t("admin.medicalHistory", { defaultValue: "Medical history" })}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-text-dim">
+                            {t("owner.medicalHistory", { defaultValue: "Medical history" })}
+                          </p>
                           <p className="mt-1 whitespace-pre-wrap text-sm text-text-main">{detailData.medical_history}</p>
                         </>
                       )}
                       {detailData.allergies && (
                         <>
-                          <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-text-dim">{t("admin.allergies", { defaultValue: "Allergies" })}</p>
+                          <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-text-dim">
+                            {t("owner.allergies", { defaultValue: "Allergies" })}
+                          </p>
                           <p className="mt-1 text-sm text-red-600 dark:text-red-400">{detailData.allergies}</p>
                         </>
                       )}
@@ -574,7 +678,7 @@ const ConsultationsPage = () => {
                   <div className="mt-3 rounded-xl border border-border-main bg-bg-surface p-4 shadow-sm dark:bg-slate-800">
                     <p className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-text-dim">
                       <ImageIcon className="h-3.5 w-3.5" />
-                      {t("admin.attachedImages", { defaultValue: "Attached images" })} ({detailData.images?.length || 0})
+                      {t("owner.attachedImages", { defaultValue: "Attached images" })} ({detailData.images?.length || 0})
                     </p>
                     {detailData.images?.length > 0 ? (
                       <div className="mt-2 grid grid-cols-2 gap-2">
@@ -587,7 +691,7 @@ const ConsultationsPage = () => {
                         ))}
                       </div>
                     ) : (
-                      <p className="mt-2 text-xs italic text-text-dim">{t("admin.noImages", { defaultValue: "No images attached" })}</p>
+                      <p className="mt-2 text-xs italic text-text-dim">{t("owner.noImages", { defaultValue: "No images attached" })}</p>
                     )}
                   </div>
                 </div>
@@ -597,8 +701,8 @@ const ConsultationsPage = () => {
 
                   {/* Desktop Header */}
                   <div className="hidden items-center justify-between border-b border-border-main px-6 py-3 md:flex">
-                    <h4 className="text-sm font-bold text-text-main">{t("admin.chatHistory", { defaultValue: "Chat & Responses" })}</h4>
-                    <span className="text-xs text-text-dim">{detailData.responses?.length || 0} {t("admin.messages", { defaultValue: "messages" })}</span>
+                    <h4 className="text-sm font-bold text-text-main">{t("owner.chatHistory", { defaultValue: "Chat & Responses" })}</h4>
+                    <span className="text-xs text-text-dim">{detailData.responses?.length || 0} {t("owner.messages", { defaultValue: "messages" })}</span>
                   </div>
 
                   {/* Messages */}
@@ -606,7 +710,7 @@ const ConsultationsPage = () => {
                     {!detailData.responses?.length ? (
                       <div className="flex flex-1 flex-col items-center justify-center gap-2 text-text-dim">
                         <MessageSquare className="h-8 w-8 opacity-30" />
-                        <p className="text-sm">{t("admin.noResponses", { defaultValue: "No responses yet" })}</p>
+                        <p className="text-sm">{t("owner.noResponses", { defaultValue: "No responses yet" })}</p>
                       </div>
                     ) : (
                       detailData.responses.map((msg) => {
@@ -634,19 +738,25 @@ const ConsultationsPage = () => {
                   {detailData.status !== "completed" ? (
                     <form onSubmit={handleSubmitResponse} className="border-t border-border-main bg-bg-surface p-3 sm:p-4 dark:bg-slate-800">
                       <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)}
-                        placeholder={t("admin.typeResponse", { defaultValue: "Type your response..." })}
+                        placeholder={t("owner.typeResponse", { defaultValue: "Type your response..." })}
                         className="w-full resize-none rounded-xl border border-border-main bg-bg-app p-3 text-sm text-text-main placeholder:text-text-dim focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 dark:bg-slate-900"
                         rows="3" required />
                       <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <label className="flex items-center cursor-pointer select-none">
                           <input type="checkbox" checked={markComplete} onChange={(e) => setMarkComplete(e.target.checked)}
                             className="mr-2 h-4 w-4 cursor-pointer rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                          <span className="text-xs sm:text-sm font-medium text-text-dim">{t("admin.markComplete", { defaultValue: "Mark as completed" })}</span>
+                          <span className="text-xs sm:text-sm font-medium text-text-dim">
+                            {t("owner.markComplete", { defaultValue: "Mark as completed" })}
+                          </span>
                         </label>
                         <button type="submit" disabled={submitting || !replyText.trim()}
                           className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 disabled:opacity-50">
                           <Send className="h-4 w-4" />
-                          {submitting ? t("common.sending", { defaultValue: "Sending..." }) : (markComplete ? t("admin.sendAndClose", { defaultValue: "Send & Close" }) : t("admin.send", { defaultValue: "Send" }))}
+                          {submitting
+                            ? t("common.sending", { defaultValue: "Sending..." })
+                            : markComplete
+                              ? t("owner.sendAndClose", { defaultValue: "Send & Close" })
+                              : t("owner.send", { defaultValue: "Send" })}
                         </button>
                       </div>
                     </form>
@@ -654,11 +764,11 @@ const ConsultationsPage = () => {
                     <div className="flex items-center justify-between border-t border-border-main bg-bg-app px-4 py-3 dark:bg-slate-900/30">
                       <p className="text-sm font-medium italic text-text-dim">
                         <CheckCircle2 className="mr-1 inline h-4 w-4 text-emerald-500" />
-                        {t("admin.consultationCompleted", { defaultValue: "This consultation has been completed" })}
+                        {t("owner.consultationCompleted", { defaultValue: "This consultation has been completed" })}
                       </p>
                       <button onClick={handleReopen} disabled={submitting}
                         className="rounded-lg border border-border-main px-3 py-1.5 text-xs font-medium text-text-dim transition hover:bg-bg-surface disabled:opacity-50">
-                        {t("admin.reopen", { defaultValue: "Reopen" })}
+                        {t("owner.reopen", { defaultValue: "Reopen" })}
                       </button>
                     </div>
                   )}
@@ -666,7 +776,7 @@ const ConsultationsPage = () => {
               </div>
             ) : (
               <div className="flex flex-1 items-center justify-center p-10">
-                <p className="text-sm text-red-600 dark:text-red-400">{t("admin.unexpectedError", { defaultValue: "An unexpected error occurred" })}</p>
+                <p className="text-sm text-red-600 dark:text-red-400">{t("owner.unexpectedError", { defaultValue: "An unexpected error occurred" })}</p>
               </div>
             )}
           </div>
@@ -676,4 +786,4 @@ const ConsultationsPage = () => {
   );
 };
 
-export default ConsultationsPage;
+export default MyConsultationsPage;

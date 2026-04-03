@@ -62,6 +62,19 @@ export const appointmentService = {
       return response.data;
     },
 
+  // Clinic Owner: Lấy tất cả lịch khám thuộc chi nhánh của owner
+  getAllAppointmentsOwner: async ({ status, start_date, end_date, search, branch_id, doctor_id } = {}) => {
+    const params = {};
+    if (status)     params.status     = status;
+    if (start_date) params.start_date = start_date;
+    if (end_date)   params.end_date   = end_date;
+    if (search)     params.search     = search;
+    if (branch_id)  params.branch_id  = branch_id;
+    if (doctor_id)  params.doctor_id  = doctor_id;
+    const response = await api.get("/appointments/owner/all", { params });
+    return response.data;
+  },
+
   // Đổi trạng thái lịch khám (Bác sĩ/Admin)
   updateStatus: async (appointmentId, status, cancellation_reason = "") => {
     const response = await api.put(`/appointments/${appointmentId}/status`, { status, cancellation_reason });

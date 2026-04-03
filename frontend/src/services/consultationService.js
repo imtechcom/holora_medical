@@ -42,4 +42,18 @@ export const consultationService = {
     const response = await api.patch(`/consultations/${id}/reopen`);
     return response.data;
   },
+
+  // Clinic Owner: Lấy tất cả tư vấn thuộc chi nhánh
+  getOwnerConsultations: async ({ status, priority, start_date, end_date, search, branch_id, doctor_id } = {}) => {
+    const params = {};
+    if (status)     params.status     = status;
+    if (priority)   params.priority   = priority;
+    if (start_date) params.start_date = start_date;
+    if (end_date)   params.end_date   = end_date;
+    if (search)     params.search     = search;
+    if (branch_id)  params.branch_id  = branch_id;
+    if (doctor_id)  params.doctor_id  = doctor_id;
+    const response = await api.get("/consultations/owner/all", { params });
+    return response.data;
+  },
 };

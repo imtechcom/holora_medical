@@ -25,10 +25,16 @@ const confirmPayment = async (payload) => {
   return response.data;
 };
 
+const getPaymentHistory = async () => {
+  const response = await api.get("/subscriptions/payment-history");
+  return response.data;
+};
+
 export default {
   getPlans,
   getMySubscriptions,
   activateSubscription,
   createPayment,
   confirmPayment,
+  getPaymentHistory,
 };

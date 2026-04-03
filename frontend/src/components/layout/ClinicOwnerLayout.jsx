@@ -62,6 +62,16 @@ const ClinicOwnerLayout = ({ children }) => {
               <span>{t("clinicOwner.myPatients") || "My Patients"}</span>
             </NavLink>
 
+            <NavLink to="/clinic-owner/appointments" className={navClass}>
+              <span>📅</span>
+              <span>{t("clinicOwner.myAppointments") || "Appointments"}</span>
+            </NavLink>
+
+            <NavLink to="/clinic-owner/consultations" className={navClass}>
+              <span>💬</span>
+              <span>{t("clinicOwner.myConsultations") || "Consultations"}</span>
+            </NavLink>
+
             <div className="pt-3 pb-1">
               <p className="px-4 text-xs font-semibold uppercase tracking-wider text-text-dim">
                 {t("clinicOwner.billing") || "Billing"}

@@ -66,7 +66,8 @@ import SpecialtyFormPage from "../pages/admin/SpecialtyFormPage";
 import BranchesPage from "../pages/admin/BranchesPage";
 import BranchFormPage from "../pages/admin/BranchFormPage";
 import AppointmentsAdminPage from "../pages/admin/AppointmentsAdminPage";
-import DoctorSchedulePage from "../pages/admin/DoctorSchedulePage";
+import DoctorScheduleAdminPage from "../pages/admin/DoctorSchedulePage";
+import DoctorSchedulePage from "../pages/doctor/DoctorSchedulePage";
 import SchedulesAdminPage from "../pages/admin/SchedulesAdminPage";
 import ConsultationsPage from "../pages/admin/ConsultationsPage";
 

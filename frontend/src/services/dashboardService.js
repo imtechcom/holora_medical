@@ -9,4 +9,8 @@ export const dashboardService = {
     const response = await api.get('/dashboard/analytics');
     return response.data;
   },
+  getDoctorDashboard: async () => {
+    const response = await api.get('/dashboard/doctor');
+    return response.data;
+  },
 };

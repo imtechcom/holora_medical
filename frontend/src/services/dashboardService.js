@@ -13,4 +13,8 @@ export const dashboardService = {
     const response = await api.get('/dashboard/doctor');
     return response.data;
   },
+  getPatientDashboard: async () => {
+    const response = await api.get('/dashboard/patient');
+    return response.data;
+  },
 };

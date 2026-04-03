@@ -242,4 +242,137 @@ module.exports = {
   getDashboardStats,
   getAnalytics,
   getDoctorDashboard,
+  getPatientDashboard,
+};
+
+// ─── Patient-specific dashboard ───────────────────────────────────────────────
+const getPatientDashboard = async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ message: 'User not authenticated' });
+
+  try {
+    const patientRows = await queryAsync(
+      `SELECT p.id, p.full_name, p.patient_code, p.phone, p.email, p.gender,
+              p.date_of_birth, p.address, p.blood_group, p.allergies,
+              p.medical_history, p.avatar_url,
+              u.email AS user_email
+       FROM patient p
+       LEFT JOIN users u ON u.id = p.user_id
+       WHERE p.user_id = ? AND (p.status != 'blocked' OR p.status IS NULL)
+       LIMIT 1`,
+      [userId]
+    );
+    if (!patientRows.length) {
+      return res.status(404).json({ message: 'Patient profile not found' });
+    }
+    const patient = patientRows[0];
+    const patientId = patient.id;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const [
+      upcomingAppointments,
+      totalAppointments,
+      pendingConsultations,
+      completedConsultations,
+      totalConsultations,
+      recentAppointments,
+      recentConsultations,
+      nextAppointment,
+      appointmentsByStatus,
+    ] = await Promise.all([
+      queryAsync(
+        `SELECT COUNT(*) AS count FROM appointment
+         WHERE patient_id = ? AND appointment_date >= ? AND status IN ('confirmed','scheduled')`,
+        [patientId, today]
+      ),
+      queryAsync(
+        `SELECT COUNT(*) AS count FROM appointment WHERE patient_id = ?`,
+        [patientId]
+      ),
+      queryAsync(
+        `SELECT COUNT(*) AS count FROM consultation
+         WHERE patient_id = ? AND status IN ('pending','in_progress')`,
+        [patientId]
+      ),
+      queryAsync(
+        `SELECT COUNT(*) AS count FROM consultation
+         WHERE patient_id = ? AND status = 'completed'`,
+        [patientId]
+      ),
+      queryAsync(
+        `SELECT COUNT(*) AS count FROM consultation WHERE patient_id = ?`,
+        [patientId]
+      ),
+      queryAsync(
+        `SELECT a.id, a.appointment_code, a.appointment_date, a.start_time, a.end_time,
+                a.status, a.appointment_type, a.reason,
+                d.full_name AS doctor_name, s.name AS specialty_name
+         FROM appointment a
+         LEFT JOIN doctor d ON d.id = a.doctor_id
+         LEFT JOIN specialty s ON s.id = d.specialty_id
+         WHERE a.patient_id = ?
+         ORDER BY a.appointment_date DESC, a.start_time DESC LIMIT 5`,
+        [patientId]
+      ),
+      queryAsync(
+        `SELECT c.id, c.chief_complaint, c.status, c.created_at,
+                d.full_name AS doctor_name
+         FROM consultation c
+         LEFT JOIN doctor d ON d.id = c.doctor_id
+         WHERE c.patient_id = ?
+         ORDER BY c.created_at DESC LIMIT 5`,
+        [patientId]
+      ),
+      queryAsync(
+        `SELECT a.id, a.appointment_code, a.appointment_date, a.start_time, a.end_time,
+                a.status, a.appointment_type,
+                d.full_name AS doctor_name, s.name AS specialty_name,
+                b.name AS branch_name
+         FROM appointment a
+         LEFT JOIN doctor d ON d.id = a.doctor_id
+         LEFT JOIN specialty s ON s.id = d.specialty_id
+         LEFT JOIN branch b ON b.id = a.branch_id
+         WHERE a.patient_id = ? AND a.appointment_date >= ? AND a.status IN ('confirmed','scheduled')
+         ORDER BY a.appointment_date ASC, a.start_time ASC LIMIT 1`,
+        [patientId, today]
+      ),
+      queryAsync(
+        `SELECT status, COUNT(*) AS count FROM appointment WHERE patient_id = ? GROUP BY status`,
+        [patientId]
+      ),
+    ]);
+
+    // Profile completeness
+    const fields = ['full_name','phone','email','gender','date_of_birth','address','blood_group','allergies','emergency_contact_name'];
+    const filled = fields.filter(f => patient[f] && String(patient[f]).trim()).length;
+    const profilePercent = Math.round((filled / fields.length) * 100);
+
+    return res.json({
+      patient: {
+        id: patientId,
+        full_name: patient.full_name,
+        patient_code: patient.patient_code,
+        avatar_url: patient.avatar_url,
+        email: patient.email || patient.user_email,
+        phone: patient.phone,
+        gender: patient.gender,
+        blood_group: patient.blood_group,
+        profile_percent: profilePercent,
+      },
+      stats: {
+        upcoming_appointments: upcomingAppointments[0]?.count || 0,
+        total_appointments: totalAppointments[0]?.count || 0,
+        pending_consultations: pendingConsultations[0]?.count || 0,
+        completed_consultations: completedConsultations[0]?.count || 0,
+        total_consultations: totalConsultations[0]?.count || 0,
+      },
+      next_appointment: nextAppointment[0] || null,
+      recent_appointments: recentAppointments,
+      recent_consultations: recentConsultations,
+      appointments_by_status: appointmentsByStatus,
+    });
+  } catch (err) {
+    console.error('Get patient dashboard error:', err);
+    return res.status(500).json({ message: 'Database error', error: err.message });
+  }
 };

@@ -1,188 +1,111 @@
-import React, { useEffect, useState } from "react";
-import { AlertCircle, CalendarDays, Loader2, MessageSquare, RefreshCw, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { AlertCircle, CalendarDays, Loader2, MessageSquare, RefreshCw, Sparkles, UserRound } from "lucide-react";
 import { getMyDoctorsApi } from "../services/patientService";
 
-const formatDate = (value) => {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return `${value}`;
-  return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+const fmtDate = (v) => { if (!v) return "—"; const d = new Date(v); return Number.isNaN(d.getTime()) ? `${v}` : d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }); };
+
+const Avatar = ({ url, name }) => {
+  if (url) return <img src={url} alt={name} className="h-11 w-11 rounded-full object-cover shrink-0" />;
+  const ini = (name || "?").split(" ").filter(Boolean).slice(-2).map(w => w[0]).join("").toUpperCase();
+  return <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-100 text-base font-semibold text-rose-600 dark:bg-rose-900/20 dark:text-rose-300">{ini}</div>;
 };
 
-const Avatar = ({ avatarUrl, name, size = "md" }) => {
-  const sizeClass = size === "lg" ? "w-14 h-14 text-xl" : "w-11 h-11 text-base";
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={name}
-        className={`${sizeClass} rounded-full object-cover flex-shrink-0`}
-      />
-    );
-  }
-  const initials = (name || "?")
-    .split(" ")
-    .filter(Boolean)
-    .slice(-2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-  return (
-    <div
-      className={`${sizeClass} rounded-full bg-red-100 text-red-600 flex items-center justify-center font-semibold flex-shrink-0`}
-    >
-      {initials}
-    </div>
-  );
-};
-
-const DoctorCard = ({ doctor, type }) => {
+const DoctorCard = ({ doctor, type, t }) => {
   const isAppt = type === "appointment";
   const count = isAppt ? doctor.appointment_count : doctor.consultation_count;
   const lastDate = isAppt ? doctor.last_appointment_date : doctor.last_consultation_date;
-  const countLabel = isAppt ? "lịch hẹn" : "tư vấn";
-
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 flex items-start gap-3 shadow-sm hover:shadow-md transition-shadow">
-      <Avatar avatarUrl={doctor.avatar_url} name={doctor.full_name} />
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-900 dark:text-white text-sm leading-tight truncate">
-          BS. {doctor.full_name}
-        </p>
-        {doctor.specialty_name && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {doctor.specialty_name}
-          </p>
-        )}
-        <div className="flex items-center gap-3 mt-2 flex-wrap">
-          <span className="inline-flex items-center gap-1 text-xs font-medium bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 px-2 py-0.5 rounded-full">
-            {isAppt ? <CalendarDays className="w-3 h-3" /> : <MessageSquare className="w-3 h-3" />}
-            {count} {countLabel}
+    <div className="flex items-start gap-3 rounded-2xl border border-border-main bg-bg-surface p-4 shadow-sm transition hover:shadow-md dark:bg-slate-800">
+      <Avatar url={doctor.avatar_url} name={doctor.full_name} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold leading-tight text-text-main">Dr. {doctor.full_name}</p>
+        {doctor.specialty_name && <p className="mt-0.5 truncate text-xs text-text-dim">{doctor.specialty_name}</p>}
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600 dark:bg-rose-900/20 dark:text-rose-400">
+            {isAppt ? <CalendarDays className="h-3 w-3" /> : <MessageSquare className="h-3 w-3" />}
+            {count} {isAppt ? t("patient.myDoctors.appointments", { defaultValue: "appointments" }) : t("patient.myDoctors.consultations", { defaultValue: "consultations" })}
           </span>
-          <span className="text-xs text-gray-400">Lần cuối: {formatDate(lastDate)}</span>
+          <span className="text-xs text-text-dim">{t("patient.myDoctors.lastVisit", { defaultValue: "Last" })}: {fmtDate(lastDate)}</span>
         </div>
       </div>
     </div>
   );
 };
 
-const Section = ({ title, icon, doctors, type, emptyMsg }) => {
-  const SectionIcon = icon;
-  return (
+const Section = ({ title, icon: Icon, doctors, type, emptyMsg, t }) => (
   <div>
-    <div className="flex items-center gap-2 mb-4">
-      <div className="w-8 h-8 rounded-xl bg-red-100 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
-        <SectionIcon className="w-4 h-4 text-red-500" />
-      </div>
-      <h2 className="text-base font-bold text-gray-900 dark:text-white">{title}</h2>
-      <span className="ml-auto text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full">
-        {doctors.length}
-      </span>
+    <div className="mb-4 flex items-center gap-2">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 dark:bg-rose-900/20"><Icon className="h-4 w-4 text-rose-500" /></div>
+      <h2 className="text-base font-bold text-text-main">{title}</h2>
+      <span className="ml-auto rounded-full bg-bg-app px-2 py-0.5 text-xs font-medium text-text-dim dark:bg-slate-700">{doctors.length}</span>
     </div>
     {doctors.length === 0 ? (
-      <div className="text-center py-10 text-gray-400 dark:text-gray-500 text-sm bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-        {emptyMsg}
-      </div>
+      <div className="rounded-2xl border border-dashed border-border-main bg-bg-app py-10 text-center text-sm text-text-dim">{emptyMsg}</div>
     ) : (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {doctors.map((doc) => (
-          <DoctorCard key={doc.id} doctor={doc} type={type} />
-        ))}
-      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{doctors.map(d => <DoctorCard key={d.id} doctor={d} type={type} t={t} />)}</div>
     )}
   </div>
-  );
-};
+);
 
 const PatientMyDoctorsPage = () => {
+  const { t } = useTranslation();
   const [data, setData] = useState({ appointments: [], consultations: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const res = await getMyDoctorsApi();
-      setData(res.data || { appointments: [], consultations: [] });
-    } catch (err) {
-      console.error("getMyDoctors error:", err);
-      setError(err.response?.data?.message || err.message || "Không thể tải danh sách bác sĩ");
-    } finally {
-      setLoading(false);
-    }
+    try { setLoading(true); setError(""); const res = await getMyDoctorsApi(); setData(res.data || { appointments: [], consultations: [] }); }
+    catch (err) { setError(err.response?.data?.message || err.message || t("common.loadError", { defaultValue: "Failed to load data" })); }
+    finally { setLoading(false); }
   };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="space-y-6">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-b-[32px] bg-gradient-to-br from-[#E06666] via-red-500 to-rose-600 px-5 pt-10 pb-8 mb-6">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,white,transparent_60%)]" />
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 px-6 py-8 shadow-lg sm:px-8 sm:py-10">
+        <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-rose-500/10 blur-3xl" />
         <div className="relative">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
-              <UserRound className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-xl font-bold text-white">Bác sĩ của tôi</h1>
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20"><UserRound className="h-5 w-5 text-white" /></div>
+            <h1 className="text-xl font-bold text-white">{t("patient.myDoctors.title", { defaultValue: "My Doctors" })}</h1>
           </div>
-          <p className="text-red-100 text-sm">Danh sách bác sĩ bạn đã tương tác</p>
+          <p className="text-sm text-slate-400">{t("patient.myDoctors.subtitle", { defaultValue: "Doctors you have interacted with" })}</p>
           {!loading && (
-            <div className="flex gap-3 mt-4">
-              <div className="bg-white/15 rounded-xl px-3 py-2 text-center min-w-[70px]">
-                <p className="text-white text-lg font-bold">{data.appointments.length}</p>
-                <p className="text-red-100 text-xs">Đặt lịch</p>
+            <div className="mt-4 flex gap-3">
+              <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-center">
+                <p className="text-lg font-bold text-white">{data.appointments.length}</p>
+                <p className="text-xs text-slate-400">{t("patient.myDoctors.byAppointment", { defaultValue: "Appointments" })}</p>
               </div>
-              <div className="bg-white/15 rounded-xl px-3 py-2 text-center min-w-[70px]">
-                <p className="text-white text-lg font-bold">{data.consultations.length}</p>
-                <p className="text-red-100 text-xs">Tư vấn</p>
+              <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-center">
+                <p className="text-lg font-bold text-white">{data.consultations.length}</p>
+                <p className="text-xs text-slate-400">{t("patient.myDoctors.byConsultation", { defaultValue: "Consultations" })}</p>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      <div className="px-4 pb-10 space-y-8 max-w-5xl mx-auto">
-        {/* Error */}
-        {error && (
-          <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 text-sm text-red-700 dark:text-red-400">
-            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">{error}</div>
-            <button onClick={fetchData} className="flex items-center gap-1 text-xs font-medium underline hover:no-underline">
-              <RefreshCw className="w-3 h-3" />
-              Thử lại
-            </button>
-          </div>
-        )}
+      {error && (
+        <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div className="flex-1">{error}</div>
+          <button onClick={fetchData} className="flex items-center gap-1 text-xs font-medium underline hover:no-underline"><RefreshCw className="h-3 w-3" /> {t("common.retry", { defaultValue: "Retry" })}</button>
+        </div>
+      )}
 
-        {/* Loading */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
-            <Loader2 className="w-8 h-8 animate-spin text-red-400" />
-            <p className="text-sm">Đang tải...</p>
-          </div>
-        ) : (
-          <>
-            <Section
-              title="Bác sĩ đã đặt lịch hẹn"
-              icon={CalendarDays}
-              doctors={data.appointments}
-              type="appointment"
-              emptyMsg="Bạn chưa đặt lịch hẹn với bác sĩ nào"
-            />
-            <Section
-              title="Bác sĩ đã tư vấn"
-              icon={MessageSquare}
-              doctors={data.consultations}
-              type="consultation"
-              emptyMsg="Bạn chưa có cuộc tư vấn nào"
-            />
-          </>
-        )}
-      </div>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-20 text-text-dim">
+          <Loader2 className="h-8 w-8 animate-spin text-rose-400" />
+          <p className="text-sm">{t("common.loading", { defaultValue: "Loading..." })}</p>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          <Section title={t("patient.myDoctors.appointmentDoctors", { defaultValue: "Appointment Doctors" })} icon={CalendarDays} doctors={data.appointments} type="appointment" emptyMsg={t("patient.myDoctors.noAppointmentDoctors", { defaultValue: "No doctors from appointments yet" })} t={t} />
+          <Section title={t("patient.myDoctors.consultationDoctors", { defaultValue: "Consultation Doctors" })} icon={MessageSquare} doctors={data.consultations} type="consultation" emptyMsg={t("patient.myDoctors.noConsultationDoctors", { defaultValue: "No doctors from consultations yet" })} t={t} />
+        </div>
+      )}
     </div>
   );
 };

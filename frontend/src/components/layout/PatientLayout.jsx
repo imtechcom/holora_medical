@@ -23,8 +23,8 @@ const PatientLayout = ({ children }) => {
 
   const navClass = ({ isActive }) =>
     isActive
-      ? "flex items-center gap-3 rounded-lg bg-[#E06666] px-4 py-2.5 text-white font-medium transition"
-      : "flex items-center gap-3 rounded-lg px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-[#FFF5F5] dark:hover:bg-slate-800 hover:text-[#E06666] transition";
+      ? "flex items-center gap-3 rounded-lg bg-rose-500 px-4 py-2.5 text-white font-medium transition"
+      : "flex items-center gap-3 rounded-lg px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-rose-50 dark:hover:bg-slate-800 hover:text-rose-500 transition";
 
   return (
     <div className="min-h-screen bg-bg-app dark:bg-slate-900 transition-colors duration-200">
@@ -38,7 +38,7 @@ const PatientLayout = ({ children }) => {
             <Link to="/patient" className="flex items-center gap-2">
               <Logo size="sm" />
               <div>
-                <div className="text-base font-bold text-[#E06666]">{t("patient.zone") || "My Zone"}</div>
+                <div className="text-base font-bold text-rose-500">{t("patient.zone") || "My Zone"}</div>
                 <div className="text-xs text-text-dim">{t("common.holora") || "Holora Medical"}</div>
               </div>
             </Link>
@@ -89,8 +89,8 @@ const PatientLayout = ({ children }) => {
             </div>
 
             <NavLink to="/patient/holoramind" className={navClass}>
-              <Bot className="w-5 h-5 text-[#E06666]" />
-              <span className="font-semibold text-[#E06666]">{t("patient.aiAssistant")}</span>
+              <Bot className="w-5 h-5 text-rose-500" />
+              <span className="font-semibold text-rose-500">{t("patient.aiAssistant")}</span>
             </NavLink>
 
             <NavLink to="/patient/profile" className={navClass}>
@@ -101,8 +101,8 @@ const PatientLayout = ({ children }) => {
 
           <div className="border-t border-border-main p-4">
             <div className="flex items-center gap-3 px-4 py-2 opacity-60">
-               <Shield className="w-4 h-4 text-[#E06666]" />
-               <span className="text-xs font-bold uppercase tracking-widest text-[#E06666]">{t("patient.zone")}</span>
+               <Shield className="w-4 h-4 text-rose-500" />
+               <span className="text-xs font-bold uppercase tracking-widest text-rose-500">{t("patient.zone")}</span>
             </div>
           </div>
         </aside>
@@ -116,7 +116,7 @@ const PatientLayout = ({ children }) => {
                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                </button>
                <h1 className="text-lg font-bold text-text-main flex items-center gap-2">
-                 <Layout className="w-5 h-5 text-[#E06666]" />
+                 <Layout className="w-5 h-5 text-rose-500" />
                  {t("patient.myZone")}
                </h1>
             </div>

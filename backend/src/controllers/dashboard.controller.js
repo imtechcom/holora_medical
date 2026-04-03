@@ -112,12 +112,6 @@ const getAnalytics = async (req, res) => {
   }
 };
 
-module.exports = {
-  getDashboardStats,
-  getAnalytics,
-  getDoctorDashboard,
-};
-
 // ─── Doctor-specific dashboard ────────────────────────────────────────────────
 // Returns stats scoped to the authenticated doctor: today's appointments,
 // pending consultations, total patients, upcoming schedules, recent appointments.
@@ -244,3 +238,8 @@ const getDoctorDashboard = async (req, res) => {
   }
 };
 
+module.exports = {
+  getDashboardStats,
+  getAnalytics,
+  getDoctorDashboard,
+};

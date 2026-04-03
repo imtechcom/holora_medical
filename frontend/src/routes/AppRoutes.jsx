@@ -70,6 +70,7 @@ import DoctorScheduleAdminPage from "../pages/admin/DoctorSchedulePage";
 import DoctorSchedulePage from "../pages/doctor/DoctorSchedulePage";
 import SchedulesAdminPage from "../pages/admin/SchedulesAdminPage";
 import ConsultationsPage from "../pages/admin/ConsultationsPage";
+import VersionPage from "../pages/admin/VersionPage";
 
 // Clinic Owner Zone Pages
 import ClinicOwnerDashboardPage from "../pages/clinic-owner/ClinicOwnerDashboardPage";
@@ -478,6 +479,15 @@ const AppRoutes = () => {
               <DoctorLayout>
                 <DoctorProfilePage />
               </DoctorLayout>
+            </DoctorRoute>
+          }
+        />
+
+        <Route
+          path="/doctor/holoramind"
+          element={
+            <DoctorRoute>
+              <HoloraMindPage />
             </DoctorRoute>
           }
         />
@@ -907,6 +917,17 @@ const AppRoutes = () => {
             <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <ConsultationsPage />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/version"
+          element={
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
+              <AdminLayout>
+                <VersionPage />
               </AdminLayout>
             </AdminRoute>
           }

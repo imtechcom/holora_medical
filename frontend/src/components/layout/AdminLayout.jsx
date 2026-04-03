@@ -119,6 +119,10 @@ const AdminLayout = ({ children }) => {
                 {t("admin.patientConsultations")}
               </NavLink>
             )}
+
+            <NavLink to="/admin/version" className={navClass}>
+              {t("admin.versionHistory", { defaultValue: "Version History" })}
+            </NavLink>
           </nav>
         </aside>
 

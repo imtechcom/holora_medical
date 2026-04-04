@@ -4,6 +4,232 @@
 
 ---
 
+## 0. Project Checklist
+
+### A. Infrastructure & DevOps
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| A1 | Docker Compose setup (MySQL, Backend, Frontend, phpMyAdmin) | ✅ Done | 4 services |
+| A2 | Production server (DigitalOcean 165.22.241.56) | ✅ Done | Ubuntu 24.04 |
+| A3 | CORS multi-origin support | ✅ Done | Comma-separated env |
+| A4 | Git version tagging | ✅ Done | v1.0.0 → v1.5.0 |
+| A5 | CI/CD pipeline (GitHub Actions) | ❌ Not started | Manual SSH deploy |
+| A6 | SSL/HTTPS certificate | ❌ Not started | Currently HTTP only |
+| A7 | Domain name setup | ❌ Not started | Using raw IP |
+| A8 | Database backup automation | ❌ Not started | |
+| A9 | Logging & monitoring (PM2/Sentry) | ❌ Not started | Console.log only |
+| A10 | Rate limiting / API protection | ❌ Not started | |
+
+### B. Authentication & Authorization
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| B1 | JWT login/register | ✅ Done | |
+| B2 | Google OAuth | ✅ Done | |
+| B3 | Forgot/Reset password | ✅ Done | Email-based |
+| B4 | Doctor invite onboarding | ✅ Done | `/doctor/invite-setup` |
+| B5 | Role-based route guards (7 roles) | ✅ Done | Patient, Doctor, Admin, ClinicOwner, Receptionist, Accountant, Protected |
+| B6 | Permission middleware (provider) | ✅ Done | Subscription + branch access checks |
+| B7 | RBAC permissions (role ↔ permission) | ✅ Done | Assign/remove API |
+| B8 | Refresh token / token rotation | ❌ Not started | Single JWT only |
+| B9 | Session management / force logout | ❌ Not started | |
+
+### C. Admin Zone (`/admin`)
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| C1 | Dashboard (stats cards) | ✅ Done | 5 aggregate queries |
+| C2 | Users CRUD (list, create, edit, detail) | ✅ Done | 4 pages |
+| C3 | Roles CRUD (list, create, edit, detail) | ✅ Done | 4 pages |
+| C4 | Permissions CRUD (list, create, edit) | ✅ Done | 3 pages |
+| C5 | Doctors management (list, create, edit) | ✅ Done | 3 pages |
+| C6 | Patients management (list, create, edit) | ✅ Done | 3 pages |
+| C7 | Specialties CRUD (list, create, edit) | ✅ Done | Hierarchy support |
+| C8 | Branches CRUD (list, create, edit) | ✅ Done | 3 pages |
+| C9 | Appointments admin list | ✅ Done | Status updates |
+| C10 | Schedules admin management | ✅ Done | |
+| C11 | Consultations admin list | ✅ Done | |
+| C12 | Version History page | ✅ Done | v1.5.0 |
+| C13 | Sidebar with icons + section headers | ✅ Done | Lucide icons |
+| C14 | Mobile responsive layout | ✅ Done | Sidebar toggle |
+| C15 | Dark mode support | ✅ Done | Token system |
+| C16 | i18n (vi/en) | ✅ Done | All keys present |
+| C17 | Analytics / chart visuals | ⚠️ Partial | API exists, no chart UI |
+| C18 | Subscription management (admin view) | ❌ Not started | Only clinic-owner side |
+| C19 | System logs / audit trail | ❌ Not started | |
+
+### D. Doctor Zone (`/doctor`)
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| D1 | Dashboard (real data, hero, stats, quick access) | ✅ Done | Cyan theme, 9 data points |
+| D2 | My Appointments (list + detail) | ✅ Done | Status badges |
+| D3 | Consultation Requests (list + detail) | ✅ Done | AI image analysis in detail |
+| D4 | My Patients list | ✅ Done | |
+| D5 | Work Schedule page | ✅ Done | CRUD schedules |
+| D6 | Profile page | ✅ Done | Edit own profile |
+| D7 | HoloraMind AI chat | ✅ Done | Cyan accent, role-aware |
+| D8 | Video consultation room | ✅ Done | Jitsi integration |
+| D9 | Sidebar with icons + sections | ✅ Done | Emoji icons |
+| D10 | Mobile responsive | ✅ Done | |
+| D11 | Dark mode | ✅ Done | |
+| D12 | i18n | ✅ Done | defaultValue pattern |
+| D13 | Prescription management | ❌ Not started | |
+| D14 | Medical records / notes | ❌ Not started | |
+| D15 | Revenue / earnings dashboard | ❌ Not started | |
+
+### E. Patient Zone (`/patient`)
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| E1 | Dashboard (real data, hero, stats, quick access) | ✅ Done | Rose theme, 9 parallel queries |
+| E2 | Browse branches (list + detail) | ✅ Done | |
+| E3 | Browse doctors (list + detail) | ✅ Done | |
+| E4 | My Appointments (list + detail) | ✅ Done | Rose accents |
+| E5 | My Consultations (history + detail + request) | ✅ Done | |
+| E6 | HoloraMind AI chat | ✅ Done | Rose accent, role-aware |
+| E7 | Profile page | ✅ Done | |
+| E8 | Video consultation room | ✅ Done | Jitsi |
+| E9 | Sidebar with Lucide icons | ✅ Done | rose-500 theme |
+| E10 | Appointment booking flow | ✅ Done | Available slots API |
+| E11 | Mobile responsive | ✅ Done | |
+| E12 | Dark mode | ✅ Done | |
+| E13 | i18n | ✅ Done | defaultValue pattern |
+| E14 | Payment for appointments | ❌ Not started | |
+| E15 | Medical history / records view | ❌ Not started | |
+| E16 | Notification system (real-time) | ❌ Not started | Mock only |
+
+### F. Clinic Owner Zone (`/clinic-owner`)
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| F1 | Dashboard | ✅ Done | |
+| F2 | My Branches (list + create + edit) | ✅ Done | Subscription limit check |
+| F3 | My Doctors (list + create + edit) | ✅ Done | Doctor limit check + invite |
+| F4 | My Patients list | ✅ Done | |
+| F5 | My Appointments list | ✅ Done | |
+| F6 | My Consultations list | ✅ Done | |
+| F7 | Subscription & Billing | ✅ Done | Plans, payment, invoice history |
+| F8 | Sidebar with emoji icons | ✅ Done | |
+| F9 | Mobile responsive | ✅ Done | |
+| F10 | Revenue analytics | ❌ Not started | |
+| F11 | Staff management (receptionist/accountant) | ❌ Not started | |
+
+### G. Receptionist Zone (`/receptionist`)
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| G1 | Dashboard | ⚠️ Basic | Mock data, placeholder UI |
+| G2 | Layout + sidebar | ✅ Done | |
+| G3 | Check-in patients | ❌ Not started | |
+| G4 | Manage walk-in appointments | ❌ Not started | |
+| G5 | Queue management | ❌ Not started | |
+
+### H. Accountant Zone (`/accountant`)
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| H1 | Dashboard | ⚠️ Basic | Mock data, placeholder UI |
+| H2 | Layout + sidebar | ✅ Done | |
+| H3 | Financial reports | ❌ Not started | |
+| H4 | Invoice management | ❌ Not started | |
+| H5 | Payment reconciliation | ❌ Not started | |
+
+### I. HoloraMind AI
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| I1 | Chat UI (full-screen, role-aware) | ✅ Done | Rose/cyan accents |
+| I2 | Chat history (sidebar) | ✅ Done | DB-backed |
+| I3 | DB tables (holora_mind_chats + messages) | ✅ Done | |
+| I4 | Backend API (getChats, getMessages, send) | ✅ Done | |
+| I5 | AI image analysis (doctor consultation) | ✅ Done | Async polling |
+| I6 | Real AI integration (OpenAI/Claude) | ❌ Mock only | Keyword-based responses |
+| I7 | Medical knowledge base | ❌ Not started | |
+| I8 | Conversation context / memory | ❌ Not started | Stateless per message |
+| I9 | File/image upload in chat | ❌ Not started | |
+
+### J. Public / Marketing
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| J1 | Home page | ✅ Done | |
+| J2 | Doctors directory (public) | ✅ Done | Search + detail |
+| J3 | Branches directory (public) | ✅ Done | |
+| J4 | Pricing page | ✅ Done | |
+| J5 | Login / Register | ✅ Done | |
+| J6 | Provider registration | ✅ Done | `/register/provider` |
+| J7 | Public navbar + footer | ✅ Done | |
+| J8 | SEO / meta tags | ❌ Not started | |
+| J9 | Landing page optimization | ❌ Not started | |
+
+### K. Cross-Cutting Concerns
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| K1 | Dark mode (all zones) | ✅ Done | CSS token system |
+| K2 | i18n Vietnamese + English | ✅ Done | en.json + vi.json |
+| K3 | Mobile responsive (all zones) | ✅ Done | |
+| K4 | File upload (attachments) | ✅ Done | Multer, max 5 files |
+| K5 | Skeleton loading states | ✅ Done | All dashboard pages |
+| K6 | Error handling middleware | ✅ Done | Backend error.middleware.js |
+| K7 | Theme toggle in UserDropdown | ✅ Done | |
+| K8 | Language switcher in UserDropdown | ✅ Done | i18n keys fixed |
+| K9 | Notification badge component | ✅ Done | UI only, mock data |
+| K10 | Breadcrumb navigation | ✅ Done | Doctor + Patient zones |
+| K11 | WebSocket / real-time updates | ❌ Not started | |
+| K12 | Email notifications | ❌ Not started | |
+| K13 | Push notifications | ❌ Not started | |
+| K14 | Search / global search | ❌ Not started | |
+| K15 | Export data (PDF/Excel) | ❌ Not started | |
+
+### L. Backend API Coverage
+
+| Module | Endpoints | Auth | Status |
+|--------|-----------|------|--------|
+| Auth | 6 | Mixed | ✅ Done |
+| Users | 9 | ⚠️ Public | ✅ Done (needs auth) |
+| Roles | 8 | ⚠️ Public | ✅ Done (needs auth) |
+| Permissions | 6 | ⚠️ Public | ✅ Done (needs auth) |
+| Doctors | 11 | Mixed | ✅ Done |
+| Patients | 12 | Mixed | ✅ Done |
+| Branches | 7 | Mixed | ✅ Done |
+| Appointments | 8 | Mixed | ✅ Done |
+| Consultations | 7 | Auth | ✅ Done |
+| Schedules | 4 | Auth | ✅ Done |
+| Dashboard | 4 | Auth + role | ✅ Done |
+| Subscriptions | 6 | Mixed | ✅ Done |
+| HoloraMind | 3 | Auth | ✅ Done |
+| AI Analysis | 3 | Auth | ✅ Done |
+| Upload | 1 | Auth | ✅ Done |
+| **Total** | **95+** | | |
+
+> ⚠️ **Security note**: Users, Roles, Permissions APIs are currently public — should add auth middleware.
+
+---
+
+### Summary Scorecard
+
+| Category | Done | Partial | Not Started | Total |
+|----------|------|---------|-------------|-------|
+| Infrastructure | 4 | 0 | 6 | 10 |
+| Auth | 7 | 0 | 2 | 9 |
+| Admin Zone | 16 | 1 | 2 | 19 |
+| Doctor Zone | 12 | 0 | 3 | 15 |
+| Patient Zone | 13 | 0 | 3 | 16 |
+| Clinic Owner | 9 | 0 | 2 | 11 |
+| Receptionist | 1 | 1 | 3 | 5 |
+| Accountant | 1 | 1 | 3 | 5 |
+| HoloraMind AI | 5 | 0 | 4 | 9 |
+| Public Pages | 7 | 0 | 2 | 9 |
+| Cross-Cutting | 10 | 0 | 5 | 15 |
+| **TOTAL** | **85** | **3** | **35** | **123** |
+
+**Overall Progress: ~70%** (85/123 items complete)
+
+---
+
 ## 1. Architecture Overview
 
 | Layer        | Technology                         | Notes                                 |

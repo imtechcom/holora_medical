@@ -3,10 +3,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle, ArrowLeft, Building2, Calendar, Clock, FileText,
-  Loader2, MapPin, RefreshCw, Stethoscope, Video, XCircle,
+  Loader2, MapPin, RefreshCw, Star, Stethoscope, Video, XCircle,
 } from "lucide-react";
 import { appointmentService } from "../services/appointmentService";
 import { consultationService } from "../services/consultationService";
+import { createReviewApi, checkReviewExistsApi } from "../services/reviewService";
+import { getPrescriptionsByAppointmentApi } from "../services/prescriptionService";
+import ReviewFormModal from "../components/ReviewFormModal";
+import PrescriptionCard from "../components/PrescriptionCard";
+import PrescriptionDetailModal from "../components/PrescriptionDetailModal";
 
 const STATUS_CLS = {
   scheduled:   "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
@@ -38,6 +43,10 @@ const PatientAppointmentDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [linkedConsultation, setLinkedConsultation] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [existingReview, setExistingReview] = useState(null);
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [viewRxDetail, setViewRxDetail] = useState(null);
 
   const fetchDetail = useCallback(async () => {
     setLoading(true); setError("");
@@ -52,7 +61,16 @@ const PatientAppointmentDetailPage = () => {
   useEffect(() => {
     fetchDetail();
     consultationService.getByAppointmentId(id).then(r => setLinkedConsultation(r.data || null)).catch(() => setLinkedConsultation(null));
+    getPrescriptionsByAppointmentApi(id).then(r => setPrescriptions((r.data || []).filter(rx => rx.status !== 'draft'))).catch(() => setPrescriptions([]));
   }, [fetchDetail, id]);
+
+  // Check existing review when appointment is loaded
+  useEffect(() => {
+    if (!appointment || appointment.status !== "completed") return;
+    checkReviewExistsApi({ doctor_id: appointment.doctor_id, appointment_id: appointment.id })
+      .then((r) => setExistingReview(r.data?.exists ? r.data.review : null))
+      .catch(() => setExistingReview(null));
+  }, [appointment]);
 
   const canEnterRoom = appointment?.appointment_type === "online" && ["scheduled", "confirmed"].includes(appointment?.status);
 
@@ -184,8 +202,60 @@ const PatientAppointmentDetailPage = () => {
               <Video className="h-5 w-5" /> {t("patient.appointmentDetail.enterRoom", { defaultValue: "Enter Online Room" })}
             </button>
           )}
+
+          {/* Rate Doctor */}
+          {appointment.status === "completed" && (
+            <div className="rounded-2xl border border-border-main bg-bg-surface p-5 shadow-sm dark:bg-slate-800">
+              <h2 className="mb-3 text-sm font-bold text-text-main">{t("review.rateDoctor", { defaultValue: "Rate Doctor" })}</h2>
+              {existingReview ? (
+                <p className="text-sm text-text-dim">
+                  ★ {t("review.alreadyReviewed", { defaultValue: "You have already reviewed this doctor" })} ({existingReview.rating}/5)
+                </p>
+              ) : (
+                <button
+                  onClick={() => setShowReviewModal(true)}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 px-5 py-3 text-sm font-bold text-white shadow transition hover:bg-amber-600"
+                >
+                  <Star className="h-5 w-5" />
+                  {t("review.writeReview", { defaultValue: "Write a Review" })}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Prescriptions */}
+          {prescriptions.length > 0 && (
+            <div className="rounded-2xl border border-emerald-200/50 bg-bg-surface p-5 shadow-sm dark:border-emerald-800/30 dark:bg-slate-800">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-text-main">
+                📋 {t("prescription.sectionTitle", { defaultValue: "Toa thuốc" })}
+                <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">{prescriptions.length}</span>
+              </h2>
+              <div className="space-y-2">
+                {prescriptions.map((rx) => (
+                  <PrescriptionCard key={rx.id} prescription={rx} compact onViewDetail={(p) => setViewRxDetail(p)} />
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
+
+      {/* Review Modal */}
+      <ReviewFormModal
+        isOpen={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        doctorName={appointment?.doctor_name}
+        onSubmit={async (reviewData) => {
+          await createReviewApi({ ...reviewData, doctor_id: appointment.doctor_id, appointment_id: appointment.id });
+          setExistingReview({ rating: reviewData.rating });
+        }}
+      />
+
+      <PrescriptionDetailModal
+        isOpen={viewRxDetail !== null}
+        onClose={() => setViewRxDetail(null)}
+        prescriptionData={viewRxDetail}
+      />
     </div>
   );
 };

@@ -4,6 +4,7 @@ const db = require("../config/db");
 const { OAuth2Client } = require("google-auth-library");
 const crypto = require("crypto");
 const { ensureHoloraFreeSubscription } = require("../middleware/provider.middleware");
+const { logAudit } = require("../utils/audit.util");
 
 const queryAsync = (sql, params = []) =>
   new Promise((resolve, reject) => {
@@ -18,7 +19,28 @@ const queryAsync = (sql, params = []) =>
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const issueTokenAndRespond = (res, user) => {
+const ACCESS_TOKEN_EXPIRY = "15m";
+const REFRESH_TOKEN_EXPIRY_DAYS = 7;
+
+const createRefreshToken = async (userId, { ip = null, ua = null } = {}) => {
+  const rawToken = crypto.randomBytes(40).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+
+  await queryAsync(
+    `INSERT INTO refresh_tokens (user_id, token_hash, ip_address, user_agent, expires_at) VALUES (?, ?, ?, ?, ?)`,
+    [userId, tokenHash, ip, ua ? ua.substring(0, 500) : null, expiresAt]
+  );
+
+  return rawToken;
+};
+
+const getClientInfo = (req) => ({
+  ip: req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || null,
+  ua: req.headers["user-agent"] || null,
+});
+
+const issueTokenAndRespond = (res, user, req) => {
   const rolesSql = `
     SELECT r.code AS role
     FROM user_role ur
@@ -26,7 +48,7 @@ const issueTokenAndRespond = (res, user) => {
     WHERE ur.user_id = ?
   `;
 
-  db.query(rolesSql, [user.id], (roleErr, roleResults) => {
+  db.query(rolesSql, [user.id], async (roleErr, roleResults) => {
     if (roleErr) {
       console.error("Get roles error:", roleErr);
       return res.status(500).json({
@@ -38,7 +60,7 @@ const issueTokenAndRespond = (res, user) => {
     const roles = roleResults.map((r) => r.role);
     const primaryRole = roles.length > 0 ? roles[0] : "patient";
 
-    const token = jwt.sign(
+    const accessToken = jwt.sign(
       {
         id: user.id,
         email: user.email,
@@ -47,22 +69,36 @@ const issueTokenAndRespond = (res, user) => {
         roles,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: ACCESS_TOKEN_EXPIRY }
     );
 
-    return res.json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user.id,
-        full_name: user.full_name,
-        username: user.username,
-        email: user.email,
-        status: user.status,
-        role: primaryRole,
-        roles,
-      },
-    });
+    try {
+      const clientInfo = req ? getClientInfo(req) : {};
+      const refreshToken = await createRefreshToken(user.id, clientInfo);
+
+      logAudit(req, "AUTH_LOGIN", "user", user.id, { email: user.email });
+
+      return res.json({
+        message: "Login successful",
+        token: accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          full_name: user.full_name,
+          username: user.username,
+          email: user.email,
+          status: user.status,
+          role: primaryRole,
+          roles,
+        },
+      });
+    } catch (rtErr) {
+      console.error("Create refresh token error:", rtErr);
+      return res.status(500).json({
+        message: "Login failed",
+        error: rtErr.message,
+      });
+    }
   });
 };
 
@@ -180,6 +216,7 @@ const register = async (req, res) => {
                     console.error("Auto-assign HOLORA_FREE failed for user", newUserId, err.message);
                   });
 
+                  logAudit(req, "AUTH_REGISTER", "user", newUserId, { email, role: "clinic_owner" });
                   return res.status(201).json({
                     message: "Provider register successful. Please login.",
                     user_id: newUserId,
@@ -223,6 +260,7 @@ const register = async (req, res) => {
                       });
                     }
 
+                    logAudit(req, "AUTH_REGISTER", "user", newUserId, { email, role: "patient" });
                     return res.status(201).json({
                       message: "Register successful. Please login.",
                       user_id: newUserId,
@@ -281,22 +319,25 @@ const login = (req, res) => {
     }
 
     if (!userResults || userResults.length === 0) {
+      logAudit(req, "AUTH_LOGIN_FAILED", "user", null, { email, reason: "user_not_found" });
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
     const user = userResults[0];
 
     if (user.status !== "active") {
+      logAudit(req, "AUTH_LOGIN_FAILED", "user", user.id, { email, reason: "account_inactive" });
       return res.status(403).json({ message: "Account is not active" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!isMatch) {
+      logAudit(req, "AUTH_LOGIN_FAILED", "user", user.id, { email, reason: "wrong_password" });
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    return issueTokenAndRespond(res, user);
+    return issueTokenAndRespond(res, user, req);
   });
 };
 
@@ -357,7 +398,7 @@ const googleAuth = async (req, res) => {
           });
         }
 
-        return issueTokenAndRespond(res, existingUser);
+        return issueTokenAndRespond(res, existingUser, req);
       }
 
       const baseUsername = email
@@ -468,7 +509,7 @@ const googleAuth = async (req, res) => {
                       status: "active",
                     };
 
-                    return issueTokenAndRespond(res, newUser);
+                    return issueTokenAndRespond(res, newUser, req);
                   }
                 );
               }
@@ -605,6 +646,7 @@ const forgotPassword = async (req, res) => {
     console.log(`Đường link khôi phục của bạn là: ${resetLink}`);
     console.log(`Link có gián trị trong vòng 1 tiếng.\n\n`);
 
+    logAudit(req, "AUTH_FORGOT_PASSWORD", "user", user.id, { email });
     return res.json({ message: "Thư khôi phục đã được gửi vào Email của bạn!" });
   } catch (error) {
     console.error("Forgot password error:", error);
@@ -641,6 +683,7 @@ const resetPassword = async (req, res) => {
       [passwordHash, userId]
     );
 
+    logAudit(req, "AUTH_RESET_PASSWORD", "user", userId);
     return res.json({ message: "Mật khẩu của bạn đã được thay đổi thành công. Bạn có thể đăng nhập ngay!" });
   } catch (error) {
     console.error("Reset password error:", error);
@@ -648,4 +691,154 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, googleAuth, acceptDoctorInvite, forgotPassword, resetPassword };
+const refreshToken = async (req, res) => {
+  const { refreshToken: rawToken } = req.body;
+
+  if (!rawToken) {
+    return res.status(400).json({ message: "Refresh token is required" });
+  }
+
+  try {
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    const rows = await queryAsync(
+      `SELECT rt.id, rt.user_id, rt.expires_at, rt.revoked_at,
+              u.id AS uid, u.full_name, u.username, u.email, u.status
+       FROM refresh_tokens rt
+       JOIN users u ON u.id = rt.user_id AND u.deleted_at IS NULL
+       WHERE rt.token_hash = ?
+       LIMIT 1`,
+      [tokenHash]
+    );
+
+    if (!rows.length) {
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+
+    const record = rows[0];
+
+    // Token already revoked — possible token reuse attack, revoke all tokens for this user
+    if (record.revoked_at) {
+      await queryAsync(
+        `UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = ? AND revoked_at IS NULL`,
+        [record.user_id]
+      );
+      return res.status(401).json({ message: "Refresh token reuse detected. All sessions revoked." });
+    }
+
+    // Token expired
+    if (new Date(record.expires_at).getTime() < Date.now()) {
+      await queryAsync(`UPDATE refresh_tokens SET revoked_at = NOW() WHERE id = ?`, [record.id]);
+      return res.status(401).json({ message: "Refresh token expired" });
+    }
+
+    // User inactive
+    if (record.status !== "active") {
+      return res.status(403).json({ message: "Account is not active" });
+    }
+
+    // Rotate: create new refresh token
+    const newRawToken = crypto.randomBytes(40).toString("hex");
+    const newTokenHash = crypto.createHash("sha256").update(newRawToken).digest("hex");
+    const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+
+    // Revoke old token and link to new one
+    await queryAsync(
+      `UPDATE refresh_tokens SET revoked_at = NOW(), replaced_by_hash = ? WHERE id = ?`,
+      [newTokenHash, record.id]
+    );
+
+    // Insert new token
+    const clientInfo = getClientInfo(req);
+    await queryAsync(
+      `INSERT INTO refresh_tokens (user_id, token_hash, ip_address, user_agent, expires_at) VALUES (?, ?, ?, ?, ?)`,
+      [record.user_id, newTokenHash, clientInfo.ip, clientInfo.ua ? clientInfo.ua.substring(0, 500) : null, newExpiresAt]
+    );
+
+    // Issue new access token
+    const roleResults = await queryAsync(
+      `SELECT r.code AS role FROM user_role ur JOIN role r ON ur.role_id = r.id WHERE ur.user_id = ?`,
+      [record.user_id]
+    );
+
+    const roles = roleResults.map((r) => r.role);
+    const primaryRole = roles.length > 0 ? roles[0] : "patient";
+
+    const accessToken = jwt.sign(
+      {
+        id: record.user_id,
+        email: record.email,
+        username: record.username,
+        role: primaryRole,
+        roles,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: ACCESS_TOKEN_EXPIRY }
+    );
+
+    return res.json({
+      token: accessToken,
+      refreshToken: newRawToken,
+      user: {
+        id: record.user_id,
+        full_name: record.full_name,
+        username: record.username,
+        email: record.email,
+        status: record.status,
+        role: primaryRole,
+        roles,
+      },
+    });
+  } catch (error) {
+    console.error("Refresh token error:", error);
+    return res.status(500).json({ message: "Failed to refresh token", error: error.message });
+  }
+};
+
+const logoutUser = async (req, res) => {
+  const { refreshToken: rawToken } = req.body;
+
+  if (!rawToken) {
+    return res.status(400).json({ message: "Refresh token is required" });
+  }
+
+  try {
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    await queryAsync(
+      `UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = ? AND revoked_at IS NULL`,
+      [tokenHash]
+    );
+
+    logAudit(req, "AUTH_LOGOUT", "user", null);
+    return res.json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    return res.status(500).json({ message: "Logout failed", error: error.message });
+  }
+};
+
+const logoutAll = async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  try {
+    const result = await queryAsync(
+      `UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = ? AND revoked_at IS NULL`,
+      [userId]
+    );
+
+    logAudit(req, "AUTH_LOGOUT_ALL", "user", userId, { revokedCount: result.affectedRows });
+    return res.json({
+      message: "All sessions revoked",
+      revokedCount: result.affectedRows,
+    });
+  } catch (error) {
+    console.error("Logout all error:", error);
+    return res.status(500).json({ message: "Failed to revoke sessions", error: error.message });
+  }
+};
+
+module.exports = { register, login, googleAuth, acceptDoctorInvite, forgotPassword, resetPassword, refreshToken, logoutUser, logoutAll };

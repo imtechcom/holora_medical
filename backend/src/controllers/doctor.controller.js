@@ -2,6 +2,7 @@ const db = require("../config/db");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { generateMedicalCode } = require("../utils/medical-code.util");
+const { logAudit } = require("../utils/audit.util");
 
 const queryAsync = (sql, params = []) =>
   new Promise((resolve, reject) => {
@@ -473,6 +474,7 @@ const createDoctorRecord = (
             return onCreated(null, createdPayload);
           }
 
+          logAudit(req, "DOCTOR_CREATE", "doctor", newDoctor.id, { doctor_code: newDoctor.doctor_code });
           return res.status(201).json({
             message: "Doctor created successfully",
             data: createdPayload,
@@ -813,6 +815,7 @@ const createDoctor = (req, res) => {
                 redirectBaseUrl: invite_redirect_base,
               });
 
+              logAudit(req, "DOCTOR_INVITE", "doctor", createdDoctor.id, { email });
               return res.status(201).json({
                 message: "Doctor invited successfully",
                 data: {
@@ -1119,6 +1122,7 @@ const updateDoctor = (req, res) => {
                 });
               }
 
+              logAudit(req, "DOCTOR_UPDATE", "doctor", doctorsWithBranches[0]?.id);
               return res.json({
                 message: "Doctor updated successfully",
                 data: doctorsWithBranches[0],
@@ -1163,6 +1167,7 @@ const deleteDoctor = (req, res) => {
       }
 
       db.query("DELETE FROM doctor_branch WHERE doctor_id = ?", [id], () => {
+        logAudit(req, "DOCTOR_DELETE", "doctor", Number(id));
         return res.json({
           message: "Doctor deleted successfully",
           data: { id: parseInt(id, 10) },
@@ -1388,6 +1393,7 @@ const updateMyProfile = (req, res) => {
         });
       }
 
+      logAudit(req, "DOCTOR_PROFILE_UPDATE", "doctor", null, { user_id: req.user?.id });
       return res.json({
         message: "Doctor profile updated successfully",
       });

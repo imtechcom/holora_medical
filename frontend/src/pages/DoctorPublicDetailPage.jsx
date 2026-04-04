@@ -5,16 +5,22 @@ import {
   BadgeDollarSign,
   BriefcaseMedical,
   Building2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Lock,
   Mail,
   Phone,
   ShieldCheck,
+  Star,
   UserRound,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getDoctorByIdApi } from "../services/doctorService";
 import subscriptionService from "../services/subscriptionService";
+import { getDoctorReviewsApi, getDoctorRatingSummaryApi } from "../services/reviewService";
+import RatingSummary from "../components/RatingSummary";
+import ReviewCard from "../components/ReviewCard";
 import { useAuth } from "../context/AuthContext";
 
 const unwrap = (payload) => payload?.data || payload;
@@ -53,6 +59,10 @@ const DoctorPublicDetailPage = () => {
   const [error, setError] = useState("");
   const [accountSubscription, setAccountSubscription] = useState(null);
   const [showFullContact, setShowFullContact] = useState(false);
+  const [ratingSummary, setRatingSummary] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [reviewsPagination, setReviewsPagination] = useState(null);
 
   const locale = i18n.language?.startsWith("vi") ? "vi-VN" : "en-US";
   const isPrivilegedAdmin = role === "admin" || role === "super_admin" || roles.includes("admin") || roles.includes("super_admin");
@@ -117,6 +127,19 @@ const DoctorPublicDetailPage = () => {
   useEffect(() => {
     setShowFullContact(false);
   }, [id, role, accountSubscription?.plan_code]);
+
+  // Load reviews + summary for this doctor
+  useEffect(() => {
+    if (!id) return;
+    getDoctorRatingSummaryApi(id).then((r) => setRatingSummary(r.data)).catch(() => setRatingSummary(null));
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    getDoctorReviewsApi(id, { page: reviewsPage, limit: 5 })
+      .then((r) => { setReviews(r.data || []); setReviewsPagination(r.pagination || null); })
+      .catch(() => { setReviews([]); setReviewsPagination(null); });
+  }, [id, reviewsPage]);
 
   const normalizedPlanCode = String(accountSubscription?.plan_code || "HOLORA_FREE").toUpperCase();
   const isHoloraPlus = normalizedPlanCode === "HOLORA_PLUS";
@@ -309,6 +332,51 @@ const DoctorPublicDetailPage = () => {
                       <p className="mt-1">{doctor.bio || t("publicDoctors.detail.bioFallback")}</p>
                     </div>
                   </div>
+                </section>
+
+                {/* Patient Reviews Section */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-slate-100">
+                    <Star size={18} className="text-amber-500" />
+                    {t("publicDoctors.detail.reviews", { defaultValue: "Patient Reviews" })}
+                    {ratingSummary?.total_reviews > 0 && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                        {ratingSummary.average_rating} ★ ({ratingSummary.total_reviews})
+                      </span>
+                    )}
+                  </div>
+
+                  <RatingSummary summary={ratingSummary} />
+
+                  {reviews.length > 0 && (
+                    <div className="space-y-3">
+                      {reviews.map((review) => (
+                        <ReviewCard key={review.id} review={review} locale={i18n.language} />
+                      ))}
+
+                      {reviewsPagination && reviewsPagination.totalPages > 1 && (
+                        <div className="flex items-center justify-center gap-2 pt-2">
+                          <button
+                            onClick={() => setReviewsPage((p) => Math.max(1, p - 1))}
+                            disabled={reviewsPage <= 1}
+                            className="rounded-xl border border-border-main p-2 text-text-dim transition hover:bg-bg-app disabled:opacity-30 dark:hover:bg-slate-700"
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </button>
+                          <span className="text-xs text-text-dim">
+                            {reviewsPage} / {reviewsPagination.totalPages}
+                          </span>
+                          <button
+                            onClick={() => setReviewsPage((p) => Math.min(reviewsPagination.totalPages, p + 1))}
+                            disabled={reviewsPage >= reviewsPagination.totalPages}
+                            className="rounded-xl border border-border-main p-2 text-text-dim transition hover:bg-bg-app disabled:opacity-30 dark:hover:bg-slate-700"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </section>
               </div>
 

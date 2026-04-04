@@ -45,6 +45,7 @@ const RegisterPage = ({ defaultAccountType = "patient" }) => {
 
         login({
           token: data.token,
+          refreshToken: data.refreshToken,
           user: data.user,
         });
 

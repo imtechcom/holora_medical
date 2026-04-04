@@ -46,6 +46,7 @@ import DoctorAppointmentDetailPage from "../pages/DoctorAppointmentDetailPage";
 import DoctorPatientsPage from "../pages/DoctorPatientsPage";
 import PatientConsultationRequestPage from "../pages/PatientConsultationRequestPage";
 import DoctorProfilePage from "../pages/DoctorProfilePage";
+import DoctorMyReviewsPage from "../pages/doctor/DoctorMyReviewsPage";
 
 // Admin Zone Pages
 import DashboardPage from "../pages/admin/DashboardPage";
@@ -71,6 +72,8 @@ import DoctorSchedulePage from "../pages/doctor/DoctorSchedulePage";
 import SchedulesAdminPage from "../pages/admin/SchedulesAdminPage";
 import ConsultationsPage from "../pages/admin/ConsultationsPage";
 import VersionPage from "../pages/admin/VersionPage";
+import AuditLogsPage from "../pages/admin/AuditLogsPage";
+import AdminReviewsPage from "../pages/admin/AdminReviewsPage";
 
 // Clinic Owner Zone Pages
 import ClinicOwnerDashboardPage from "../pages/clinic-owner/ClinicOwnerDashboardPage";
@@ -467,6 +470,17 @@ const AppRoutes = () => {
             <DoctorRoute>
               <DoctorLayout>
                 <DoctorPatientsPage />
+              </DoctorLayout>
+            </DoctorRoute>
+          }
+        />
+
+        <Route
+          path="/doctor/reviews"
+          element={
+            <DoctorRoute>
+              <DoctorLayout>
+                <DoctorMyReviewsPage />
               </DoctorLayout>
             </DoctorRoute>
           }
@@ -928,6 +942,28 @@ const AppRoutes = () => {
             <AdminRoute allowedRoles={["super_admin", "admin"]}>
               <AdminLayout>
                 <VersionPage />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/audit-logs"
+          element={
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
+              <AdminLayout>
+                <AuditLogsPage />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/reviews"
+          element={
+            <AdminRoute allowedRoles={["super_admin", "admin"]}>
+              <AdminLayout>
+                <AdminReviewsPage />
               </AdminLayout>
             </AdminRoute>
           }

@@ -1,22 +1,89 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import {
+  Activity, AlertCircle, ArrowLeft, Brain, Calendar, CheckCircle,
+  ChevronDown, ChevronUp, Clock, Eye, EyeOff, FileText, Image,
+  Loader2, Lock, MessageSquare, RefreshCw, Send, Shield,
+  Sparkles, Stethoscope, TrendingUp, User, XCircle,
+} from "lucide-react";
 import { consultationService } from "../services/consultationService";
 import { aiService } from "../services/aiService";
+import { createPrescriptionApi, getPrescriptionsByConsultationApi, updatePrescriptionApi, issuePrescriptionApi, cancelPrescriptionApi } from "../services/prescriptionService";
 import { useAuth } from "../context/AuthContext";
 import ConfirmModal from "../components/ConfirmModal";
+import PrescriptionFormModal from "../components/PrescriptionFormModal";
+import PrescriptionCard from "../components/PrescriptionCard";
+import PrescriptionDetailModal from "../components/PrescriptionDetailModal";
 
-const REVIEW_STATUS_CONFIG = {
-  pending_review: { label: 'Chờ đánh giá', badge: 'text-amber-700 bg-amber-50 border-amber-300', icon: '🔍' },
-  approved:       { label: 'Đạt tiêu chuẩn · Đã chia sẻ', badge: 'text-emerald-700 bg-emerald-50 border-emerald-300', icon: '✅' },
-  approved_watch: { label: 'Đạt · Cần theo dõi · Đã chia sẻ', badge: 'text-teal-700 bg-teal-50 border-teal-300', icon: '👁️' },
-  not_standard:   { label: 'Không đạt tiêu chuẩn', badge: 'text-red-700 bg-red-50 border-red-300', icon: '❌' },
-  revoked:        { label: 'Đã thu hồi quyền xem', badge: 'text-slate-600 bg-slate-100 border-slate-300', icon: '🔒' },
+/* ─────────── Design Tokens (shared system) ──────────────── */
+const C_STATUS = {
+  pending:     { label: "Pending",     color: "amber",   icon: Clock },
+  in_progress: { label: "In Progress", color: "sky",     icon: TrendingUp },
+  completed:   { label: "Completed",   color: "emerald", icon: CheckCircle },
 };
 
+const PILL = {
+  amber:   "bg-amber-100/80 text-amber-700 ring-1 ring-amber-200/60 dark:bg-amber-900/25 dark:text-amber-300 dark:ring-amber-700/40",
+  emerald: "bg-emerald-100/80 text-emerald-700 ring-1 ring-emerald-200/60 dark:bg-emerald-900/25 dark:text-emerald-300 dark:ring-emerald-700/40",
+  sky:     "bg-sky-100/80 text-sky-700 ring-1 ring-sky-200/60 dark:bg-sky-900/25 dark:text-sky-300 dark:ring-sky-700/40",
+  blue:    "bg-blue-100/80 text-blue-700 ring-1 ring-blue-200/60 dark:bg-blue-900/25 dark:text-blue-300 dark:ring-blue-700/40",
+  purple:  "bg-purple-100/80 text-purple-700 ring-1 ring-purple-200/60 dark:bg-purple-900/25 dark:text-purple-300 dark:ring-purple-700/40",
+  red:     "bg-red-100/80 text-red-700 ring-1 ring-red-200/60 dark:bg-red-900/25 dark:text-red-300 dark:ring-red-700/40",
+  slate:   "bg-slate-100/80 text-slate-600 ring-1 ring-slate-200/60 dark:bg-slate-800/40 dark:text-slate-400 dark:ring-slate-600/40",
+};
+
+const GLASS = "backdrop-blur-xl bg-white/60 dark:bg-slate-900/50 border border-white/30 dark:border-slate-700/40 shadow-lg shadow-black/[0.03]";
+const GLASS_CARD = `rounded-2xl ${GLASS}`;
+
+const REVIEW_STATUS_CONFIG = {
+  pending_review: { label: "Pending Review", color: "amber", icon: Eye },
+  approved:       { label: "Approved · Shared", color: "emerald", icon: CheckCircle },
+  approved_watch: { label: "Approved · Watch · Shared", color: "sky", icon: Eye },
+  not_standard:   { label: "Not Standard", color: "red", icon: XCircle },
+  revoked:        { label: "Revoked", color: "slate", icon: Lock },
+};
+
+/* ─────────── Helpers ────────────────────────────────────── */
+const fmtDateTime = (v, lng) => {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return String(v);
+  return d.toLocaleString(lng === "vi" ? "vi-VN" : "en-US", {
+    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+};
+
+const calcAge = (dob) => {
+  if (!dob) return "—";
+  return Math.max(0, new Date().getFullYear() - new Date(dob).getFullYear());
+};
+
+/* ─────────── Sub-components ─────────────────────────────── */
+const Pulse = ({ className }) => <div className={`animate-pulse rounded-xl bg-slate-200/70 dark:bg-slate-700/50 ${className}`} />;
+
+const RiskBadge = ({ level, t: _t }) => {
+  const map = {
+    low:    { label: _t("doctor.consultationDetail.risk.low",    { defaultValue: "Low Risk" }),    cls: "bg-emerald-100/80 text-emerald-700 ring-1 ring-emerald-200/60 dark:bg-emerald-900/20 dark:text-emerald-300" },
+    medium: { label: _t("doctor.consultationDetail.risk.medium", { defaultValue: "Medium Risk" }), cls: "bg-amber-100/80 text-amber-700 ring-1 ring-amber-200/60 dark:bg-amber-900/20 dark:text-amber-300" },
+    high:   { label: _t("doctor.consultationDetail.risk.high",   { defaultValue: "High Risk" }),   cls: "bg-red-100/80 text-red-700 ring-1 ring-red-200/60 dark:bg-red-900/20 dark:text-red-300 animate-pulse" },
+  };
+  const cfg = map[level];
+  if (!cfg) return null;
+  return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${cfg.cls}`}>{cfg.label}</span>;
+};
+
+/* ══════════════════════════════════════════════════════════
+   DoctorConsultationDetailPage
+   Bento Grid · Glassmorphism · Progressive Disclosure
+   ══════════════════════════════════════════════════════════ */
 const DoctorConsultationDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const lng = i18n.language;
   const { role } = useAuth();
+
   const [data, setData] = useState(null);
   const [aiData, setAiData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,550 +92,784 @@ const DoctorConsultationDetailPage = () => {
   const [replyType, setReplyType] = useState("message");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reopenSubmitting, setReopenSubmitting] = useState(false);
-  
-  // Trạng thái nút bấm gửi yêu cầu
   const [requestAILoading, setRequestAILoading] = useState(null);
   const [confirmAiImageId, setConfirmAiImageId] = useState(null);
   const [reviewingRequestId, setReviewingRequestId] = useState(null);
-  const [reviewForm, setReviewForm] = useState({ status: 'approved', note: '' });
+  const [reviewForm, setReviewForm] = useState({ status: "approved", note: "" });
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [expandedImage, setExpandedImage] = useState(null);
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [showRxForm, setShowRxForm] = useState(false);
+  const [editingRx, setEditingRx] = useState(null);
+  const [viewRxDetail, setViewRxDetail] = useState(null);
 
-  useEffect(() => {
-    fetchDetail();
-    fetchAiData();
-  }, [id]);
+  const sLabel = (status) => {
+    const key = status === "in_progress" ? "inProgress" : status;
+    return t(`doctor.consultationsPage.status.${key}`, { defaultValue: C_STATUS[status]?.label || status });
+  };
 
-  const fetchDetail = async () => {
+  /* ── Fetch ── */
+  const fetchDetail = useCallback(async () => {
     try {
       setLoading(true);
       const res = await consultationService.getConsultationDetails(id);
       setData(res.data);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Failed to load detail");
-    } finally {
-      setLoading(false);
-    }
-  };
+      setError(err.response?.data?.message || err.message || t("doctor.consultationDetail.errors.loadFailed", { defaultValue: "Failed to load" }));
+    } finally { setLoading(false); }
+  }, [id, t]);
 
-  const fetchAiData = async () => {
+  const fetchAiData = useCallback(async () => {
     try {
       const res = await aiService.getAnalysisForConsultation(id);
       setAiData(res.data || []);
-    } catch (err) {
-      console.error("Failed to load AI data:", err);
-    }
-  };
+    } catch { /* silent */ }
+  }, [id]);
 
+  useEffect(() => { fetchDetail(); fetchAiData(); }, [fetchDetail, fetchAiData]);
+
+  /* ── Prescriptions ── */
+  const fetchPrescriptions = useCallback(async () => {
+    try {
+      const res = await getPrescriptionsByConsultationApi(id);
+      setPrescriptions(res.data || []);
+    } catch { /* silent */ }
+  }, [id]);
+
+  useEffect(() => { fetchPrescriptions(); }, [fetchPrescriptions]);
+
+  /* ── AI request ── */
   const startRequestAI = async (imageId) => {
     setRequestAILoading(imageId);
     try {
       await aiService.requestImageAnalysis(id, imageId);
-      // Gọi fetch lại danh sách AI để thấy trạng thái "Queued/Processing" ngay lập tức
       await fetchAiData();
-      
-      // Bắt đầu một vòng lặp Poll (mỗi 2 giây một lần) để chờ AI service trả kết quả
       const interval = setInterval(async () => {
-         const currentRes = await aiService.getAnalysisForConsultation(id);
-         const updatedRecord = currentRes.data.find(a => a.consultation_image_id === imageId);
-         
-         if (updatedRecord && updatedRecord.request_status !== 'processing' && updatedRecord.request_status !== 'queued') {
-            // Đã hoàn thành hoặc fail
-            setAiData(currentRes.data);
-            clearInterval(interval);
-         } else {
-            setAiData(currentRes.data); // Update liên tục cho thấy trạng thái
-         }
+        const currentRes = await aiService.getAnalysisForConsultation(id);
+        const updated = currentRes.data.find(a => a.consultation_image_id === imageId);
+        if (updated && updated.request_status !== "processing" && updated.request_status !== "queued") {
+          setAiData(currentRes.data);
+          clearInterval(interval);
+        } else {
+          setAiData(currentRes.data);
+        }
       }, 2500);
-
     } catch (err) {
-      alert("Lỗi khi yêu cầu AI: " + (err.response?.data?.message || err.message));
+      setError(err.response?.data?.message || err.message);
     } finally {
       setRequestAILoading(null);
       setConfirmAiImageId(null);
     }
   };
 
-  const handleRequestAI = (imageId) => {
-    setConfirmAiImageId(imageId);
-  };
-
+  /* ── Review submit ── */
   const handleSubmitReview = async (requestId) => {
     setReviewSubmitting(true);
     try {
-      await aiService.reviewAIResult(requestId, {
-        review_status: reviewForm.status,
-        review_note: reviewForm.note,
-      });
+      await aiService.reviewAIResult(requestId, { review_status: reviewForm.status, review_note: reviewForm.note });
       setReviewingRequestId(null);
       await fetchAiData();
     } catch (err) {
-      alert('Lỗi khi lưu đánh giá: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setReviewSubmitting(false);
-    }
+      setError(err.response?.data?.message || err.message);
+    } finally { setReviewSubmitting(false); }
   };
 
+  /* ── Reply ── */
   const handleReplySubmit = async (e, markComplete = false) => {
     e.preventDefault();
     if (!replyText.trim()) return;
-
     setIsSubmitting(true);
     try {
-      const payload = {
-        content: replyText,
-        response_type: replyType,
-        complete: markComplete
-      };
-      await consultationService.addResponse(id, payload);
+      await consultationService.addResponse(id, { content: replyText, response_type: replyType, complete: markComplete });
       setReplyText("");
       setReplyType("message");
       await fetchDetail();
     } catch (err) {
-      alert("Lỗi khi gửi phản hồi: " + (err.response?.data?.message || err.message));
-    } finally {
-      setIsSubmitting(false);
-    }
+      setError(err.response?.data?.message || err.message);
+    } finally { setIsSubmitting(false); }
   };
 
+  /* ── Reopen ── */
   const handleReopenCase = async () => {
     setReopenSubmitting(true);
     try {
       await consultationService.reopenConsultation(id);
       await fetchDetail();
     } catch (err) {
-      alert("Lỗi mở lại ca: " + (err.response?.data?.message || err.message));
-    } finally {
-      setReopenSubmitting(false);
-    }
+      setError(err.response?.data?.message || err.message);
+    } finally { setReopenSubmitting(false); }
   };
 
-  if (loading) return <div className="p-10 text-center">Đang tải chi tiết...</div>;
-  if (error) return <div className="p-10 text-center text-red-500">{error}</div>;
-  if (!data) return null;
-
-  // Render Risk Badge
-  const getRiskBadge = (level) => {
-    switch(level) {
-      case 'low': return <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">Low Risk</span>;
-      case 'medium': return <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded text-xs">Medium Risk</span>;
-      case 'high': return <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs animate-pulse">High Risk</span>;
-      default: return null;
-    }
+  /* ── Loading skeleton ── */
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-7xl space-y-5">
+        <Pulse className="h-10 w-32" />
+        <div className="rounded-3xl bg-gradient-to-br from-slate-800 to-slate-900 p-8 animate-pulse">
+          <Pulse className="h-3 w-20 mb-4 !bg-slate-700" />
+          <Pulse className="h-8 w-64 mb-3 !bg-slate-700" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+            {[1,2,3,4].map(i => <Pulse key={i} className="h-16 !bg-white/5 !rounded-xl" />)}
+          </div>
+        </div>
+        <div className="grid gap-5 lg:grid-cols-12">
+          <div className="lg:col-span-5 space-y-5"><Pulse className="h-64 rounded-2xl" /><Pulse className="h-48 rounded-2xl" /></div>
+          <div className="lg:col-span-7 space-y-5"><Pulse className="h-80 rounded-2xl" /><Pulse className="h-20 rounded-2xl" /></div>
+        </div>
+      </div>
+    );
   }
 
+  if (!data) {
+    return (
+      <div className="mx-auto max-w-7xl">
+        <button onClick={() => navigate("/doctor/consultations")}
+          className="inline-flex items-center gap-2 rounded-xl border border-border-main px-3.5 py-2 text-sm font-medium text-text-main transition hover:bg-bg-app">
+          <ArrowLeft className="h-4 w-4" /> {t("common.back", { defaultValue: "Back" })}
+        </button>
+        {error && (
+          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-200/60 bg-red-50/80 px-5 py-4 text-sm text-red-700 backdrop-blur dark:border-red-800/40 dark:bg-red-900/15 dark:text-red-400">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> <span>{error}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const st = C_STATUS[data.status] || C_STATUS.pending;
+  const StIcon = st.icon;
+  const completedAI = aiData.filter(a => a.request_status === "completed");
+
   return (
-    <div className="max-w-7xl mx-auto p-4 flex flex-col md:flex-row gap-6 mt-6 pb-20">
-      
-      {/* Khung bên Trái: Thông tin Bệnh nhân & Hồ sơ (UC13) */}
-      <div className="w-full md:w-5/12 space-y-6">
-        <div className="bg-bg-surface p-6 rounded-2xl shadow-sm border border-border-main dark:bg-slate-800">
-          <div className="mb-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-text-dim transition hover:text-text-main"
-            >
-              ← Quay lại danh sách
-            </button>
-            <div className="flex justify-between items-start">
-              <h2 className="text-xl font-bold text-text-main">Chi tiết Ca Tư Vấn #{data.id}</h2>
-              <span className={`px-2 py-1 rounded text-xs font-semibold ${data.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-                Trạng thái: {data.status}
-              </span>
+    <div className="mx-auto max-w-7xl space-y-5">
+
+      {/* ── Back ── */}
+      <button onClick={() => navigate("/doctor/consultations")}
+        className="inline-flex items-center gap-2 rounded-xl border border-border-main px-3.5 py-2 text-sm font-medium text-text-main transition hover:bg-bg-app">
+        <ArrowLeft className="h-4 w-4" />
+        {t("doctor.consultationDetail.backToList", { defaultValue: "All Consultations" })}
+      </button>
+
+      {/* Error */}
+      {error && (
+        <div className="flex items-start gap-3 rounded-2xl border border-red-200/60 bg-red-50/80 px-5 py-4 text-sm text-red-700 backdrop-blur dark:border-red-800/40 dark:bg-red-900/15 dark:text-red-400">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> <span>{error}</span>
+        </div>
+      )}
+
+      {/* ── HERO ── */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-900/40 p-6 text-white shadow-2xl sm:p-8">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMiI+PHBhdGggZD0iTTM2IDE4YzEgMSAxIDMgMCA0bC0yIDJjLTEgMS0zIDEtNCAwbC0yLTJjLTEtMS0xLTMgMC00bDItMmMxLTEgMy0xIDQgMGwyIDJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-40" />
+        <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute -bottom-12 left-1/4 h-40 w-40 rounded-full bg-teal-400/10 blur-3xl" />
+
+        <div className="relative">
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-cyan-300 backdrop-blur-sm">
+              <Sparkles className="h-3 w-3" /> {t("doctor.zone", { defaultValue: "Doctor Zone" })}
+            </p>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs text-slate-300">
+              #{data.id}
+            </span>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              {t("doctor.consultationDetail.title", { defaultValue: "Consultation Details" })}
+            </h1>
+            <span className={`inline-flex items-center gap-2 self-start rounded-full px-4 py-2 text-sm font-bold ${PILL[st.color] || ""}`}>
+              <StIcon className="h-4 w-4" /> {sLabel(data.status)}
+            </span>
+          </div>
+
+          {/* Bento mini-stats */}
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { icon: User, label: t("doctor.consultationDetail.patient", { defaultValue: "Patient" }), value: data.patient_name || "—" },
+              { icon: Calendar, label: t("doctor.consultationDetail.created", { defaultValue: "Created" }), value: fmtDateTime(data.created_at, lng) },
+              { icon: Brain, label: t("doctor.consultationDetail.aiAnalysis", { defaultValue: "AI Analysis" }), value: `${completedAI.length} / ${data.images?.length || 0}` },
+              { icon: MessageSquare, label: t("doctor.consultationDetail.responses", { defaultValue: "Responses" }), value: String(data.responses?.length || 0) },
+            ].map((item) => (
+              <div key={item.label} className="rounded-xl border border-white/10 bg-white/[0.06] p-3 backdrop-blur-md">
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  <item.icon className="h-3 w-3 text-cyan-400" /> {item.label}
+                </div>
+                <p className="mt-1 text-sm font-bold text-white truncate">{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── BENTO GRID: Main content ── */}
+      <div className="grid gap-5 lg:grid-cols-12">
+
+        {/* ── LEFT COLUMN (5 cols): Patient + Images + AI ── */}
+        <div className="space-y-5 lg:col-span-5">
+
+          {/* Patient Info Card */}
+          <div className={`${GLASS_CARD} p-6`}>
+            <h2 className="flex items-center gap-2 text-base font-bold text-text-main">
+              <User className="h-5 w-5 text-cyan-500" />
+              {t("doctor.consultationDetail.patientInfo", { defaultValue: "Patient Information" })}
+            </h2>
+            <div className="mt-5 space-y-4">
+              {[
+                { label: t("doctor.consultationDetail.patientName", { defaultValue: "Name" }), value: data.patient_name },
+                { label: t("doctor.consultationDetail.ageGender", { defaultValue: "Age / Gender" }), value: `${calcAge(data.date_of_birth)} ${t("doctor.consultationDetail.yearsOld", { defaultValue: "years" })} / ${data.gender || "—"}` },
+                { label: t("doctor.consultationDetail.medicalHistory", { defaultValue: "Medical History" }), value: data.medical_history || t("doctor.consultationDetail.notAvailable", { defaultValue: "Not available" }) },
+                { label: t("doctor.consultationDetail.allergies", { defaultValue: "Allergies" }), value: data.allergies || t("doctor.consultationDetail.notAvailable", { defaultValue: "Not available" }) },
+              ].map((row) => (
+                <div key={row.label}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-text-dim">{row.label}</p>
+                  <p className="mt-0.5 text-sm font-semibold text-text-main">{row.value}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="space-y-3 text-sm">
-            <p><span className="font-medium text-text-dim w-32 inline-block">Bệnh nhân:</span> {data.patient_name}</p>
-            <p><span className="font-medium text-text-dim w-32 inline-block">Tuổi/Giới tính:</span> {new Date().getFullYear() - new Date(data.date_of_birth).getFullYear() || '--'} tuổi / {data.gender || '--'}</p>
-            <p><span className="font-medium text-text-dim w-32 inline-block">Tiền sử bệnh:</span> {data.medical_history || "Không rõ."}</p>
-            <p><span className="font-medium text-text-dim w-32 inline-block">Dị ứng:</span> {data.allergies || "Không rõ."}</p>
+          {/* Chief Complaint Card */}
+          <div className={`${GLASS_CARD} p-6`}>
+            <h2 className="flex items-center gap-2 text-base font-bold text-text-main">
+              <Stethoscope className="h-5 w-5 text-rose-500" />
+              {t("doctor.consultationDetail.symptoms", { defaultValue: "Symptoms" })}
+            </h2>
+            <div className="mt-4 rounded-xl border-l-4 border-rose-400 bg-rose-50/50 p-4 dark:bg-rose-900/10">
+              <p className="text-sm font-bold text-rose-700 dark:text-rose-400">{data.chief_complaint}</p>
+            </div>
+            {data.symptoms && (
+              <div className="mt-3 rounded-xl bg-bg-app/50 p-4 dark:bg-slate-800/50">
+                <p className="text-sm leading-relaxed text-text-main">{data.symptoms}</p>
+              </div>
+            )}
           </div>
-          
-          <hr className="my-5" />
 
-          <div>
-            <h3 className="text-lg font-semibold text-text-main mb-2">Triệu Chứng</h3>
-            <p className="font-medium text-red-600 border-l-4 border-red-500 pl-3 mb-2">{data.chief_complaint}</p>
-            <p className="text-text-main bg-bg-app p-3 rounded dark:bg-slate-700">{data.symptoms}</p>
-          </div>
-
-          {/* Lịch hẹn liên kết */}
+          {/* Linked Appointment */}
           {data.appointment_id && (
-            <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50 dark:bg-violet-900/10 dark:border-violet-800 p-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-violet-500 dark:text-violet-400 mb-2">
-                Lịch hẹn liên kết
-              </p>
-              <p className="text-sm text-text-dim mb-2">Ca tư vấn này được tạo từ lịch hẹn <span className="font-semibold text-text-main">#{data.appointment_id}</span>.</p>
-              <button
-                onClick={() => navigate(`/doctor/appointments/${data.appointment_id}`)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700"
-              >
-                Xem chi tiết lịch hẹn
-              </button>
+            <div className={`${GLASS_CARD} overflow-hidden`}>
+              <div className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 px-5 py-3 dark:from-violet-900/20 dark:to-purple-900/20">
+                <h3 className="flex items-center gap-2 text-sm font-bold text-text-main">
+                  <Calendar className="h-4 w-4 text-violet-500" />
+                  {t("doctor.consultationDetail.linkedAppointment", { defaultValue: "Linked Appointment" })}
+                </h3>
+              </div>
+              <div className="p-5">
+                <p className="text-sm text-text-dim mb-3">
+                  {t("doctor.consultationDetail.appointmentRef", { defaultValue: "This consultation was created from appointment" })}
+                  {" "}<span className="font-mono font-bold text-violet-600 dark:text-violet-400">#{data.appointment_id}</span>
+                </p>
+                <button onClick={() => navigate(`/doctor/appointments/${data.appointment_id}`)}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-violet-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-violet-500/20 transition hover:bg-violet-600">
+                  {t("doctor.consultationDetail.viewAppointment", { defaultValue: "View Appointment" })}
+                </button>
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Khung Ảnh đính kèm & Tiền Xử Lý & Phân Tích AI */}
-        {data.images && data.images.length > 0 && (
-          <div className="bg-bg-surface p-6 rounded-2xl shadow-sm border border-border-main dark:bg-slate-800">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-text-main flex items-center gap-2">
-                🩻 Hình Ảnh Cận Lâm Sàng
-              </h3>
-              <button onClick={fetchAiData} className="text-xs text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1">
-                ↻ Làm mới
-              </button>
-            </div>
+          {/* ── IMAGES & AI ANALYSIS ── */}
+          {data.images && data.images.length > 0 && (
+            <div className={`${GLASS_CARD} p-6`}>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="flex items-center gap-2 text-base font-bold text-text-main">
+                  <Image className="h-5 w-5 text-indigo-500" />
+                  {t("doctor.consultationDetail.clinicalImages", { defaultValue: "Clinical Images" })}
+                </h2>
+                <button onClick={fetchAiData}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border-main/60 px-2.5 py-1.5 text-[11px] font-semibold text-text-dim transition hover:bg-bg-app">
+                  <RefreshCw className="h-3 w-3" /> {t("common.refresh", { defaultValue: "Refresh" })}
+                </button>
+              </div>
 
-            <div className="space-y-4">
-              {data.images.map((img, idx) => {
-                const aiResult = aiData?.find(a => a.consultation_image_id === img.id);
-                const isProcessing = aiResult?.request_status === 'processing' || aiResult?.request_status === 'queued';
-                const isCompleted = aiResult?.request_status === 'completed';
-                const isFailed = aiResult?.request_status === 'failed';
-                // TODO (Giai đoạn 2): thay bằng img.preprocessed_url khi backend hỗ trợ tiền xử lý ảnh
-                const preprocessedUrl = null;
-                const reviewStatus = aiResult?.doctor_review_status || 'pending_review';
-                const reviewCfg = REVIEW_STATUS_CONFIG[reviewStatus];
-                const isReviewing = reviewingRequestId === aiResult?.request_id;
+              <div className="space-y-4">
+                {data.images.map((img, idx) => {
+                  const aiResult = aiData?.find(a => a.consultation_image_id === img.id);
+                  const isProcessing = aiResult?.request_status === "processing" || aiResult?.request_status === "queued";
+                  const isCompleted = aiResult?.request_status === "completed";
+                  const isFailed = aiResult?.request_status === "failed";
+                  const reviewStatus = aiResult?.doctor_review_status || "pending_review";
+                  const reviewCfg = REVIEW_STATUS_CONFIG[reviewStatus];
+                  const ReviewIcon = reviewCfg?.icon || Eye;
+                  const isReviewing = reviewingRequestId === aiResult?.request_id;
+                  const isExpanded = expandedImage === idx;
 
-                return (
-                  <div key={idx} className="border border-border-main rounded-xl overflow-hidden dark:border-slate-700">
-
-                    {/* Card header: số ảnh + trạng thái AI */}
-                    <div className="bg-bg-app px-4 py-2 flex items-center justify-between border-b border-border-main dark:bg-slate-900">
-                      <span className="text-xs font-bold text-text-dim uppercase tracking-widest">Ảnh #{idx + 1}</span>
-                      <div className="flex items-center gap-2">
-                        {isProcessing && (
-                          <span className="flex items-center gap-1 text-[10px] text-blue-600 font-medium">
-                            <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                            </svg>
-                            AI đang phân tích...
-                          </span>
-                        )}
-                        {isCompleted && getRiskBadge(aiResult.risk_level)}
-                        {isFailed && <span className="text-[10px] text-red-500 font-medium">❌ Lỗi AI</span>}
-                        {!aiResult && <span className="text-[10px] text-text-dim">Chưa phân tích</span>}
-                      </div>
-                    </div>
-
-                    {/* So sánh ảnh: Gốc | Đã tiền xử lý */}
-                    <div className="grid grid-cols-2 divide-x divide-border-main dark:divide-slate-700">
-
-                      {/* Panel 1: Ảnh gốc */}
-                      <div className="flex flex-col">
-                        <div className="bg-slate-50 dark:bg-slate-900/40 px-3 py-1.5 text-center border-b border-border-main">
-                          <span className="text-[9px] font-semibold uppercase tracking-widest text-text-dim">Ảnh gốc</span>
-                        </div>
-                        <div className="aspect-square overflow-hidden bg-bg-app dark:bg-slate-800 group">
-                          <img src={img.image_url} alt="Ảnh gốc" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                        </div>
-                      </div>
-
-                      {/* Panel 2: Ảnh sau tiền xử lý (framework – Giai đoạn 2) */}
-                      <div className="flex flex-col">
-                        <div className="bg-violet-50 dark:bg-violet-900/20 px-3 py-1.5 text-center border-b border-border-main flex items-center justify-center gap-1.5">
-                          <span className="text-[9px] font-semibold uppercase tracking-widest text-violet-600 dark:text-violet-400">Ảnh đã xử lý</span>
-                          <span className="bg-violet-200 text-violet-700 dark:bg-violet-800/50 dark:text-violet-300 text-[7px] font-bold uppercase px-1.5 py-0.5 rounded-sm leading-none">Sắp ra mắt</span>
-                        </div>
-                        <div className="aspect-square flex flex-col items-center justify-center bg-violet-50/60 dark:bg-violet-900/10 gap-2 p-3">
-                          {preprocessedUrl ? (
-                            <img src={preprocessedUrl} alt="Ảnh đã xử lý" className="w-full h-full object-cover" />
-                          ) : (
-                            <>
-                              <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-xl">🔬</div>
-                              <p className="text-[9px] font-semibold text-violet-600 dark:text-violet-300 text-center">Tiền xử lý ảnh</p>
-                              <p className="text-[8px] text-violet-400 text-center leading-relaxed px-1">Khử nhiễu · Cân bằng histogram · Tăng tương phản</p>
-                            </>
+                  return (
+                    <div key={idx} className="rounded-xl border border-border-main/50 overflow-hidden dark:border-slate-700/50">
+                      {/* Image Header */}
+                      <div className="flex items-center justify-between bg-bg-app/60 px-4 py-2.5 dark:bg-slate-800/60">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-text-dim">
+                          {t("doctor.consultationDetail.imageNum", { defaultValue: "Image" })} #{idx + 1}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {isProcessing && (
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              {t("doctor.consultationDetail.aiProcessing", { defaultValue: "AI analyzing..." })}
+                            </span>
+                          )}
+                          {isCompleted && <RiskBadge level={aiResult.risk_level} t={t} />}
+                          {isFailed && (
+                            <span className="text-[10px] font-semibold text-red-500">
+                              {t("doctor.consultationDetail.aiFailed", { defaultValue: "AI Error" })}
+                            </span>
+                          )}
+                          {!aiResult && (
+                            <span className="text-[10px] text-text-dim">
+                              {t("doctor.consultationDetail.notAnalyzed", { defaultValue: "Not analyzed" })}
+                            </span>
                           )}
                         </div>
                       </div>
-                    </div>
 
-                    {/* Thông số kỹ thuật */}
-                    <div className="border-t border-border-main dark:border-slate-700 grid grid-cols-2 divide-x divide-border-main dark:divide-slate-700 text-[10px]">
-
-                      {/* Thông số tiền xử lý */}
-                      <div className="px-3 py-2.5 bg-violet-50/50 dark:bg-violet-900/10">
-                        <p className="font-bold text-[9px] uppercase tracking-widest text-violet-600 dark:text-violet-400 mb-2">🔬 Tiền xử lý (Giai đoạn 2)</p>
-                        <div className="space-y-1 text-text-dim">
-                          <div className="flex justify-between"><span>Mức nhiễu (dB)</span><span className="font-mono text-violet-300">—</span></div>
-                          <div className="flex justify-between"><span>Tương phản</span><span className="font-mono text-violet-300">—</span></div>
-                          <div className="flex justify-between"><span>Độ sắc nét</span><span className="font-mono text-violet-300">—</span></div>
-                          <div className="flex justify-between"><span>Phương pháp</span><span className="font-mono text-violet-300">—</span></div>
-                        </div>
-                      </div>
-
-                      {/* Thông số phân tích AI */}
-                      <div className="px-3 py-2.5 bg-indigo-50/50 dark:bg-indigo-900/10">
-                        <p className="font-bold text-[9px] uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-2">✨ Phân tích AI</p>
-                        <div className="space-y-1 text-text-dim">
-                          <div className="flex justify-between">
-                            <span>Mức rủi ro</span>
-                            {isCompleted
-                              ? <span className="font-bold font-mono uppercase">{aiResult.risk_level || '—'}</span>
-                              : <span className="font-mono text-indigo-200">—</span>}
+                      {/* Image + Preprocessed side by side */}
+                      <div className="grid grid-cols-2 divide-x divide-border-main/30 dark:divide-slate-700/30">
+                        {/* Original */}
+                        <div>
+                          <div className="bg-slate-50/60 px-3 py-1.5 text-center border-b border-border-main/30 dark:bg-slate-900/30">
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-text-dim">
+                              {t("doctor.consultationDetail.original", { defaultValue: "Original" })}
+                            </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Độ chính xác</span>
-                            {isCompleted
-                              ? <span className="font-bold font-mono">{aiResult.confidence_score}%</span>
-                              : <span className="font-mono text-indigo-200">—</span>}
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Nhận định</span>
-                            {isCompleted
-                              ? <span className="font-mono text-emerald-600 font-bold">✓ Có</span>
-                              : <span className="font-mono text-indigo-200">—</span>}
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Gợi ý điều trị</span>
-                            {isCompleted
-                              ? <span className="font-mono text-emerald-600 font-bold">✓ Có</span>
-                              : <span className="font-mono text-indigo-200">—</span>}
+                          <div className="aspect-square overflow-hidden bg-bg-app dark:bg-slate-800 group">
+                            <img src={img.image_url} alt={`Image ${idx + 1}`}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                           </div>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Footer: Trạng thái & Đánh giá của Bác sĩ */}
-                    <div className="border-t border-border-main bg-bg-app dark:bg-slate-900">
-                      {/* Row 1: Trạng thái xử lý AI */}
-                      <div className="flex items-center gap-2 px-4 py-2">
-                        {!aiResult && (
-                          <button
-                            onClick={() => handleRequestAI(img.id)}
-                            className="text-[10px] font-medium text-white bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 px-2.5 py-1 rounded-lg transition-all shadow-sm disabled:opacity-60"
-                            disabled={requestAILoading === img.id}
-                          >
-                            {requestAILoading === img.id ? "Đang gửi..." : "✨ Chạy phân tích AI (test)"}
-                          </button>
-                        )}
-                        {isCompleted && <span className="text-[10px] text-emerald-600 font-medium">✓ Phân tích AI hoàn thành</span>}
-                        {isProcessing && <span className="text-[10px] text-blue-600 font-medium">⏳ Đang xử lý...</span>}
-                        {isFailed && <span className="text-[10px] text-red-500">❌ Phân tích thất bại</span>}
-                        <span className="text-[9px] text-text-dim ml-auto">Tiền xử lý → AI phân tích</span>
-                      </div>
-
-                      {/* Row 2: Review section (bác sĩ & admin, khi AI đã có kết quả) */}
-                      {isCompleted && role !== 'patient' && (
-                        <div className="border-t border-border-main/50 px-4 py-3">
-                          {!isReviewing ? (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold border px-2 py-1 rounded-full ${reviewCfg.badge}`}>
-                                {reviewCfg.icon} {reviewCfg.label}
-                              </span>
-                              {aiResult.shared_with_patient === 1 && (
-                                <span className="text-[9px] text-indigo-600 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">👤 Bệnh nhân đang xem</span>
-                              )}
-                              <button
-                                onClick={() => {
-                                  setReviewingRequestId(aiResult.request_id);
-                                  setReviewForm({ status: reviewStatus === 'pending_review' ? 'approved' : reviewStatus, note: aiResult.review_note || '' });
-                                }}
-                                className="ml-auto text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 underline"
-                              >
-                                {reviewStatus === 'pending_review' ? '+ Đánh giá' : '✎ Sửa'}
-                              </button>
+                        {/* Preprocessed (Phase 2) */}
+                        <div>
+                          <div className="bg-violet-50/60 px-3 py-1.5 text-center border-b border-border-main/30 dark:bg-violet-900/10 flex items-center justify-center gap-1.5">
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-violet-600 dark:text-violet-400">
+                              {t("doctor.consultationDetail.preprocessed", { defaultValue: "Preprocessed" })}
+                            </span>
+                            <span className="rounded bg-violet-200/80 px-1.5 py-0.5 text-[7px] font-bold uppercase text-violet-700 dark:bg-violet-800/40 dark:text-violet-300">
+                              {t("doctor.consultationDetail.comingSoon", { defaultValue: "Soon" })}
+                            </span>
+                          </div>
+                          <div className="aspect-square flex flex-col items-center justify-center bg-violet-50/30 dark:bg-violet-900/5 gap-2 p-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/20">
+                              <Brain className="h-5 w-5 text-violet-500" />
                             </div>
-                          ) : (
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-bold uppercase text-text-dim mb-1">Đánh giá kết quả AI</p>
-                              <select
-                                value={reviewForm.status}
-                                onChange={(e) => setReviewForm(f => ({ ...f, status: e.target.value }))}
-                                className="w-full text-xs border border-border-main rounded-lg p-2 bg-bg-surface text-text-main dark:bg-slate-800"
-                              >
-                                <option value="approved">✅ Đạt tiêu chuẩn – Chia sẻ bệnh nhân</option>
-                                <option value="approved_watch">👁️ Đạt – Cần theo dõi – Chia sẻ</option>
-                                <option value="not_standard">❌ Không đạt tiêu chuẩn – Không chia sẻ</option>
-                                <option value="revoked">🔒 Thu hồi quyền xem</option>
-                                <option value="pending_review">🔍 Chưa đánh giá</option>
-                              </select>
-                              <textarea
-                                value={reviewForm.note}
-                                onChange={(e) => setReviewForm(f => ({ ...f, note: e.target.value }))}
-                                placeholder="Ghi chú của bác sĩ (tùy chọn)..."
-                                rows="2"
-                                className="w-full text-xs border border-border-main rounded-lg p-2 resize-none bg-bg-surface text-text-main dark:bg-slate-800"
-                              />
-                              <div className="flex gap-2 justify-end">
-                                <button
-                                  onClick={() => setReviewingRequestId(null)}
-                                  className="text-xs px-3 py-1.5 rounded-lg border border-border-main text-text-dim hover:bg-bg-app"
-                                >Hủy</button>
-                                <button
-                                  onClick={() => handleSubmitReview(aiResult.request_id)}
-                                  disabled={reviewSubmitting}
-                                  className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
-                                >{reviewSubmitting ? 'Đang lưu...' : 'Lưu đánh giá'}</button>
+                            <p className="text-[9px] font-bold text-violet-600 dark:text-violet-300">
+                              {t("doctor.consultationDetail.preprocess", { defaultValue: "Image Preprocessing" })}
+                            </p>
+                            <p className="text-[8px] text-violet-400 text-center leading-relaxed">
+                              {t("doctor.consultationDetail.preprocessDesc", { defaultValue: "Denoise · Histogram · Contrast" })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Metrics row */}
+                      <div className="grid grid-cols-2 divide-x divide-border-main/30 dark:divide-slate-700/30 border-t border-border-main/30 text-[10px]">
+                        {/* Preprocessing metrics */}
+                        <div className="px-3 py-2.5 bg-violet-50/30 dark:bg-violet-900/5">
+                          <p className="font-bold text-[9px] uppercase tracking-widest text-violet-600 dark:text-violet-400 mb-2">
+                            {t("doctor.consultationDetail.preprocessMetrics", { defaultValue: "Preprocess (Phase 2)" })}
+                          </p>
+                          <div className="space-y-1 text-text-dim">
+                            {["Noise (dB)", "Contrast", "Sharpness", "Method"].map(m => (
+                              <div key={m} className="flex justify-between"><span>{m}</span><span className="font-mono text-violet-300">—</span></div>
+                            ))}
+                          </div>
+                        </div>
+                        {/* AI metrics */}
+                        <div className="px-3 py-2.5 bg-indigo-50/30 dark:bg-indigo-900/5">
+                          <p className="font-bold text-[9px] uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-2">
+                            {t("doctor.consultationDetail.aiMetrics", { defaultValue: "AI Analysis" })}
+                          </p>
+                          <div className="space-y-1 text-text-dim">
+                            <div className="flex justify-between">
+                              <span>{t("doctor.consultationDetail.riskLevel", { defaultValue: "Risk" })}</span>
+                              {isCompleted ? <span className="font-bold font-mono uppercase">{aiResult.risk_level || "—"}</span> : <span className="font-mono text-indigo-200">—</span>}
+                            </div>
+                            <div className="flex justify-between">
+                              <span>{t("doctor.consultationDetail.confidence", { defaultValue: "Confidence" })}</span>
+                              {isCompleted ? <span className="font-bold font-mono">{aiResult.confidence_score}%</span> : <span className="font-mono text-indigo-200">—</span>}
+                            </div>
+                            <div className="flex justify-between">
+                              <span>{t("doctor.consultationDetail.finding", { defaultValue: "Finding" })}</span>
+                              {isCompleted ? <span className="font-mono text-emerald-600 font-bold">✓</span> : <span className="font-mono text-indigo-200">—</span>}
+                            </div>
+                            <div className="flex justify-between">
+                              <span>{t("doctor.consultationDetail.suggestion", { defaultValue: "Suggestion" })}</span>
+                              {isCompleted ? <span className="font-mono text-emerald-600 font-bold">✓</span> : <span className="font-mono text-indigo-200">—</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action footer */}
+                      <div className="border-t border-border-main/30 bg-bg-app/40 dark:bg-slate-900/30">
+                        <div className="flex items-center gap-2 px-4 py-2.5">
+                          {!aiResult && (
+                            <button onClick={() => setConfirmAiImageId(img.id)}
+                              disabled={requestAILoading === img.id}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-indigo-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm transition hover:from-purple-600 hover:to-indigo-700 disabled:opacity-60">
+                              {requestAILoading === img.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                              {t("doctor.consultationDetail.runAI", { defaultValue: "Run AI Analysis" })}
+                            </button>
+                          )}
+                          {isCompleted && (
+                            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle className="inline h-3 w-3 mr-1" />
+                              {t("doctor.consultationDetail.aiComplete", { defaultValue: "AI analysis complete" })}
+                            </span>
+                          )}
+                          {isProcessing && (
+                            <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                              <Loader2 className="inline h-3 w-3 mr-1 animate-spin" />
+                              {t("doctor.consultationDetail.processing", { defaultValue: "Processing..." })}
+                            </span>
+                          )}
+                          {isFailed && (
+                            <span className="text-[10px] font-semibold text-red-500">
+                              {t("doctor.consultationDetail.analysisFailed", { defaultValue: "Analysis failed" })}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Doctor Review Section */}
+                        {isCompleted && role !== "patient" && (
+                          <div className="border-t border-border-main/30 px-4 py-3">
+                            {!isReviewing ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${PILL[reviewCfg?.color || "amber"]}`}>
+                                  <ReviewIcon className="h-3 w-3" />
+                                  {t(`doctor.consultationDetail.review.${reviewStatus}`, { defaultValue: reviewCfg?.label || reviewStatus })}
+                                </span>
+                                {aiResult.shared_with_patient === 1 && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100/60 px-2 py-0.5 text-[9px] font-semibold text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
+                                    <Eye className="h-2.5 w-2.5" /> {t("doctor.consultationDetail.patientViewing", { defaultValue: "Patient viewing" })}
+                                  </span>
+                                )}
+                                <button onClick={() => {
+                                  setReviewingRequestId(aiResult.request_id);
+                                  setReviewForm({ status: reviewStatus === "pending_review" ? "approved" : reviewStatus, note: aiResult.review_note || "" });
+                                }}
+                                  className="ml-auto text-[10px] font-bold text-indigo-600 transition hover:text-indigo-800 dark:text-indigo-400">
+                                  {reviewStatus === "pending_review"
+                                    ? t("doctor.consultationDetail.addReview", { defaultValue: "+ Review" })
+                                    : t("doctor.consultationDetail.editReview", { defaultValue: "Edit" })}
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="space-y-2.5">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-text-dim">
+                                  {t("doctor.consultationDetail.reviewAIResult", { defaultValue: "Review AI Result" })}
+                                </p>
+                                <select value={reviewForm.status} onChange={(e) => setReviewForm(f => ({ ...f, status: e.target.value }))}
+                                  className="w-full rounded-lg border border-border-main bg-bg-surface px-3 py-2 text-xs text-text-main dark:bg-slate-800">
+                                  <option value="approved">{t("doctor.consultationDetail.review.approved", { defaultValue: "Approved – Share" })}</option>
+                                  <option value="approved_watch">{t("doctor.consultationDetail.review.approved_watch", { defaultValue: "Approved – Watch – Share" })}</option>
+                                  <option value="not_standard">{t("doctor.consultationDetail.review.not_standard", { defaultValue: "Not Standard – Don't Share" })}</option>
+                                  <option value="revoked">{t("doctor.consultationDetail.review.revoked", { defaultValue: "Revoke Access" })}</option>
+                                  <option value="pending_review">{t("doctor.consultationDetail.review.pending_review", { defaultValue: "Pending Review" })}</option>
+                                </select>
+                                <textarea value={reviewForm.note} onChange={(e) => setReviewForm(f => ({ ...f, note: e.target.value }))}
+                                  placeholder={t("doctor.consultationDetail.reviewNotePlaceholder", { defaultValue: "Doctor's note (optional)..." })}
+                                  rows="2"
+                                  className="w-full resize-none rounded-lg border border-border-main bg-bg-surface px-3 py-2 text-xs text-text-main dark:bg-slate-800" />
+                                <div className="flex gap-2 justify-end">
+                                  <button onClick={() => setReviewingRequestId(null)}
+                                    className="rounded-lg border border-border-main px-3 py-1.5 text-xs font-semibold text-text-dim transition hover:bg-bg-app">
+                                    {t("common.cancel", { defaultValue: "Cancel" })}
+                                  </button>
+                                  <button onClick={() => handleSubmitReview(aiResult.request_id)}
+                                    disabled={reviewSubmitting}
+                                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-indigo-700 disabled:opacity-50">
+                                    {reviewSubmitting ? t("common.saving", { defaultValue: "Saving..." }) : t("common.save", { defaultValue: "Save" })}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Expandable AI Detail */}
+                      {isCompleted && (
+                        <div className="border-t border-border-main/30">
+                          <button onClick={() => setExpandedImage(isExpanded ? null : idx)}
+                            className="flex w-full items-center justify-between px-4 py-2.5 text-[11px] font-bold text-indigo-600 transition hover:bg-indigo-50/30 dark:text-indigo-400 dark:hover:bg-indigo-900/10">
+                            <span className="flex items-center gap-1.5">
+                              <Brain className="h-3.5 w-3.5" />
+                              {t("doctor.consultationDetail.aiDetails", { defaultValue: "AI Findings & Recommendations" })}
+                            </span>
+                            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                          </button>
+                          {isExpanded && (
+                            <div className="px-4 pb-4 space-y-3">
+                              <div className="rounded-xl bg-indigo-50/50 p-4 dark:bg-indigo-900/10">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
+                                  {t("doctor.consultationDetail.finding", { defaultValue: "Finding" })}
+                                </p>
+                                <p className="text-sm leading-relaxed text-text-main">{aiResult.result_summary}</p>
+                              </div>
+                              <div className="rounded-xl bg-emerald-50/50 p-4 dark:bg-emerald-900/10">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">
+                                  {t("doctor.consultationDetail.recommendation", { defaultValue: "Recommendation" })}
+                                </p>
+                                <p className="text-sm leading-relaxed text-text-main">{aiResult.recommendation}</p>
                               </div>
                             </div>
                           )}
                         </div>
                       )}
                     </div>
-
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-      </div>
-
-
-      {/* Khung bên Phải: AI Results Dashboard & Khung Chat (UC14, UC07) */}
-      <div className="w-full md:w-7/12 flex flex-col gap-6">
-
-        {/* --- [UC07] THẺ TỔNG KẾT AI ANALYSIS CHI TIẾT --- */}
-        {aiData.filter(a => a.request_status === 'completed').length > 0 && (
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-5 rounded-lg shadow-sm border border-indigo-100 relative overflow-hidden">
-             {/* Icon Background trang trí */}
-             <div className="absolute -right-4 -top-4 text-8xl opacity-5">🤖</div>
-             
-             <h3 className="font-bold text-indigo-900 mb-3 flex items-center gap-2">
-               <span className="text-xl">✨</span> Báo cáo Phân Tích từ Trợ lý Mô hình AI
-             </h3>
-             
-             <div className="space-y-4">
-               {aiData.filter(a => a.request_status === 'completed').map((res, i) => (
-                 <div key={i} className="bg-white/70 p-4 rounded border border-white/50 shadow-sm text-sm">
-                   <div className="flex justify-between items-center mb-2">
-                   <span className="font-semibold text-text-main">Ảnh ID #{res.consultation_image_id}</span>
-                     <div className="flex items-center gap-2">
-                   <span className="text-xs font-semibold text-text-dim">Rate: {res.confidence_score}%</span>
-                       {getRiskBadge(res.risk_level)}
-                     </div>
-                   </div>
-                   <p className="text-text-main mb-2 leading-relaxed"><strong>Nhận định:</strong> {res.result_summary}</p>
-                   <p className="text-indigo-800 bg-indigo-50 p-2 rounded leading-relaxed border border-indigo-100"><strong>Gợi ý:</strong> {res.recommendation}</p>
-                 </div>
-               ))}
-             </div>
-          </div>
-        )}
-
-
-        {/* --- KHUNG CHAT TRAO ĐỔI VỚI BÁC SĨ --- */}
-        <div className="flex flex-col flex-1 bg-bg-surface rounded-2xl shadow-sm border border-border-main min-h-[500px] dark:bg-slate-800">
-          <div className="p-4 border-b border-border-main bg-bg-app rounded-t-2xl dark:bg-slate-900">
-            <h3 className="font-bold text-text-main">Lịch sử Chẩn đoán & Tư vấn</h3>
-          </div>
-
-          <div className="flex-1 p-4 overflow-y-auto space-y-6 max-h-[500px]">
-            {data.responses && data.responses.length > 0 ? (
-              data.responses.map((resp) => (
-                <div key={resp.id} className={`flex flex-col max-w-[85%] ${resp.responder_role === 'doctor' || resp.responder_role === 'admin' ? 'ml-auto items-end' : 'items-start'}`}>
-                  <span className="text-xs text-text-dim mb-1 font-medium">{resp.responder_name} - {new Date(resp.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                  <div className={`
-                    p-3 rounded-lg text-sm
-                    ${(resp.responder_role === 'doctor' || resp.responder_role === 'admin')
-                      ? resp.response_type === 'diagnosis' ? 'bg-indigo-600 text-white shadow-md' : 'bg-blue-600 text-white' 
-                      : 'bg-bg-app text-text-main dark:bg-slate-700'}
-                  `}>
-                    {resp.response_type === 'diagnosis' && <div className="text-xs font-bold uppercase mb-1 flex items-center gap-1">⚡ KẾT LUẬN Y KHOA</div>}
-                    {resp.response_type === 'recommendation' && <div className="text-xs font-bold uppercase mb-1">📋 LỜI KHUYÊN</div>}
-                    {resp.response_type === 'prescription_note' && <div className="text-xs font-bold uppercase mb-1">💊 DẶN DÒ DÙNG THUỐC</div>}
-                    <p className="whitespace-pre-line leading-relaxed">{resp.content}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="h-full flex items-center justify-center flex-col text-text-dim">
-                <span className="text-4xl mb-2">💬</span>
-                <p>Chưa có trao đổi nào.</p>
+                  );
+                })}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
 
-          {/* Form Reply - Chỉ admin/doctor hoặc bệnh nhân rep nếu ca chưa hoàn thành */}
-          {data.status !== 'completed' && (
-            <form className="p-4 border-t border-border-main bg-bg-app rounded-b-2xl dark:bg-slate-900">
-              {(role === 'doctor' || role === 'super_admin' || role === 'admin') && (
-                <div className="mb-3">
-                  <select 
-                    value={replyType} 
-                    onChange={(e) => setReplyType(e.target.value)}
-                    className="text-sm border-border-main bg-bg-app rounded focus:ring-[#E06666]/30 p-2 dark:bg-slate-700"
+          {/* ── Prescriptions Section ── */}
+          {(role === "doctor" || role === "super_admin" || role === "admin") && (
+            <div className={`${GLASS_CARD} overflow-hidden`}>
+              <div className="flex items-center justify-between bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-6 py-4 dark:from-emerald-900/20 dark:to-teal-900/20">
+                <h2 className="flex items-center gap-2 text-base font-bold text-text-main">
+                  <Stethoscope className="h-5 w-5 text-emerald-500" />
+                  {t("prescription.sectionTitle", { defaultValue: "Toa thuốc" })}
+                  {prescriptions.length > 0 && (
+                    <span className="ml-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">{prescriptions.length}</span>
+                  )}
+                </h2>
+                {data.status !== "completed" && (
+                  <button
+                    onClick={() => { setEditingRx(null); setShowRxForm(true); }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-600"
                   >
-                    <option value="message">Gửi tin nhắn (Trao đổi phụ)</option>
-                    <option value="diagnosis">Đưa ra Chẩn Đoán (Kết luận)</option>
-                    <option value="recommendation">Đưa ra Lời khuyên</option>
-                    <option value="prescription_note">Kê toa / Dặn dò thuốc</option>
-                  </select>
-                </div>
-              )}
-              
-              <textarea
-                required
-                rows="3"
-                className="w-full border border-border-main bg-bg-app rounded-md p-3 focus:ring-[#E06666]/30 focus:border-[#E06666] text-sm text-text-main dark:bg-slate-700"
-                placeholder={role === 'patient' ? "Nhập câu hỏi thêm cho bác sĩ..." : "Nhập nội dung phản hồi của bác sĩ..."}
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-              ></textarea>
-
-              <div className="flex gap-3 justify-end mt-3">
-                {(role === 'doctor' || role === 'super_admin' || role === 'admin') && (
-                   <button
-                    type="button"
-                    className="px-4 py-2 bg-green-600 text-white font-medium rounded text-sm hover:bg-green-700 disabled:opacity-50"
-                    onClick={(e) => handleReplySubmit(e, true)}
-                    disabled={isSubmitting || !replyText.trim()}
-                  >
-                    Gửi và Kết thúc ca
+                    <FileText className="h-3.5 w-3.5" />
+                    {t("prescription.createBtn", { defaultValue: "Kê toa" })}
                   </button>
                 )}
-
-                <button
-                  type="button"
-                  className="px-5 py-2 bg-[#E06666] text-white font-medium rounded text-sm hover:bg-[#D55555] disabled:opacity-50"
-                  onClick={(e) => handleReplySubmit(e, false)}
-                  disabled={isSubmitting || !replyText.trim()}
-                >
-                  Gửi {role === 'patient' ? "tin nhắn" : "phản hồi"}
-                </button>
               </div>
-            </form>
+              <div className="p-4 space-y-3">
+                {prescriptions.length === 0 ? (
+                  <p className="text-center text-sm text-text-dim py-4">
+                    {t("prescription.empty", { defaultValue: "Chưa có toa thuốc nào." })}
+                  </p>
+                ) : (
+                  prescriptions.map((rx) => (
+                    <PrescriptionCard
+                      key={rx.id}
+                      prescription={rx}
+                      showActions
+                      onViewDetail={(p) => setViewRxDetail(p)}
+                      onEdit={(p) => { setEditingRx(p); setShowRxForm(true); }}
+                      onIssue={async (rxId) => {
+                        try { await issuePrescriptionApi(rxId); await fetchPrescriptions(); } catch { /* silent */ }
+                      }}
+                      onCancel={async (rxId) => {
+                        try { await cancelPrescriptionApi(rxId); await fetchPrescriptions(); } catch { /* silent */ }
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
           )}
-          
-          {data.status === 'completed' && (
-              <div className="p-4 bg-green-50 rounded-b-lg border-t">
-                <p className="text-center font-medium text-green-700 mb-3">Ca tư vấn này đã được đánh dấu hoàn thành.</p>
-                {(role === 'doctor' || role === 'super_admin' || role === 'admin') && (
+
+        {/* ── RIGHT COLUMN (7 cols): AI Summary + Chat ── */}
+        <div className="space-y-5 lg:col-span-7">
+
+          {/* AI Summary Card */}
+          {completedAI.length > 0 && (
+            <div className={`${GLASS_CARD} overflow-hidden`}>
+              <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 px-6 py-4 dark:from-indigo-900/20 dark:to-purple-900/20">
+                <h2 className="flex items-center gap-2 text-base font-bold text-text-main">
+                  <Brain className="h-5 w-5 text-indigo-500" />
+                  {t("doctor.consultationDetail.aiReport", { defaultValue: "AI Analysis Report" })}
+                </h2>
+                <p className="mt-1 text-xs text-text-dim">
+                  {t("doctor.consultationDetail.aiReportDesc", { defaultValue: "Summary of AI model analysis across all images" })}
+                </p>
+              </div>
+              <div className="p-6 space-y-4">
+                {completedAI.map((res, i) => (
+                  <div key={i} className="rounded-xl border border-border-main/50 bg-bg-app/40 p-4 dark:bg-slate-800/40">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-bold text-text-main">
+                        {t("doctor.consultationDetail.imageId", { defaultValue: "Image" })} #{res.consultation_image_id}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-text-dim">{res.confidence_score}%</span>
+                        <RiskBadge level={res.risk_level} t={t} />
+                      </div>
+                    </div>
+                    <p className="text-sm leading-relaxed text-text-main mb-2">
+                      <span className="font-bold">{t("doctor.consultationDetail.finding", { defaultValue: "Finding" })}:</span> {res.result_summary}
+                    </p>
+                    <div className="rounded-lg bg-indigo-50/60 p-3 dark:bg-indigo-900/10">
+                      <p className="text-sm leading-relaxed text-indigo-700 dark:text-indigo-300">
+                        <span className="font-bold">{t("doctor.consultationDetail.suggestion", { defaultValue: "Suggestion" })}:</span> {res.recommendation}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── CHAT INTERFACE ── */}
+          <div className={`${GLASS_CARD} flex flex-col overflow-hidden`} style={{ minHeight: "500px" }}>
+            {/* Chat Header */}
+            <div className="bg-gradient-to-r from-cyan-500/10 to-teal-500/10 px-6 py-4 dark:from-cyan-900/20 dark:to-teal-900/20">
+              <h2 className="flex items-center gap-2 text-base font-bold text-text-main">
+                <MessageSquare className="h-5 w-5 text-cyan-500" />
+                {t("doctor.consultationDetail.chatTitle", { defaultValue: "Diagnosis & Consultation History" })}
+              </h2>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4" style={{ maxHeight: "500px" }}>
+              {data.responses && data.responses.length > 0 ? (
+                data.responses.map((resp) => {
+                  const isDoctor = resp.responder_role === "doctor" || resp.responder_role === "admin" || resp.responder_role === "super_admin";
+                  return (
+                    <div key={resp.id} className={`flex flex-col max-w-[85%] ${isDoctor ? "ml-auto items-end" : "items-start"}`}>
+                      <span className="text-[10px] text-text-dim mb-1 font-semibold">
+                        {resp.responder_name} · {new Date(resp.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      <div className={`rounded-2xl px-4 py-3 text-sm ${
+                        isDoctor
+                          ? resp.response_type === "diagnosis"
+                            ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20"
+                            : "bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-sm"
+                          : "bg-bg-app text-text-main dark:bg-slate-700/60"
+                      }`}>
+                        {resp.response_type === "diagnosis" && (
+                          <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-white/80 flex items-center gap-1">
+                            <Activity className="h-3 w-3" /> {t("doctor.consultationDetail.msgType.diagnosis", { defaultValue: "Medical Conclusion" })}
+                          </div>
+                        )}
+                        {resp.response_type === "recommendation" && (
+                          <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-white/80">
+                            {t("doctor.consultationDetail.msgType.recommendation", { defaultValue: "Recommendation" })}
+                          </div>
+                        )}
+                        {resp.response_type === "prescription_note" && (
+                          <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-white/80">
+                            {t("doctor.consultationDetail.msgType.prescription", { defaultValue: "Prescription Note" })}
+                          </div>
+                        )}
+                        <p className="whitespace-pre-line leading-relaxed">{resp.content}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center text-text-dim">
+                  <MessageSquare className="h-10 w-10 text-text-dim/30 mb-3" />
+                  <p className="text-sm">{t("doctor.consultationDetail.noMessages", { defaultValue: "No messages yet." })}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Reply Form */}
+            {data.status !== "completed" ? (
+              <form className="border-t border-border-main/40 bg-bg-app/40 p-4 dark:bg-slate-800/40">
+                {(role === "doctor" || role === "super_admin" || role === "admin") && (
+                  <div className="mb-3">
+                    <select value={replyType} onChange={(e) => setReplyType(e.target.value)}
+                      className="rounded-xl border border-border-main/60 bg-bg-surface px-3 py-2 text-xs font-medium text-text-main dark:bg-slate-800">
+                      <option value="message">{t("doctor.consultationDetail.replyType.message", { defaultValue: "Message" })}</option>
+                      <option value="diagnosis">{t("doctor.consultationDetail.replyType.diagnosis", { defaultValue: "Diagnosis (Conclusion)" })}</option>
+                      <option value="recommendation">{t("doctor.consultationDetail.replyType.recommendation", { defaultValue: "Recommendation" })}</option>
+                      <option value="prescription_note">{t("doctor.consultationDetail.replyType.prescription", { defaultValue: "Prescription Note" })}</option>
+                    </select>
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <textarea required rows="2" value={replyText} onChange={(e) => setReplyText(e.target.value)}
+                    placeholder={role === "patient"
+                      ? t("doctor.consultationDetail.patientPlaceholder", { defaultValue: "Type your question..." })
+                      : t("doctor.consultationDetail.doctorPlaceholder", { defaultValue: "Type your response..." })
+                    }
+                    className="flex-1 resize-none rounded-xl border border-border-main/60 bg-bg-surface px-4 py-3 text-sm text-text-main outline-none focus:ring-2 focus:ring-cyan-400/40 dark:bg-slate-800" />
+                </div>
+                <div className="mt-3 flex gap-2 justify-end">
+                  {(role === "doctor" || role === "super_admin" || role === "admin") && (
+                    <button type="button" onClick={(e) => handleReplySubmit(e, true)}
+                      disabled={isSubmitting || !replyText.trim()}
+                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition hover:bg-emerald-600 disabled:opacity-50">
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      {t("doctor.consultationDetail.sendComplete", { defaultValue: "Send & Complete" })}
+                    </button>
+                  )}
+                  <button type="button" onClick={(e) => handleReplySubmit(e, false)}
+                    disabled={isSubmitting || !replyText.trim()}
+                    className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-xs font-bold text-white shadow-sm shadow-cyan-500/20 transition hover:bg-cyan-600 disabled:opacity-50">
+                    <Send className="h-3.5 w-3.5" />
+                    {isSubmitting
+                      ? t("common.sending", { defaultValue: "Sending..." })
+                      : t("doctor.consultationDetail.send", { defaultValue: "Send" })
+                    }
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Completed state */
+              <div className="border-t border-border-main/40 bg-emerald-50/50 p-5 dark:bg-emerald-900/10">
+                <p className="text-center text-sm font-semibold text-emerald-700 dark:text-emerald-400 mb-3">
+                  {t("doctor.consultationDetail.caseCompleted", { defaultValue: "This consultation has been marked as completed." })}
+                </p>
+                {(role === "doctor" || role === "super_admin" || role === "admin") && (
                   <div className="flex justify-center">
-                    <button
-                      type="button"
-                      onClick={handleReopenCase}
-                      disabled={reopenSubmitting}
-                      className="inline-flex items-center gap-2 rounded-lg border border-amber-400 bg-amber-50 px-5 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-50"
-                    >
-                      {reopenSubmitting ? "Đang xử lý..." : "↩ Mở lại ca tư vấn"}
+                    <button type="button" onClick={handleReopenCase} disabled={reopenSubmitting}
+                      className="inline-flex items-center gap-2 rounded-xl border border-amber-300/60 bg-amber-50/60 px-5 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-700/40 dark:bg-amber-900/15 dark:text-amber-300 disabled:opacity-50">
+                      <RefreshCw className={`h-4 w-4 ${reopenSubmitting ? "animate-spin" : ""}`} />
+                      {reopenSubmitting
+                        ? t("common.processing", { defaultValue: "Processing..." })
+                        : t("doctor.consultationDetail.reopenCase", { defaultValue: "Reopen Case" })
+                      }
                     </button>
                   </div>
                 )}
               </div>
-          )}
+            )}
+          </div>
         </div>
-
       </div>
 
+      {/* ── AI Confirm Modal ── */}
       <ConfirmModal
         isOpen={confirmAiImageId !== null}
-        title="Gửi ảnh này cho Holora AI phân tích?"
-        description="Tác vụ này có thể mất vài giây do hệ thống sẽ gửi ảnh sang dịch vụ model để xử lý."
+        title={t("doctor.consultationDetail.aiConfirmTitle", { defaultValue: "Send image to Holora AI for analysis?" })}
+        description={t("doctor.consultationDetail.aiConfirmDesc", { defaultValue: "This may take a few seconds as the image is sent to the AI model service for processing." })}
         badgeLabel="Holora AI"
         tone="info"
-        confirmLabel="Gửi phân tích"
-        cancelLabel="Hủy"
-        closeLabel="Đóng"
+        confirmLabel={t("doctor.consultationDetail.aiConfirmBtn", { defaultValue: "Run Analysis" })}
+        cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
+        closeLabel={t("common.close", { defaultValue: "Close" })}
         onConfirm={() => startRequestAI(confirmAiImageId)}
         onClose={() => setConfirmAiImageId(null)}
+      />
+
+      {/* ── Prescription Form Modal ── */}
+      <PrescriptionFormModal
+        isOpen={showRxForm}
+        onClose={() => { setShowRxForm(false); setEditingRx(null); }}
+        patientName={data?.patient_name}
+        initialData={editingRx}
+        onSubmit={async (formData) => {
+          if (editingRx) {
+            await updatePrescriptionApi(editingRx.id, formData);
+          } else {
+            await createPrescriptionApi({
+              ...formData,
+              consultation_id: Number(id),
+              patient_id: data?.patient_id,
+            });
+          }
+          await fetchPrescriptions();
+        }}
+      />
+
+      {/* ── Prescription Detail Modal ── */}
+      <PrescriptionDetailModal
+        isOpen={viewRxDetail !== null}
+        onClose={() => setViewRxDetail(null)}
+        prescriptionData={viewRxDetail}
       />
     </div>
   );

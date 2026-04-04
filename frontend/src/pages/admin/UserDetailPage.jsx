@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -18,9 +18,19 @@ import {
   BadgeCheck,
   LogIn,
   CalendarClock,
+  Monitor,
+  Smartphone,
+  Globe,
+  Trash2,
+  LogOut,
+  History,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
-import { getUserByIdApi } from "../../services/userService";
+import { getUserByIdApi, getUserSessionsApi, getUserLoginHistoryApi, forceLogoutUserApi, revokeSessionApi } from "../../services/userService";
 import AssignUserRoleModal from "../../components/AssignUserRoleModal";
+import ConfirmModal from "../../components/ConfirmModal";
 
 // ── Shared maps ────────────────────────────────────────────────────────────────
 const ROLE_COLOR = {
@@ -53,6 +63,16 @@ const getInitials = (name = "") =>
 
 const getAvatarColor = (roles = "") =>
   ROLE_COLOR[(roles || "").split(",")[0].trim()] || "bg-slate-500";
+
+const parseBrowser = (ua) => {
+  if (!ua) return "Không rõ";
+  if (/edg/i.test(ua)) return "Microsoft Edge";
+  if (/chrome/i.test(ua) && !/edg/i.test(ua)) return "Google Chrome";
+  if (/firefox/i.test(ua)) return "Firefox";
+  if (/safari/i.test(ua) && !/chrome/i.test(ua)) return "Safari";
+  if (/opera|opr/i.test(ua)) return "Opera";
+  return ua.length > 60 ? ua.substring(0, 57) + "…" : ua;
+};
 
 const formatDate = (val) => {
   if (!val) return "—";
@@ -118,6 +138,31 @@ const UserDetailPage = () => {
   const [error, setError] = useState("");
   const [showRoleModal, setShowRoleModal] = useState(false);
 
+  // Session management state
+  const [sessions, setSessions] = useState([]);
+  const [loginHistory, setLoginHistory] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+
+  const fetchSessions = useCallback(async () => {
+    if (!userId) return;
+    setSessionsLoading(true);
+    try {
+      const res = await getUserSessionsApi(userId);
+      setSessions(res.data || []);
+    } catch { /* silent */ }
+    finally { setSessionsLoading(false); }
+  }, [userId]);
+
+  const fetchHistory = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await getUserLoginHistoryApi(userId, 50);
+      setLoginHistory(res.data || []);
+    } catch { /* silent */ }
+  }, [userId]);
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -132,6 +177,33 @@ const UserDetailPage = () => {
     };
     fetchUser();
   }, [userId]);
+
+  useEffect(() => {
+    if (user) fetchSessions();
+  }, [user, fetchSessions]);
+
+  const handleForceLogout = async () => {
+    try {
+      await forceLogoutUserApi(userId);
+      setSessions([]);
+      setConfirmAction(null);
+    } catch { /* silent */ }
+  };
+
+  const handleRevokeSession = async (sessionId) => {
+    try {
+      await revokeSessionApi(userId, sessionId);
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      setConfirmAction(null);
+    } catch { /* silent */ }
+  };
+
+  const handleToggleHistory = async () => {
+    if (!showHistory && loginHistory.length === 0) {
+      await fetchHistory();
+    }
+    setShowHistory((v) => !v);
+  };
 
   const handleRoleModalClose = async () => {
     setShowRoleModal(false);
@@ -344,8 +416,164 @@ const UserDetailPage = () => {
               </button>
             </div>
           </Card>
+
+          {/* ── Sessions card ─────────────────────────────────────────── */}
+          <Card title="Phiên đăng nhập">
+            <div className="py-3 space-y-3">
+              {/* Toolbar */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <p className="text-sm text-text-dim">
+                  <span className="font-semibold text-text-main">{sessions.length}</span> phiên đang hoạt động
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={fetchSessions}
+                    disabled={sessionsLoading}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border-main px-3 py-1.5 text-xs font-medium text-text-dim transition hover:bg-bg-app dark:hover:bg-slate-700"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${sessionsLoading ? "animate-spin" : ""}`} />
+                    Làm mới
+                  </button>
+                  {sessions.length > 0 && (
+                    <button
+                      onClick={() => setConfirmAction({ type: "force-logout-all" })}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-500/20 dark:text-red-400"
+                    >
+                      <LogOut className="h-3.5 w-3.5" />
+                      Đăng xuất tất cả
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Session list */}
+              {sessionsLoading ? (
+                <div className="space-y-2">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="animate-pulse h-16 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                  ))}
+                </div>
+              ) : sessions.length === 0 ? (
+                <div className="text-center py-6 text-sm text-text-dim">
+                  Không có phiên đăng nhập nào đang hoạt động.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {sessions.map((s) => {
+                    const isMobile = /mobile|android|iphone|ipad/i.test(s.user_agent || "");
+                    const DeviceIcon = isMobile ? Smartphone : Monitor;
+                    const browser = parseBrowser(s.user_agent);
+                    return (
+                      <div
+                        key={s.id}
+                        className="flex items-center gap-3 rounded-xl border border-border-main bg-bg-app/50 px-4 py-3 dark:bg-slate-900/50"
+                      >
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                          <DeviceIcon className="h-4.5 w-4.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-text-main truncate">{browser}</p>
+                          <div className="flex items-center gap-3 text-xs text-text-dim mt-0.5">
+                            <span className="inline-flex items-center gap-1">
+                              <Globe className="h-3 w-3" />
+                              {s.ip_address || "—"}
+                            </span>
+                            <span>{formatDateTime(s.created_at)}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setConfirmAction({ type: "revoke-session", sessionId: s.id })}
+                          className="shrink-0 rounded-lg p-2 text-text-dim transition hover:bg-red-500/10 hover:text-red-500"
+                          title="Thu hồi phiên"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Toggle login history */}
+              <button
+                onClick={handleToggleHistory}
+                className="w-full flex items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-border-main py-2.5 text-sm font-medium text-text-dim transition hover:border-slate-400 hover:text-text-main dark:hover:border-slate-500"
+              >
+                <History className="h-4 w-4" />
+                {showHistory ? "Ẩn lịch sử đăng nhập" : "Xem lịch sử đăng nhập"}
+                {showHistory ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+
+              {/* Login history table */}
+              {showHistory && (
+                <div className="overflow-x-auto rounded-xl border border-border-main">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border-main bg-bg-app dark:bg-slate-900">
+                        <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-dim uppercase">Thời gian</th>
+                        <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-dim uppercase">IP</th>
+                        <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-dim uppercase">Thiết bị</th>
+                        <th className="px-3 py-2.5 text-center text-xs font-semibold text-text-dim uppercase">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loginHistory.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-3 py-6 text-center text-text-dim">Chưa có lịch sử</td>
+                        </tr>
+                      ) : (
+                        loginHistory.map((h) => (
+                          <tr key={h.id} className="border-b border-border-main last:border-0">
+                            <td className="px-3 py-2.5 text-text-main whitespace-nowrap">{formatDateTime(h.created_at)}</td>
+                            <td className="px-3 py-2.5 text-text-dim font-mono text-xs">{h.ip_address || "—"}</td>
+                            <td className="px-3 py-2.5 text-text-dim text-xs max-w-[200px] truncate">{parseBrowser(h.user_agent)}</td>
+                            <td className="px-3 py-2.5 text-center">
+                              {h.status === "active" ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                  <CheckCircle2 className="h-3 w-3" /> Active
+                                </span>
+                              ) : h.status === "expired" ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-400">
+                                  <Clock className="h-3 w-3" /> Expired
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                  <XCircle className="h-3 w-3" /> Revoked
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </Card>
         </>
       ) : null}
+
+      {/* ── Confirm modal ────────────────────────────────────────────────── */}
+      {confirmAction && (
+        <ConfirmModal
+          isOpen={true}
+          title={confirmAction.type === "force-logout-all" ? "Đăng xuất tất cả?" : "Thu hồi phiên?"}
+          description={
+            confirmAction.type === "force-logout-all"
+              ? `Tất cả ${sessions.length} phiên đăng nhập của ${user?.full_name} sẽ bị đăng xuất. Người dùng sẽ cần đăng nhập lại trên tất cả thiết bị.`
+              : "Phiên đăng nhập này sẽ bị thu hồi. Thiết bị tương ứng sẽ bị đăng xuất."
+          }
+          tone="danger"
+          confirmLabel={confirmAction.type === "force-logout-all" ? "Đăng xuất tất cả" : "Thu hồi"}
+          onConfirm={() =>
+            confirmAction.type === "force-logout-all"
+              ? handleForceLogout()
+              : handleRevokeSession(confirmAction.sessionId)
+          }
+          onClose={() => setConfirmAction(null)}
+        />
+      )}
 
       {/* ── Role modal ───────────────────────────────────────────────────── */}
       {showRoleModal && user && (

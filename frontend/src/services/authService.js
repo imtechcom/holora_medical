@@ -34,3 +34,21 @@ export const resetPasswordApi = async (payload) => {
   const response = await api.post("/auth/reset-password", payload);
   return response.data;
 };
+
+// Refresh token
+export const refreshTokenApi = async (refreshToken) => {
+  const response = await api.post("/auth/refresh", { refreshToken });
+  return response.data;
+};
+
+// Logout (revoke refresh token)
+export const logoutApi = async (refreshToken) => {
+  const response = await api.post("/auth/logout", { refreshToken });
+  return response.data;
+};
+
+// Logout all sessions
+export const logoutAllApi = async () => {
+  const response = await api.post("/auth/logout-all");
+  return response.data;
+};

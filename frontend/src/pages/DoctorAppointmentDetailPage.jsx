@@ -1,509 +1,507 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  ArrowLeft,
-  Calendar,
-  CheckCircle,
-  Clock,
-  Phone,
-  Mail,
-  User,
-  Stethoscope,
-  Building2,
-  FileText,
-  AlertCircle,
-  Loader2,
-  Download,
-  Video,
-  XCircle,
+  ArrowLeft, Building2, Calendar, CheckCircle, Clock, Download,
+  FileText, Loader2, MapPin, Phone, Sparkles, Stethoscope,
+  User, Video, XCircle, AlertCircle, MessageSquare, Activity,
 } from "lucide-react";
 import { appointmentService } from "../services/appointmentService";
 import { consultationService } from "../services/consultationService";
 
-const STATUS_STYLES = {
-  scheduled: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  confirmed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  checked_in: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
-  in_progress: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  completed: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  no_show: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300",
+/* ─────────── Design tokens (shared with list page) ────── */
+const STATUS = {
+  scheduled:   { color: "amber",   icon: Clock },
+  confirmed:   { color: "emerald", icon: CheckCircle },
+  checked_in:  { color: "sky",     icon: Activity },
+  in_progress: { color: "blue",    icon: Activity },
+  completed:   { color: "purple",  icon: CheckCircle },
+  cancelled:   { color: "red",     icon: XCircle },
+  no_show:     { color: "slate",   icon: XCircle },
 };
 
+const PILL = {
+  amber:   "bg-amber-100/80 text-amber-700 ring-1 ring-amber-200/60 dark:bg-amber-900/25 dark:text-amber-300 dark:ring-amber-700/40",
+  emerald: "bg-emerald-100/80 text-emerald-700 ring-1 ring-emerald-200/60 dark:bg-emerald-900/25 dark:text-emerald-300 dark:ring-emerald-700/40",
+  sky:     "bg-sky-100/80 text-sky-700 ring-1 ring-sky-200/60 dark:bg-sky-900/25 dark:text-sky-300 dark:ring-sky-700/40",
+  blue:    "bg-blue-100/80 text-blue-700 ring-1 ring-blue-200/60 dark:bg-blue-900/25 dark:text-blue-300 dark:ring-blue-700/40",
+  purple:  "bg-purple-100/80 text-purple-700 ring-1 ring-purple-200/60 dark:bg-purple-900/25 dark:text-purple-300 dark:ring-purple-700/40",
+  red:     "bg-red-100/80 text-red-700 ring-1 ring-red-200/60 dark:bg-red-900/25 dark:text-red-300 dark:ring-red-700/40",
+  slate:   "bg-slate-100/80 text-slate-600 ring-1 ring-slate-200/60 dark:bg-slate-800/40 dark:text-slate-400 dark:ring-slate-600/40",
+};
+
+const GLASS = "backdrop-blur-xl bg-white/60 dark:bg-slate-900/50 border border-white/30 dark:border-slate-700/40 shadow-lg shadow-black/[0.03]";
+const GLASS_CARD = `rounded-2xl ${GLASS}`;
+
+/* ─────────── Helpers ───────────────────────────────────── */
+const fmtDate = (d, lng) => d ? new Date(d).toLocaleDateString(lng === "vi" ? "vi-VN" : "en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : "—";
+const fmtDateShort = (d, lng) => d ? new Date(d).toLocaleDateString(lng === "vi" ? "vi-VN" : "en-US", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+const fmtTime = (t) => { if (!t) return "—"; try { return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); } catch { return "—"; } };
+const fmtDateTime = (d, lng) => d ? new Date(d).toLocaleString(lng === "vi" ? "vi-VN" : "en-US", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
+const calcDuration = (s, e) => { if (!s || !e) return "—"; const m = Math.round((new Date(e) - new Date(s)) / 60000); return `${m} min`; };
+
+/* ─────────── Skeleton ──────────────────────────────────── */
+const Pulse = ({ className }) => <div className={`animate-pulse rounded-xl bg-slate-200/70 dark:bg-slate-700/50 ${className}`} />;
+
+/* ══════════════════════════════════════════════════════════
+   DoctorAppointmentDetailPage
+   Bento Grid · Glassmorphism · Progressive Disclosure
+   ══════════════════════════════════════════════════════════ */
 const DoctorAppointmentDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const lng = i18n.language;
 
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [linkedConsultation, setLinkedConsultation] = useState(null);
+  const [cancelModal, setCancelModal] = useState({ open: false, reason: "" });
 
-  const statusLabels = {
-    scheduled: t("doctor.appointmentDetail.status.scheduled"),
-    confirmed: t("doctor.appointmentDetail.status.confirmed"),
-    checked_in: t("doctor.appointmentDetail.status.checkedIn"),
-    in_progress: t("doctor.appointmentDetail.status.inProgress"),
-    completed: t("doctor.appointmentDetail.status.completed"),
-    cancelled: t("doctor.appointmentDetail.status.cancelled"),
-    no_show: t("doctor.appointmentDetail.status.noShow"),
-  };
+  const sLabel = (status) => t(`doctor.appointmentDetail.status.${status === "checked_in" ? "checkedIn" : status === "in_progress" ? "inProgress" : status === "no_show" ? "noShow" : status}`, { defaultValue: status });
 
-  const fetchAppointmentDetail = useCallback(async () => {
-    setLoading(true);
-    setError("");
+  /* ── Fetch ── */
+  const fetchDetail = useCallback(async () => {
+    setLoading(true); setError("");
     try {
       const data = await appointmentService.getAppointmentById(id);
-      const result = Array.isArray(data) ? data[0] : (data?.data || data);
-      setAppointment(result);
+      setAppointment(Array.isArray(data) ? data[0] : data?.data || data);
     } catch (err) {
-      console.error(err);
-      setError(
-        err.response?.data?.message ||
-          err.message ||
-          t("doctor.appointmentDetail.errors.loadFailed")
-      );
-    } finally {
-      setLoading(false);
-    }
+      setError(err.response?.data?.message || err.message || t("doctor.appointmentDetail.errors.loadFailed", { defaultValue: "Failed to load" }));
+    } finally { setLoading(false); }
   }, [id, t]);
 
-  const handleUpdateStatus = async (newStatus) => {
-    setUpdatingStatus(true);
-    try {
-      await appointmentService.updateStatus(appointment.id, newStatus);
-      setAppointment((prev) => ({ ...prev, status: newStatus }));
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || err.message || "Cập nhật thất bại");
-    } finally {
-      setUpdatingStatus(false);
-    }
-  };
-
   useEffect(() => {
-    fetchAppointmentDetail();
-    // Check for linked consultation
+    fetchDetail();
     consultationService.getByAppointmentId(id)
       .then((res) => setLinkedConsultation(res.data || null))
       .catch(() => setLinkedConsultation(null));
-  }, [fetchAppointmentDetail, id]);
+  }, [fetchDetail, id]);
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString(
-      i18n.language === "vi" ? "vi-VN" : "en-US",
-      { weekday: "long", year: "numeric", month: "long", day: "numeric" }
-    );
+  /* ── Status update ── */
+  const handleUpdateStatus = async (newStatus, reason) => {
+    setUpdatingStatus(true);
+    try {
+      await appointmentService.updateStatus(appointment.id, newStatus, reason);
+      setAppointment((prev) => ({ ...prev, status: newStatus }));
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || t("common.error", { defaultValue: "Update failed" }));
+    } finally { setUpdatingStatus(false); }
   };
 
-  const formatTime = (timeString) => {
-    if (!timeString) return "-";
-    return new Date(timeString).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const handleCancel = () => {
+    handleUpdateStatus("cancelled", cancelModal.reason);
+    setCancelModal({ open: false, reason: "" });
   };
 
-  const formatDateTime = (dateString) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleString(
-      i18n.language === "vi" ? "vi-VN" : "en-US",
-      {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      }
-    );
-  };
-
-  const calculateDuration = (startTime, endTime) => {
-    if (!startTime || !endTime) return "-";
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    const minutes = Math.round((end - start) / (1000 * 60));
-    return `${minutes} ${t("common.minutes")}`;
-  };
-
+  /* ── Loading state ── */
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          <p className="text-sm text-text-dim">
-            {t("doctor.appointmentDetail.loading")}
-          </p>
+      <div className="mx-auto max-w-6xl space-y-5">
+        <Pulse className="h-10 w-32" />
+        <div className="rounded-3xl bg-gradient-to-br from-slate-800 to-slate-900 p-8 animate-pulse">
+          <Pulse className="h-3 w-20 mb-4 !bg-slate-700" />
+          <Pulse className="h-8 w-64 mb-3 !bg-slate-700" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+            {[1,2,3,4].map(i => <Pulse key={i} className="h-16 !bg-white/5 !rounded-xl" />)}
+          </div>
+        </div>
+        <div className="grid gap-5 lg:grid-cols-12">
+          <div className="lg:col-span-8 space-y-5">
+            <Pulse className="h-48 rounded-2xl" />
+            <Pulse className="h-40 rounded-2xl" />
+          </div>
+          <div className="lg:col-span-4 space-y-5">
+            <Pulse className="h-52 rounded-2xl" />
+            <Pulse className="h-36 rounded-2xl" />
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => navigate("/doctor/appointments")}
-          className="inline-flex items-center gap-2 rounded-lg border border-border-main px-3 py-2 text-sm font-medium text-text-main transition hover:bg-bg-app"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t("common.back")}
+  if (!appointment) {
+    return (
+      <div className="mx-auto max-w-6xl">
+        <button onClick={() => navigate("/doctor/appointments")}
+          className="inline-flex items-center gap-2 rounded-lg border border-border-main px-3 py-2 text-sm font-medium text-text-main transition hover:bg-bg-app">
+          <ArrowLeft className="h-4 w-4" /> {t("common.back", { defaultValue: "Back" })}
         </button>
-        <h1 className="text-2xl font-bold text-text-main">
-          {t("doctor.appointmentDetail.title")}
-        </h1>
-        <div />
+        {error && (
+          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-200/60 bg-red-50/80 px-5 py-4 text-sm text-red-700 backdrop-blur dark:border-red-800/40 dark:bg-red-900/15 dark:text-red-400">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> <span>{error}</span>
+          </div>
+        )}
       </div>
+    );
+  }
+
+  const a = appointment;
+  const st = STATUS[a.status] || STATUS.scheduled;
+  const StIcon = st.icon;
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-5">
+
+      {/* ── Back button ── */}
+      <button onClick={() => navigate("/doctor/appointments")}
+        className="inline-flex items-center gap-2 rounded-xl border border-border-main px-3.5 py-2 text-sm font-medium text-text-main transition hover:bg-bg-app">
+        <ArrowLeft className="h-4 w-4" />
+        {t("doctor.appointmentDetail.backToList", { defaultValue: "All Appointments" })}
+      </button>
 
       {/* Error */}
-      {error ? (
-        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-300">
-          <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
-          <div>
-            <p className="font-semibold">{t("doctor.appointmentDetail.errors.title")}</p>
-            <p className="mt-1">{error}</p>
+      {error && (
+        <div className="flex items-start gap-3 rounded-2xl border border-red-200/60 bg-red-50/80 px-5 py-4 text-sm text-red-700 backdrop-blur dark:border-red-800/40 dark:bg-red-900/15 dark:text-red-400">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /> <span>{error}</span>
+        </div>
+      )}
+
+      {/* ── HERO: Glassmorphism appointment header ── */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-900/40 p-6 text-white shadow-2xl sm:p-8">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMiI+PHBhdGggZD0iTTM2IDE4YzEgMSAxIDMgMCA0bC0yIDJjLTEgMS0zIDEtNCAwbC0yLTJjLTEtMS0xLTMgMC00bDItMmMxLTEgMy0xIDQgMGwyIDJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-40" />
+        <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute -bottom-12 left-1/4 h-40 w-40 rounded-full bg-teal-400/10 blur-3xl" />
+
+        <div className="relative">
+          {/* Zone + Code */}
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-cyan-300 backdrop-blur-sm">
+              <Sparkles className="h-3 w-3" /> {t("doctor.zone", { defaultValue: "Doctor Zone" })}
+            </p>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs text-slate-300">
+              {a.appointment_code}
+            </span>
+          </div>
+
+          {/* Title + Status */}
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              {t("doctor.appointmentDetail.title", { defaultValue: "Appointment Details" })}
+            </h1>
+            <span className={`inline-flex items-center gap-2 self-start rounded-full px-4 py-2 text-sm font-bold ${PILL[st.color] || ""}`}>
+              <StIcon className="h-4 w-4" />
+              {sLabel(a.status)}
+            </span>
+          </div>
+
+          {/* Bento mini-stats (Progressive Disclosure — key info at a glance) */}
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { icon: Calendar, label: t("doctor.appointmentDetail.date", { defaultValue: "Date" }), value: fmtDateShort(a.appointment_date, lng) },
+              { icon: Clock, label: t("doctor.appointmentDetail.time", { defaultValue: "Time" }), value: `${fmtTime(a.start_time)} – ${fmtTime(a.end_time)}` },
+              { icon: User, label: t("doctor.appointmentDetail.patientName", { defaultValue: "Patient" }), value: a.patient_name || "—" },
+              { icon: Video, label: t("doctor.appointmentDetail.type", { defaultValue: "Type" }), value: (a.appointment_type || "office").toUpperCase() },
+            ].map((item) => (
+              <div key={item.label} className="rounded-xl border border-white/10 bg-white/[0.06] p-3 backdrop-blur-md">
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  <item.icon className="h-3 w-3 text-cyan-400" /> {item.label}
+                </div>
+                <p className="mt-1 text-sm font-bold text-white truncate">{item.value}</p>
+              </div>
+            ))}
           </div>
         </div>
-      ) : null}
+      </section>
 
-      {/* Content */}
-      {appointment && (
-        <div className="grid gap-6 lg:grid-cols-12">
-          {/* Left Column: Appointment & Patient Info */}
-          <div className="space-y-6 lg:col-span-8">
-            {/* Appointment Card */}
-            <div className="rounded-2xl border border-border-main bg-bg-surface p-6 shadow-sm dark:bg-slate-800">
-              <div className="mb-4 flex items-start justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-text-main">
-                    {t("doctor.appointmentDetail.appointmentInfo")}
-                  </h2>
-                  <p className="mt-1 text-sm text-text-dim">
-                    {t("doctor.appointmentDetail.code")}: {appointment.appointment_code}
-                  </p>
+      {/* ── BENTO GRID: Main content ── */}
+      <div className="grid gap-5 lg:grid-cols-12">
+
+        {/* ── LEFT COLUMN (8 cols) ── */}
+        <div className="space-y-5 lg:col-span-8">
+
+          {/* Appointment Details Card */}
+          <div className={`${GLASS_CARD} p-6`}>
+            <h2 className="flex items-center gap-2 text-base font-bold text-text-main">
+              <FileText className="h-5 w-5 text-cyan-500" />
+              {t("doctor.appointmentDetail.appointmentInfo", { defaultValue: "Appointment Information" })}
+            </h2>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              {/* Date */}
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100/80 dark:bg-blue-900/20">
+                  <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
-                <span
-                  className={`inline-flex rounded-full px-4 py-2 text-xs font-semibold ${
-                    STATUS_STYLES[appointment.status] ||
-                    "bg-slate-100 text-slate-700"
-                  }`}
-                >
-                  {statusLabels[appointment.status] || appointment.status}
-                </span>
+                <div>
+                  <p className="text-[11px] font-semibold text-text-dim">{t("doctor.appointmentDetail.date", { defaultValue: "Date" })}</p>
+                  <p className="mt-0.5 text-sm font-semibold text-text-main">{fmtDate(a.appointment_date, lng)}</p>
+                </div>
               </div>
 
-              <div className="space-y-4 border-t border-border-main/50 pt-4">
-                {/* Date & Time */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex gap-3">
-                    <Calendar className="h-5 w-5 flex-shrink-0 text-blue-500" />
-                    <div>
-                      <p className="text-xs font-medium text-text-dim">
-                        {t("doctor.appointmentDetail.date")}
-                      </p>
-                      <p className="mt-1 font-semibold text-text-main">
-                        {formatDate(appointment.appointment_date)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <Clock className="h-5 w-5 flex-shrink-0 text-emerald-500" />
-                    <div>
-                      <p className="text-xs font-medium text-text-dim">
-                        {t("doctor.appointmentDetail.time")}
-                      </p>
-                      <p className="mt-1">
-                        <span className="font-semibold text-text-main">
-                          {formatTime(appointment.start_time)}
-                        </span>
-                        <span className="text-text-dim"> - </span>
-                        <span className="font-semibold text-text-main">
-                          {formatTime(appointment.end_time)}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
+              {/* Time */}
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100/80 dark:bg-emerald-900/20">
+                  <Clock className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
-
-                {/* Duration & Type */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex gap-3">
-                    <Clock className="h-5 w-5 flex-shrink-0 text-purple-500" />
-                    <div>
-                      <p className="text-xs font-medium text-text-dim">
-                        {t("doctor.appointmentDetail.duration")}
-                      </p>
-                      <p className="mt-1 font-semibold text-text-main">
-                        {calculateDuration(
-                          appointment.start_time,
-                          appointment.end_time
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <Stethoscope className="h-5 w-5 flex-shrink-0 text-red-500" />
-                    <div>
-                      <p className="text-xs font-medium text-text-dim">
-                        {t("doctor.appointmentDetail.type")}
-                      </p>
-                      <p className="mt-1 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold uppercase text-blue-700 dark:border-blue-800/30 dark:bg-blue-900/20 dark:text-blue-300">
-                        {appointment.appointment_type || "-"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Reason */}
                 <div>
-                  <p className="text-xs font-medium text-text-dim">
-                    {t("doctor.appointmentDetail.reason")}
-                  </p>
-                  <p className="mt-2 rounded-lg border border-border-main/50 bg-bg-app p-3 text-sm text-text-main dark:bg-slate-900">
-                    {appointment.reason || t("doctor.appointmentDetail.noReason")}
+                  <p className="text-[11px] font-semibold text-text-dim">{t("doctor.appointmentDetail.time", { defaultValue: "Time" })}</p>
+                  <p className="mt-0.5 text-sm font-semibold text-text-main">
+                    {fmtTime(a.start_time)} — {fmtTime(a.end_time)}
+                    <span className="ml-2 text-xs font-normal text-text-dim">({calcDuration(a.start_time, a.end_time)})</span>
                   </p>
                 </div>
               </div>
-            </div>
 
-            {/* Patient Info Card */}
-            <div className="rounded-2xl border border-border-main bg-bg-surface p-6 shadow-sm dark:bg-slate-800">
-              <h2 className="mb-4 text-lg font-bold text-text-main">
-                {t("doctor.appointmentDetail.patientInfo")}
-              </h2>
+              {/* Type */}
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-100/80 dark:bg-cyan-900/20">
+                  {a.appointment_type === "online" ? <Video className="h-5 w-5 text-cyan-600 dark:text-cyan-400" /> : <MapPin className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />}
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-text-dim">{t("doctor.appointmentDetail.type", { defaultValue: "Type" })}</p>
+                  <p className={`mt-0.5 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${
+                    a.appointment_type === "online"
+                      ? "bg-cyan-100/70 text-cyan-700 ring-1 ring-cyan-200/50 dark:bg-cyan-900/20 dark:text-cyan-300"
+                      : "bg-slate-100/70 text-slate-600 ring-1 ring-slate-200/50 dark:bg-slate-800/40 dark:text-slate-400"
+                  }`}>
+                    {a.appointment_type || "office"}
+                  </p>
+                </div>
+              </div>
 
-              <div className="space-y-4 border-t border-border-main/50 pt-4">
-                {/* Patient Name */}
+              {/* Specialty */}
+              {a.specialty_name && (
                 <div className="flex gap-3">
-                  <User className="h-5 w-5 flex-shrink-0 text-blue-500" />
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-text-dim">
-                      {t("doctor.appointmentDetail.patientName")}
-                    </p>
-                    <p className="mt-1 font-semibold text-text-main">
-                      {appointment.patient_name || "-"}
-                    </p>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100/80 dark:bg-rose-900/20">
+                    <Stethoscope className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold text-text-dim">{t("doctor.appointmentDetail.specialty", { defaultValue: "Specialty" })}</p>
+                    <p className="mt-0.5 text-sm font-semibold text-text-main">{a.specialty_name}</p>
                   </div>
                 </div>
-
-                {/* Patient Phone */}
-                <div className="flex gap-3">
-                  <Phone className="h-5 w-5 flex-shrink-0 text-emerald-500" />
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-text-dim">
-                      {t("doctor.appointmentDetail.patientPhone")}
-                    </p>
-                    <p className="mt-1 font-semibold text-text-main">
-                      {appointment.patient_phone || "-"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Specialty */}
-                {appointment.specialty_name && (
-                  <div className="flex gap-3">
-                    <Stethoscope className="h-5 w-5 flex-shrink-0 text-red-500" />
-                    <div className="flex-1">
-                      <p className="text-xs font-medium text-text-dim">
-                        {t("doctor.appointmentDetail.specialty")}
-                      </p>
-                      <p className="mt-1 font-semibold text-text-main">
-                        {appointment.specialty_name}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Branch */}
-                {appointment.branch_name && (
-                  <div className="flex gap-3">
-                    <Building2 className="h-5 w-5 flex-shrink-0 text-purple-500" />
-                    <div className="flex-1">
-                      <p className="text-xs font-medium text-text-dim">
-                        {t("doctor.appointmentDetail.branch")}
-                      </p>
-                      <div className="mt-1">
-                        <p className="font-semibold text-text-main">
-                          {appointment.branch_name}
-                        </p>
-                        {appointment.branch_code && (
-                          <p className="text-xs text-text-dim">
-                            ({appointment.branch_code})
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Summary & Actions */}
-          <div className="space-y-6 lg:col-span-4">
-            {/* Summary Card */}
-            <div className="rounded-2xl border border-border-main bg-gradient-to-br from-blue-50 to-indigo-50 p-6 shadow-sm dark:from-blue-950/20 dark:to-indigo-950/20 dark:border-blue-900/30">
-              <h3 className="flex items-center gap-2 font-bold text-text-main">
-                <CheckCircle className="h-5 w-5 text-blue-500" />
-                {t("doctor.appointmentDetail.summaryTitle")}
-              </h3>
-
-              <div className="mt-4 space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-text-dim">
-                    {t("doctor.appointmentDetail.code")}
-                  </span>
-                  <span className="font-semibold text-text-main">
-                    {appointment.appointment_code}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-dim">
-                    {t("doctor.appointmentDetail.status")}
-                  </span>
-                  <span
-                    className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                      STATUS_STYLES[appointment.status] ||
-                      "bg-slate-100 text-slate-700"
-                    }`}
-                  >
-                    {statusLabels[appointment.status] || appointment.status}
-                  </span>
-                </div>
-                <div className="border-t border-border-main/20 pt-3">
-                  <span className="text-text-dim">
-                    {t("doctor.appointmentDetail.appointmentDateTime")}
-                  </span>
-                  <p className="mt-1 font-semibold text-text-main">
-                    {formatDate(appointment.appointment_date)}
-                  </p>
-                  <p className="text-xs text-text-dim">
-                    {formatTime(appointment.start_time)} -{" "}
-                    {formatTime(appointment.end_time)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Timeline Info */}
-            <div className="rounded-2xl border border-border-main bg-bg-surface p-6 shadow-sm dark:bg-slate-800">
-              <h3 className="mb-4 font-bold text-text-main">
-                {t("doctor.appointmentDetail.timeline")}
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <p className="text-xs font-medium text-text-dim">
-                    {t("doctor.appointmentDetail.created")}
-                  </p>
-                  <p className="mt-1 font-semibold text-text-main">
-                    {appointment.created_at
-                      ? formatDateTime(appointment.created_at)
-                      : "-"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-text-dim">
-                    {t("doctor.appointmentDetail.updated")}
-                  </p>
-                  <p className="mt-1 font-semibold text-text-main">
-                    {appointment.updated_at
-                      ? formatDateTime(appointment.updated_at)
-                      : "-"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Linked Consultation */}
-            <div className="rounded-xl border border-violet-200 bg-violet-50 dark:bg-violet-900/10 dark:border-violet-800 p-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-violet-500 dark:text-violet-400 mb-2">
-                Tư vấn liên kết
-              </p>
-              {linkedConsultation ? (
-                <div className="space-y-2">
-                  <p className="text-sm text-text-main">
-                    Ca tư vấn <span className="font-semibold">#{linkedConsultation.id}</span>
-                    {" "}— <span className="italic text-text-dim">{linkedConsultation.chief_complaint}</span>
-                  </p>
-                  <button
-                    onClick={() => navigate(`/doctor/consultations/${linkedConsultation.id}`)}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700"
-                  >
-                    Xem tư vấn liên kết
-                  </button>
-                </div>
-              ) : (
-                <p className="text-sm text-text-dim">Chưa có tư vấn nào được liên kết với lịch hẹn này.</p>
               )}
             </div>
 
-            {/* Export Button */}
-            <button
-              onClick={() => window.print()}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-3 font-semibold text-white transition hover:bg-blue-600"
-            >
-              <Download className="h-4 w-4" />
-              {t("doctor.appointmentDetail.actions.print")}
-            </button>
+            {/* Reason (Progressive Disclosure — expandable area) */}
+            <div className="mt-5 rounded-xl border border-border-main/50 bg-bg-app/50 p-4 dark:bg-slate-800/50">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-text-dim mb-2">
+                {t("doctor.appointmentDetail.reason", { defaultValue: "Reason for Visit" })}
+              </p>
+              <p className="text-sm leading-relaxed text-text-main">
+                {a.reason || t("doctor.appointmentDetail.noReason", { defaultValue: "No reason provided" })}
+              </p>
+            </div>
 
-            {/* Status actions */}
-            {appointment.status === "scheduled" && (
-              <div className="space-y-2">
-                <button
-                  onClick={() => handleUpdateStatus("confirmed")}
-                  disabled={updatingStatus}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 font-bold text-white transition hover:bg-emerald-600 disabled:opacity-60"
-                >
-                  <CheckCircle className="h-5 w-5" />
-                  {updatingStatus ? "Đang xử lý..." : "Xác nhận nhận lịch"}
-                </button>
-                <button
-                  onClick={() => handleUpdateStatus("cancelled")}
-                  disabled={updatingStatus}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 px-4 py-3 font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/10 dark:border-red-800 dark:text-red-400 disabled:opacity-60"
-                >
-                  <XCircle className="h-5 w-5" />
-                  Từ chối / Hủy lịch
-                </button>
+            {/* Cancellation reason */}
+            {a.status === "cancelled" && a.cancellation_reason && (
+              <div className="mt-4 rounded-xl border border-red-200/50 bg-red-50/50 p-4 dark:border-red-800/30 dark:bg-red-900/10">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-red-500 mb-2">
+                  {t("doctor.appointmentDetail.cancellationReason", { defaultValue: "Cancellation Reason" })}
+                </p>
+                <p className="text-sm leading-relaxed text-red-700 dark:text-red-400">{a.cancellation_reason}</p>
               </div>
             )}
-            {appointment.status === "confirmed" && (
-              <div className="space-y-2">
-                <button
-                  onClick={() => handleUpdateStatus("completed")}
-                  disabled={updatingStatus}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800 dark:text-emerald-400 disabled:opacity-60"
-                >
-                  <CheckCircle className="h-5 w-5" />
-                  {updatingStatus ? "Đang xử lý..." : "Đánh dấu hoàn thành"}
-                </button>
-                <button
-                  onClick={() => handleUpdateStatus("cancelled")}
-                  disabled={updatingStatus}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 px-4 py-3 font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/10 dark:border-red-800 dark:text-red-400 disabled:opacity-60"
-                >
-                  <XCircle className="h-5 w-5" />
-                  Hủy lịch hẹn
-                </button>
-              </div>
-            )}
+          </div>
 
-            {/* Enter Room Button - only for online appointments */}
-            {appointment.appointment_type === "online" &&
-              (appointment.status === "scheduled" || appointment.status === "confirmed") && (
-              <button
-                onClick={() => navigate(`/doctor/appointments/${appointment.id}/room`)}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 px-4 py-4 font-bold text-white shadow-md transition hover:shadow-lg hover:from-blue-600 hover:to-indigo-600"
-              >
-                <Video className="h-5 w-5" />
-                Vào phòng khám trực tuyến
+          {/* Patient Info Card */}
+          <div className={`${GLASS_CARD} p-6`}>
+            <h2 className="flex items-center gap-2 text-base font-bold text-text-main">
+              <User className="h-5 w-5 text-cyan-500" />
+              {t("doctor.appointmentDetail.patientInfo", { defaultValue: "Patient Information" })}
+            </h2>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100/80 dark:bg-blue-900/20">
+                  <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-text-dim">{t("doctor.appointmentDetail.patientName", { defaultValue: "Patient Name" })}</p>
+                  <p className="mt-0.5 text-sm font-bold text-text-main">{a.patient_name || "—"}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100/80 dark:bg-emerald-900/20">
+                  <Phone className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-text-dim">{t("doctor.appointmentDetail.patientPhone", { defaultValue: "Phone" })}</p>
+                  <p className="mt-0.5 text-sm font-semibold text-text-main">{a.patient_phone || "—"}</p>
+                </div>
+              </div>
+
+              {a.branch_name && (
+                <div className="flex gap-3 sm:col-span-2">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-100/80 dark:bg-purple-900/20">
+                    <Building2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold text-text-dim">{t("doctor.appointmentDetail.branch", { defaultValue: "Branch" })}</p>
+                    <p className="mt-0.5 text-sm font-semibold text-text-main">
+                      {a.branch_name}
+                      {a.branch_code && <span className="ml-1.5 text-xs font-normal text-text-dim">({a.branch_code})</span>}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── RIGHT COLUMN (4 cols) ── */}
+        <div className="space-y-5 lg:col-span-4">
+
+          {/* Quick Actions Card */}
+          <div className={`${GLASS_CARD} p-5`}>
+            <h3 className="flex items-center gap-2 text-sm font-bold text-text-main mb-4">
+              <Activity className="h-4 w-4 text-cyan-500" />
+              {t("doctor.appointmentDetail.actions.title", { defaultValue: "Actions" })}
+            </h3>
+
+            <div className="space-y-2.5">
+              {/* Enter Room */}
+              {a.appointment_type === "online" && ["scheduled", "confirmed"].includes(a.status) && (
+                <button onClick={() => navigate(`/doctor/appointments/${a.id}/room`)}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 px-4 py-3.5 text-sm font-bold text-white shadow-md shadow-cyan-500/20 transition hover:shadow-lg hover:shadow-cyan-500/30">
+                  <Video className="h-5 w-5" />
+                  {t("doctor.appointmentDetail.actions.enterRoom", { defaultValue: "Enter Online Room" })}
+                </button>
+              )}
+
+              {/* Confirm */}
+              {a.status === "scheduled" && (
+                <button onClick={() => handleUpdateStatus("confirmed")}
+                  disabled={updatingStatus}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-sm shadow-emerald-500/20 transition hover:bg-emerald-600 disabled:opacity-60">
+                  <CheckCircle className="h-4 w-4" />
+                  {updatingStatus ? t("common.processing", { defaultValue: "Processing..." }) : t("doctor.appointmentDetail.actions.confirm", { defaultValue: "Confirm Appointment" })}
+                </button>
+              )}
+
+              {/* Complete */}
+              {a.status === "confirmed" && (
+                <button onClick={() => handleUpdateStatus("completed")}
+                  disabled={updatingStatus}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 py-3 text-sm font-bold text-white shadow-sm shadow-purple-500/20 transition hover:bg-purple-600 disabled:opacity-60">
+                  <CheckCircle className="h-4 w-4" />
+                  {updatingStatus ? t("common.processing", { defaultValue: "Processing..." }) : t("doctor.appointmentDetail.actions.complete", { defaultValue: "Mark Completed" })}
+                </button>
+              )}
+
+              {/* Cancel */}
+              {["scheduled", "confirmed"].includes(a.status) && (
+                <button onClick={() => setCancelModal({ open: true, reason: "" })}
+                  disabled={updatingStatus}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-red-200/60 bg-red-50/60 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:border-red-800/40 dark:bg-red-900/15 dark:text-red-400 disabled:opacity-60">
+                  <XCircle className="h-4 w-4" />
+                  {t("doctor.appointmentDetail.actions.cancel", { defaultValue: "Cancel Appointment" })}
+                </button>
+              )}
+
+              {/* Print */}
+              <button onClick={() => window.print()}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border-main px-4 py-3 text-sm font-semibold text-text-main transition hover:bg-bg-app">
+                <Download className="h-4 w-4" />
+                {t("doctor.appointmentDetail.actions.print", { defaultValue: "Print / Export" })}
               </button>
-            )}
+            </div>
+          </div>
+
+          {/* Timeline Card */}
+          <div className={`${GLASS_CARD} p-5`}>
+            <h3 className="flex items-center gap-2 text-sm font-bold text-text-main mb-4">
+              <Clock className="h-4 w-4 text-cyan-500" />
+              {t("doctor.appointmentDetail.timeline", { defaultValue: "Timeline" })}
+            </h3>
+
+            <div className="relative space-y-4 pl-5">
+              <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border-main/60" />
+
+              {/* Created */}
+              <div className="relative">
+                <div className="absolute -left-5 top-1 h-2.5 w-2.5 rounded-full bg-cyan-500 ring-4 ring-cyan-500/15" />
+                <p className="text-[11px] font-semibold text-text-dim">{t("doctor.appointmentDetail.created", { defaultValue: "Created" })}</p>
+                <p className="text-sm font-semibold text-text-main">{fmtDateTime(a.created_at, lng)}</p>
+              </div>
+
+              {/* Updated */}
+              {a.updated_at && a.updated_at !== a.created_at && (
+                <div className="relative">
+                  <div className="absolute -left-5 top-1 h-2.5 w-2.5 rounded-full bg-amber-500 ring-4 ring-amber-500/15" />
+                  <p className="text-[11px] font-semibold text-text-dim">{t("doctor.appointmentDetail.updated", { defaultValue: "Last Updated" })}</p>
+                  <p className="text-sm font-semibold text-text-main">{fmtDateTime(a.updated_at, lng)}</p>
+                </div>
+              )}
+
+              {/* Current status */}
+              <div className="relative">
+                <div className={`absolute -left-5 top-1 h-2.5 w-2.5 rounded-full ring-4 ${
+                  st.color === "emerald" ? "bg-emerald-500 ring-emerald-500/15" :
+                  st.color === "purple" ? "bg-purple-500 ring-purple-500/15" :
+                  st.color === "red" ? "bg-red-500 ring-red-500/15" :
+                  "bg-slate-400 ring-slate-400/15"
+                }`} />
+                <p className="text-[11px] font-semibold text-text-dim">{t("doctor.appointmentDetail.currentStatus", { defaultValue: "Current Status" })}</p>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${PILL[st.color] || ""}`}>
+                  <StIcon className="h-3 w-3" /> {sLabel(a.status)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Linked Consultation Card */}
+          <div className={`${GLASS_CARD} overflow-hidden`}>
+            <div className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 px-5 py-3 dark:from-violet-900/20 dark:to-purple-900/20">
+              <h3 className="flex items-center gap-2 text-sm font-bold text-text-main">
+                <MessageSquare className="h-4 w-4 text-violet-500" />
+                {t("doctor.appointmentDetail.linkedConsultation", { defaultValue: "Linked Consultation" })}
+              </h3>
+            </div>
+            <div className="p-5">
+              {linkedConsultation ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-text-main">
+                    {t("doctor.appointmentDetail.consultationId", { defaultValue: "Consultation" })} <span className="font-mono font-bold text-violet-600 dark:text-violet-400">#{linkedConsultation.id}</span>
+                  </p>
+                  {linkedConsultation.chief_complaint && (
+                    <p className="text-xs italic text-text-dim">{linkedConsultation.chief_complaint}</p>
+                  )}
+                  <button onClick={() => navigate(`/doctor/consultations/${linkedConsultation.id}`)}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-violet-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-violet-500/20 transition hover:bg-violet-600">
+                    {t("doctor.appointmentDetail.viewConsultation", { defaultValue: "View Consultation" })}
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-text-dim">
+                  {t("doctor.appointmentDetail.noConsultation", { defaultValue: "No consultation linked to this appointment." })}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Cancel Reason Modal (Glassmorphism) ── */}
+      {cancelModal.open && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center">
+          <div className={`w-full max-w-md overflow-hidden rounded-t-3xl sm:rounded-3xl ${GLASS} p-6`}>
+            <h3 className="text-base font-bold text-text-main">
+              {t("doctor.appointmentDetail.cancelPrompt", { defaultValue: "Cancel Appointment" })}
+            </h3>
+            <p className="mt-1 text-sm text-text-dim">
+              {t("doctor.appointmentDetail.cancelPromptDesc", { defaultValue: "Please provide a reason for cancellation." })}
+            </p>
+            <textarea autoFocus rows={3}
+              value={cancelModal.reason}
+              onChange={(e) => setCancelModal((prev) => ({ ...prev, reason: e.target.value }))}
+              placeholder={t("doctor.appointmentDetail.cancelPlaceholder", { defaultValue: "e.g. schedule conflict, patient request..." })}
+              className="mt-4 w-full resize-none rounded-xl border border-border-main bg-bg-app/80 px-4 py-3 text-sm text-text-main outline-none focus:ring-2 focus:ring-red-400/50 dark:bg-slate-800/80"
+            />
+            <div className="mt-4 flex gap-3">
+              <button onClick={() => setCancelModal({ open: false, reason: "" })}
+                className="flex-1 rounded-xl border border-border-main px-4 py-2.5 text-sm font-semibold text-text-main transition hover:bg-bg-app">
+                {t("common.cancel", { defaultValue: "Cancel" })}
+              </button>
+              <button onClick={handleCancel}
+                className="flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-red-500/20 transition hover:bg-red-600">
+                {t("doctor.appointmentDetail.confirmCancel", { defaultValue: "Confirm Cancel" })}
+              </button>
+            </div>
           </div>
         </div>
       )}

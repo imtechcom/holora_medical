@@ -30,6 +30,7 @@ const LoginPage = () => {
 
         login({
           token: data.token,
+          refreshToken: data.refreshToken,
           user: data.user,
         });
 
@@ -108,6 +109,7 @@ const LoginPage = () => {
 
       login({
         token: data.token,
+        refreshToken: data.refreshToken,
         user: data.user,
       });
 

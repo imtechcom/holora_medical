@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { logAudit } = require('../utils/audit.util');
 
 // --- HÀM HỖ TRỢ XỬ LÝ THỜI GIAN NHANH ---
 const findPatientIdByUserId = (userId, callback) => {
@@ -186,6 +187,7 @@ const _doBookAppointment = (req, res, patient_id) => {
 
           db.query(query, params, (err2, result) => {
             if (err2) return res.status(500).json({ message: err2.message });
+            logAudit(req, "APPOINTMENT_CREATE", "appointment", result.insertId, { doctor_id, branch_id, appointment_date });
             res.status(201).json({ message: 'Đặt lịch thành công!', appointment_id: result.insertId });
           });
         }
@@ -249,6 +251,7 @@ exports.updateAppointmentStatus = (req, res) => {
   db.query('UPDATE appointment SET status = ?, cancellation_reason = ? WHERE id = ?', 
   [status, cancellation_reason || null, id], (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
+    logAudit(req, "APPOINTMENT_STATUS_CHANGE", "appointment", Number(id), { status, cancellation_reason });
     res.json({ message: 'Đã cập nhật trạng thái ca khám!' });
   });
 };

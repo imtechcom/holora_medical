@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard, Users, ShieldCheck, KeyRound, Stethoscope,
   Building2, UserCog, UserRound, Calendar, CalendarClock,
-  MessageSquare, ClipboardList, GitBranch,
+  MessageSquare, ClipboardList, GitBranch, FileText, Star,
 } from "lucide-react";
 import Logo from "../Logo";
 import NotificationBadge from "../NotificationBadge";
@@ -171,6 +171,20 @@ const AdminLayout = ({ children }) => {
               <GitBranch className="w-5 h-5" />
               <span>{t("admin.versionHistory", { defaultValue: "Version History" })}</span>
             </NavLink>
+
+            {canViewUsers && (
+              <NavLink to="/admin/audit-logs" className={navClass}>
+                <FileText className="w-5 h-5" />
+                <span>{t("admin.auditLogs", { defaultValue: "Audit Logs" })}</span>
+              </NavLink>
+            )}
+
+            {canViewUsers && (
+              <NavLink to="/admin/reviews" className={navClass}>
+                <Star className="w-5 h-5" />
+                <span>{t("admin.reviews", { defaultValue: "Reviews" })}</span>
+              </NavLink>
+            )}
           </nav>
 
           <div className="border-t border-border-main p-4">

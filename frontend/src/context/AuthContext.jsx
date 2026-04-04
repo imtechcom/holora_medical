@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useMemo, useState, useCallback } from "react";
+import { logoutApi } from "../services/authService";
 
 const AuthContext = createContext(null);
 
@@ -9,23 +10,32 @@ export const AuthProvider = ({ children }) => {
     return storedUser ? JSON.parse(storedUser) : null;
   });
 
-  const login = (authData) => {
-    const { token, user } = authData;
+  const login = useCallback((authData) => {
+    const { token, refreshToken, user } = authData;
 
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+    }
 
     setToken(token);
     setUser(user);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(async () => {
+    const rt = localStorage.getItem("refreshToken");
+    if (rt) {
+      try { await logoutApi(rt); } catch { /* ignore */ }
+    }
+
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
 
     setToken("");
     setUser(null);
-  };
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -50,7 +60,7 @@ export const AuthProvider = ({ children }) => {
       login,
       logout,
     }),
-    [token, user]
+    [token, user, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

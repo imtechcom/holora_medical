@@ -21,5 +21,9 @@ backend/public/uploads/
 backend/backend.log
 backend/*.log
 
-# Local planning notes
+# Local documentation & planning (not deployed/committed)
+docs/
 planing.txt
+
+# Backup files
+*.bak

@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const db = require("../config/db");
+const { logAudit } = require("../utils/audit.util");
 
 // Get all users
 const getAllUsers = (req, res) => {
@@ -195,6 +196,7 @@ const createUser = async (req, res) => {
                   });
                 }
 
+                logAudit(req, "USER_CREATE", "user", newUserId, { email, role_id: roleId });
                 return res.status(201).json({
                   message: "User created successfully",
                   data: { id: newUserId },
@@ -224,12 +226,14 @@ const createUser = async (req, res) => {
                     console.error("Assign role error:", assignErr);
                   }
 
+                  logAudit(req, "USER_CREATE", "user", newUserId, { email, role: "patient" });
                   return res.status(201).json({
                     message: "User created successfully",
                     data: { id: newUserId },
                   });
                 });
               } else {
+                logAudit(req, "USER_CREATE", "user", newUserId, { email });
                 return res.status(201).json({
                   message: "User created successfully",
                   data: { id: newUserId },
@@ -294,6 +298,7 @@ const updateUser = async (req, res) => {
         });
       }
 
+      logAudit(req, "USER_UPDATE", "user", Number(id), { full_name, email, status });
       return res.json({
         message: "User updated successfully",
       });
@@ -338,7 +343,8 @@ const deleteUser = (req, res) => {
       });
     }
 
-    return res.json({
+logAudit(req, "USER_DELETE", "user", Number(id));
+      return res.json({
       message: "User deleted successfully",
     });
   });
@@ -401,6 +407,7 @@ const assignRoleToUser = (req, res) => {
             });
           }
 
+          logAudit(req, "ROLE_ASSIGN", "user", Number(user_id), { role_id: Number(role_id) });
           return res.json({
             message: "Role assigned successfully",
             data: { user_id, role_id },
@@ -441,6 +448,7 @@ const removeRoleFromUser = (req, res) => {
       });
     }
 
+    logAudit(req, "ROLE_REMOVE", "user", Number(user_id), { role_id: Number(role_id) });
     return res.json({
       message: "Role removed successfully",
       data: { user_id, role_id },
@@ -522,6 +530,121 @@ const getAvailableRoles = (req, res) => {
   });
 };
 
+// Get active sessions for a user (Admin)
+const getUserSessions = (req, res) => {
+  const { id } = req.params;
+
+  const sql = `
+    SELECT 
+      rt.id,
+      rt.ip_address,
+      rt.user_agent,
+      rt.created_at,
+      rt.expires_at
+    FROM refresh_tokens rt
+    WHERE rt.user_id = ?
+      AND rt.revoked_at IS NULL
+      AND rt.expires_at > NOW()
+    ORDER BY rt.created_at DESC
+  `;
+
+  db.query(sql, [id], (err, results) => {
+    if (err) {
+      console.error("Get user sessions error:", err);
+      return res.status(500).json({ message: "Database error", error: err.message });
+    }
+
+    return res.json({
+      message: "Sessions fetched successfully",
+      data: results,
+    });
+  });
+};
+
+// Force logout a user — revoke all their refresh tokens (Admin)
+const forceLogoutUser = (req, res) => {
+  const { id } = req.params;
+
+  const sql = `
+    UPDATE refresh_tokens 
+    SET revoked_at = NOW() 
+    WHERE user_id = ? AND revoked_at IS NULL
+  `;
+
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      console.error("Force logout error:", err);
+      return res.status(500).json({ message: "Database error", error: err.message });
+    }
+
+    return res.json({
+      message: "User forcefully logged out from all sessions",
+      revokedCount: result.affectedRows,
+    });
+  });
+};
+
+// Revoke a single session (Admin)
+const revokeSession = (req, res) => {
+  const { id, sessionId } = req.params;
+
+  const sql = `
+    UPDATE refresh_tokens 
+    SET revoked_at = NOW() 
+    WHERE id = ? AND user_id = ? AND revoked_at IS NULL
+  `;
+
+  db.query(sql, [sessionId, id], (err, result) => {
+    if (err) {
+      console.error("Revoke session error:", err);
+      return res.status(500).json({ message: "Database error", error: err.message });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Session not found or already revoked" });
+    }
+
+    return res.json({ message: "Session revoked successfully" });
+  });
+};
+
+// Get login history for a user (Admin)
+const getUserLoginHistory = (req, res) => {
+  const { id } = req.params;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+
+  const sql = `
+    SELECT 
+      rt.id,
+      rt.ip_address,
+      rt.user_agent,
+      rt.created_at,
+      rt.expires_at,
+      rt.revoked_at,
+      CASE
+        WHEN rt.revoked_at IS NOT NULL THEN 'revoked'
+        WHEN rt.expires_at < NOW() THEN 'expired'
+        ELSE 'active'
+      END AS status
+    FROM refresh_tokens rt
+    WHERE rt.user_id = ?
+    ORDER BY rt.created_at DESC
+    LIMIT ?
+  `;
+
+  db.query(sql, [id, limit], (err, results) => {
+    if (err) {
+      console.error("Get login history error:", err);
+      return res.status(500).json({ message: "Database error", error: err.message });
+    }
+
+    return res.json({
+      message: "Login history fetched successfully",
+      data: results,
+    });
+  });
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -532,4 +655,8 @@ module.exports = {
   removeRoleFromUser,
   getUserRoles,
   getAvailableRoles,
+  getUserSessions,
+  forceLogoutUser,
+  revokeSession,
+  getUserLoginHistory,
 };

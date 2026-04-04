@@ -20,6 +20,12 @@ const ENTITY_CONFIG = {
     suffix: "PT",
     width: 4,
   },
+  prescription: {
+    table: "prescription",
+    column: "prescription_code",
+    suffix: "RX",
+    width: 4,
+  },
 };
 
 const formatDateCode = (date = new Date()) => {

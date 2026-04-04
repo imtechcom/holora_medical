@@ -1,5 +1,6 @@
 const db = require("../config/db");
 const { generateMedicalCode } = require("../utils/medical-code.util");
+const { logAudit } = require("../utils/audit.util");
 
 const isJoinTableMissing = (err) => err?.code === "ER_NO_SUCH_TABLE";
 
@@ -361,6 +362,7 @@ const createPatient = (req, res) => {
             });
           }
 
+          logAudit(req, "PATIENT_CREATE", "patient", insertResults.insertId, { patient_code });
           return res.status(201).json({
             message: "Patient created successfully",
             data: {
@@ -451,6 +453,7 @@ const updatePatient = (req, res) => {
           });
         }
 
+        logAudit(req, "PATIENT_UPDATE", "patient", Number(id));
         return res.json({
           message: "Patient updated successfully",
         });
@@ -485,6 +488,7 @@ const deletePatient = (req, res) => {
     }
 
     db.query("UPDATE patient_branch SET deleted_at = NOW() WHERE patient_id = ? AND deleted_at IS NULL", [id], () => {
+      logAudit(req, "PATIENT_DELETE", "patient", Number(id));
       return res.json({
         message: "Patient deleted successfully",
       });
@@ -633,6 +637,7 @@ const updateMyProfile = (req, res) => {
         });
       }
 
+      logAudit(req, "PATIENT_PROFILE_UPDATE", "patient", null, { user_id: req.user?.id });
       return res.json({
         message: "Patient profile updated successfully",
       });

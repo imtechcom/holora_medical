@@ -18,10 +18,12 @@ const authenticateToken = (req, res, next) => {
     if (err.name === "TokenExpiredError") {
       return res.status(401).json({
         message: "Token expired",
+        code: "TOKEN_EXPIRED",
       });
     }
     return res.status(403).json({
       message: "Invalid token",
+      code: "INVALID_TOKEN",
     });
   }
 };

@@ -7,10 +7,16 @@ import {
   Loader2,
   MessageSquare,
   Send,
+  Star,
 } from "lucide-react";
 import { resolveApiUrl } from "../services/api";
 import { consultationService } from "../services/consultationService";
 import { aiService } from "../services/aiService";
+import { createReviewApi, checkReviewExistsApi } from "../services/reviewService";
+import { getPrescriptionsByConsultationApi } from "../services/prescriptionService";
+import ReviewFormModal from "../components/ReviewFormModal";
+import PrescriptionCard from "../components/PrescriptionCard";
+import PrescriptionDetailModal from "../components/PrescriptionDetailModal";
 
 const STATUS_STYLES = {
   pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
@@ -50,6 +56,10 @@ const PatientConsultationDetailPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [replyError, setReplyError] = useState("");
   const [mobileTab, setMobileTab] = useState("info");
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [existingReview, setExistingReview] = useState(null);
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [viewRxDetail, setViewRxDetail] = useState(null);
 
   useEffect(() => {
     fetchDetail();
@@ -62,6 +72,13 @@ const PatientConsultationDetailPage = () => {
       setError("");
       const res = await consultationService.getConsultationDetails(id);
       setData(res.data);
+      // Check existing review if completed
+      if (res.data?.status === "completed" && res.data?.doctor_id) {
+        try {
+          const checkRes = await checkReviewExistsApi({ doctor_id: res.data.doctor_id });
+          setExistingReview(checkRes.data?.exists ? checkRes.data.review : null);
+        } catch { setExistingReview(null); }
+      }
     } catch (err) {
       setError(err.response?.data?.message || err.message || t("patient.consultationsPage.errors.loadDetail"));
     } finally {
@@ -73,6 +90,13 @@ const PatientConsultationDetailPage = () => {
       setPatientAiData(aiRes.data || []);
     } catch {
       setPatientAiData([]);
+    }
+    // Prescriptions
+    try {
+      const rxRes = await getPrescriptionsByConsultationApi(id);
+      setPrescriptions(rxRes.data || []);
+    } catch {
+      setPrescriptions([]);
     }
   };
 
@@ -298,6 +322,26 @@ const PatientConsultationDetailPage = () => {
               </div>
             </div>
           )}
+
+          {/* Prescriptions */}
+          {prescriptions.length > 0 && (
+            <div className="mt-5">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-text-main">
+                📋 {t("prescription.sectionTitle", { defaultValue: "Toa thuốc" })}
+                <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">{prescriptions.length}</span>
+              </h3>
+              <div className="space-y-2">
+                {prescriptions.filter(rx => rx.status !== 'draft').map((rx) => (
+                  <PrescriptionCard
+                    key={rx.id}
+                    prescription={rx}
+                    compact
+                    onViewDetail={(p) => setViewRxDetail(p)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── CHAT PANEL (right 2/3) ── */}
@@ -392,12 +436,46 @@ const PatientConsultationDetailPage = () => {
               </div>
             </form>
           ) : (
-            <div className="border-t border-emerald-200 bg-emerald-50 p-4 text-center text-sm font-semibold italic text-emerald-700">
-              {t("patient.consultationsPage.completedNotice")}
+            <div className="border-t border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+              <p className="text-center text-sm font-semibold italic text-emerald-700 dark:text-emerald-300">
+                {t("patient.consultationsPage.completedNotice")}
+              </p>
+              {data.doctor_id && !existingReview && (
+                <button
+                  onClick={() => setShowReviewModal(true)}
+                  className="mx-auto mt-3 flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white shadow transition hover:bg-amber-600"
+                >
+                  <Star className="h-4 w-4" />
+                  {t("review.rateDoctor", { defaultValue: "Rate Doctor" })}
+                </button>
+              )}
+              {existingReview && (
+                <p className="mt-2 text-center text-xs text-emerald-600 dark:text-emerald-400">
+                  ★ {t("review.alreadyReviewed", { defaultValue: "You have already reviewed this doctor" })} ({existingReview.rating}/5)
+                </p>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Review Modal */}
+      <ReviewFormModal
+        isOpen={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        doctorName={data?.doctor_name}
+        onSubmit={async (reviewData) => {
+          await createReviewApi({ ...reviewData, doctor_id: data.doctor_id });
+          setExistingReview({ rating: reviewData.rating });
+        }}
+      />
+
+      {/* Prescription Detail Modal */}
+      <PrescriptionDetailModal
+        isOpen={viewRxDetail !== null}
+        onClose={() => setViewRxDetail(null)}
+        prescriptionData={viewRxDetail}
+      />
     </div>
   );
 };

@@ -73,6 +73,11 @@ const DoctorLayout = ({ children }) => {
               <span>{t("doctor.schedule") || "Work Schedule"}</span>
             </NavLink>
 
+            <NavLink to="/doctor/reviews" className={navClass}>
+              <span>⭐</span>
+              <span>{t("doctor.myReviews") || "My Reviews"}</span>
+            </NavLink>
+
             <div className="pt-3 pb-1">
               <p className="px-4 text-xs font-semibold uppercase tracking-wider text-text-dim">
                 {t("doctor.tools") || "Tools"}

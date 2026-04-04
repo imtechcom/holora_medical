@@ -35,3 +35,27 @@ export const assignRoleApi = async (payload) => {
   const response = await api.post("/users/assign-role", payload);
   return response.data.data;
 };
+
+// Get active sessions for a user
+export const getUserSessionsApi = async (id) => {
+  const response = await api.get(`/users/${id}/sessions`);
+  return response.data;
+};
+
+// Get login history for a user
+export const getUserLoginHistoryApi = async (id, limit = 50) => {
+  const response = await api.get(`/users/${id}/login-history?limit=${limit}`);
+  return response.data;
+};
+
+// Force logout all sessions for a user
+export const forceLogoutUserApi = async (id) => {
+  const response = await api.post(`/users/${id}/force-logout`);
+  return response.data;
+};
+
+// Revoke a single session
+export const revokeSessionApi = async (userId, sessionId) => {
+  const response = await api.delete(`/users/${userId}/sessions/${sessionId}`);
+  return response.data;
+};

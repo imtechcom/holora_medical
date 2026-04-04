@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const { logAudit } = require("../utils/audit.util");
 
 // Bệnh nhân gửi yêu cầu tư vấn mới (UC04)
 const createConsultation = (req, res) => {
@@ -44,6 +45,7 @@ const createConsultation = (req, res) => {
         });
       }
 
+      logAudit(req, "CONSULTATION_CREATE", "consultation", consultationId, { doctor_id: assignedDoctorId });
       return res.status(201).json({ 
         message: "Gửi yêu cầu tư vấn thành công.", 
         consultation_id: consultationId 
@@ -237,6 +239,7 @@ const addConsultationResponse = (req, res) => {
               if (commitErr) {
                 return res.status(500).json({ error: commitErr.message });
               }
+              logAudit(req, "CONSULTATION_RESPONSE", "consultation", Number(id), { response_type: finalResponseType, complete: !!complete });
               res.status(201).json({
                 message: "Đã thêm phản hồi",
                 response_id: result.insertId,
@@ -307,6 +310,7 @@ const reopenConsultation = (req, res) => {
       const sql = `UPDATE consultation SET status = 'in_progress', completed_at = NULL, updated_at = NOW() WHERE id = ?`;
       db.query(sql, [id], (err3) => {
         if (err3) return res.status(500).json({ message: "Lỗi cập nhật trạng thái", error: err3.message });
+        logAudit(req, "CONSULTATION_REOPEN", "consultation", Number(id));
         return res.json({ message: "Đã mở lại ca tư vấn thành công." });
       });
     });

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { BarChart3, TrendingUp, DollarSign, Users, FileText } from "lucide-react";
+import { BarChart3, TrendingUp, DollarSign, Users, FileText, Home } from "lucide-react";
 
 const AccountantDashboardPage = () => {
   const { user } = useAuth();
@@ -54,7 +54,13 @@ const AccountantDashboardPage = () => {
     <div className="space-y-8">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-[#E06666] to-[#D85555] rounded-lg shadow-md p-8 text-white">
-        <h1 className="text-3xl font-bold mb-2">Welcome, {user?.full_name}!</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-3xl font-bold mb-2">Welcome, {user?.full_name}!</h1>
+          <Link to="/" className="flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-xs font-medium text-white/80 hover:text-white hover:bg-white/25 transition shrink-0">
+            <Home className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Homepage</span>
+          </Link>
+        </div>
         <p className="text-white/90 text-lg">Financial overview and accounting management dashboard.</p>
         <div className="mt-4 flex gap-3 text-sm text-white/80">
           <span>{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>

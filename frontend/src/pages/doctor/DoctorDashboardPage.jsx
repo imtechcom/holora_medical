@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Activity, ArrowRight, Calendar, CalendarClock, CheckCircle2, Clock,
-  MessageSquare, Sparkles, Stethoscope, UserCircle2, Users,
+  Home, MessageSquare, Sparkles, Stethoscope, UserCircle2, Users,
 } from "lucide-react";
 import { dashboardService } from "../../services/dashboardService";
 
@@ -98,9 +98,15 @@ const DoctorDashboardPage = () => {
         <div className="relative">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                {t("doctor.zone", { defaultValue: "Doctor Zone" })}
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  {t("doctor.zone", { defaultValue: "Doctor Zone" })}
+                </p>
+                <Link to="/" className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/20 transition">
+                  <Home className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Homepage</span>
+                </Link>
+              </div>
               <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
                 {loading ? t("common.loading", { defaultValue: "Loading..." }) : t("doctor.dashboard.heroTitle", { defaultValue: "Welcome, Dr. {{name}}", name: doctor.full_name || "" })}
               </h1>

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Logo from "../Logo";
 import NotificationBadge from "../NotificationBadge";
+import Breadcrumb from "../Breadcrumb";
 import UserDropdown from "../UserDropdown";
 
 const AdminLayout = ({ children }) => {
@@ -202,6 +203,9 @@ const AdminLayout = ({ children }) => {
               <UserDropdown profilePath="/admin/profile" showTheme showLanguage />
             </div>
           </header>
+
+          {/* Breadcrumb */}
+          <Breadcrumb />
 
           <main className="flex-1 p-3 sm:p-6">{children}</main>
         </div>

@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { dashboardService } from "../../services/dashboardService";
+import { Home } from "lucide-react";
 
 // ─── Color / label maps ───────────────────────────────────────────────────────
 const APPT_COLOR = {
@@ -298,12 +300,20 @@ const DashboardPage = () => {
 
       {/* Welcome banner */}
       <div className="bg-bg-surface p-4 sm:p-6 sm:px-7 rounded-2xl border border-border-main shadow-sm">
-        <div className="text-base sm:text-xl font-bold text-[#E06666]">
-          Xin chào, {user?.full_name || "Admin"} 👋
-        </div>
-        <div className="mt-1 text-xs sm:text-sm text-text-dim">
-          Bảng điều khiển tổng quan —{" "}
-          <span className="font-semibold uppercase">{role}</span>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-base sm:text-xl font-bold text-[#E06666]">
+              Xin chào, {user?.full_name || "Admin"} 👋
+            </div>
+            <div className="mt-1 text-xs sm:text-sm text-text-dim">
+              Bảng điều khiển tổng quan —{" "}
+              <span className="font-semibold uppercase">{role}</span>
+            </div>
+          </div>
+          <Link to="/" className="flex items-center gap-1.5 rounded-lg border border-border-main bg-bg-app px-3 py-2 text-xs font-medium text-text-dim hover:text-[#E06666] hover:border-[#E06666]/40 transition shrink-0">
+            <Home className="w-4 h-4" />
+            <span className="hidden sm:inline">Homepage</span>
+          </Link>
         </div>
       </div>
 

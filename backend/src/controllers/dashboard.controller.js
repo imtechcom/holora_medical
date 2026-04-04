@@ -238,13 +238,6 @@ const getDoctorDashboard = async (req, res) => {
   }
 };
 
-module.exports = {
-  getDashboardStats,
-  getAnalytics,
-  getDoctorDashboard,
-  getPatientDashboard,
-};
-
 // ─── Patient-specific dashboard ───────────────────────────────────────────────
 const getPatientDashboard = async (req, res) => {
   const userId = req.user?.id;
@@ -375,4 +368,11 @@ const getPatientDashboard = async (req, res) => {
     console.error('Get patient dashboard error:', err);
     return res.status(500).json({ message: 'Database error', error: err.message });
   }
+};
+
+module.exports = {
+  getDashboardStats,
+  getAnalytics,
+  getDoctorDashboard,
+  getPatientDashboard,
 };

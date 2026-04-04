@@ -44,7 +44,7 @@ const DoctorDashboardPage = () => {
   const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [, setError] = useState("");
 
   const loadData = useCallback(async () => {
     try {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle, CheckCircle2, ChevronDown, CreditCard,
@@ -135,8 +135,6 @@ const InvoiceModal = ({ order, onClose, t }) => {
    ══════════════════════════════════════════════ */
 const SubscriptionPage = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-
   /* ── State ── */
   const [accountSub, setAccountSub] = useState(null);
   const [branches, setBranches] = useState([]);

@@ -6,6 +6,9 @@ frontend/node_modules/
 backend/.vscode/
 frontend/.vscode/
 
+# Vite cache
+frontend/.vite/
+
 # Environment files (contain secrets - never commit)
 backend/.env
 frontend/.env

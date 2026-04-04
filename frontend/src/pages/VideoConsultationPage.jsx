@@ -87,7 +87,7 @@ const VideoConsultationPage = () => {
           displayName: user?.full_name || "Khách",
           email: user?.email || "",
         }}
-        onApiReady={(externalApi) => {
+        onApiReady={(_externalApi) => {
           // Gắn listener nếu cần
         }}
         getIFrameRef={(iframeRef) => {

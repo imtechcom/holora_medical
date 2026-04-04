@@ -2,6 +2,12 @@ import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
+import {
+  LayoutDashboard, Users, ShieldCheck, KeyRound, Stethoscope,
+  Building2, UserCog, UserRound, Calendar, CalendarClock,
+  MessageSquare, ClipboardList, GitBranch,
+} from "lucide-react";
+import Logo from "../Logo";
 import NotificationBadge from "../NotificationBadge";
 import UserDropdown from "../UserDropdown";
 
@@ -12,8 +18,8 @@ const AdminLayout = ({ children }) => {
 
   const navClass = ({ isActive }) =>
     isActive
-      ? "block rounded-lg bg-[#E06666] px-4 py-2 text-white shadow-md shadow-[#E06666]/20"
-      : "block rounded-lg px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#FFF5F5] dark:hover:bg-slate-800 hover:text-[#E06666]";
+      ? "flex items-center gap-3 rounded-lg bg-[#E06666] px-4 py-2.5 text-white font-medium shadow-md shadow-[#E06666]/20 transition"
+      : "flex items-center gap-3 rounded-lg px-4 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-[#FFF5F5] dark:hover:bg-slate-800 hover:text-[#E06666] transition";
 
   // Kiểm tra quyền hiển thị menu item
   const canViewUsers = role === "super_admin" || role === "admin";
@@ -27,7 +33,7 @@ const AdminLayout = ({ children }) => {
   const canViewDoctorAppointments = role === "doctor";
   const canViewSchedules = role === "super_admin" || role === "admin" || role === "doctor";
   const canViewConsultations = role === "super_admin" || role === "admin" || role === "doctor";
-  const canViewDoctorRequests = role === "doctor" || role === "admin" || role === "super_admin"; // Custom view for the UC12-14 flow
+  const canViewDoctorRequests = role === "doctor" || role === "admin" || role === "super_admin";
 
   return (
     <div className="min-h-screen bg-bg-app transition-colors duration-200">
@@ -38,92 +44,139 @@ const AdminLayout = ({ children }) => {
         )}
         <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-bg-surface border-r border-border-main shadow-md transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="border-b border-border-main px-6 py-5">
-            <Link to="/admin" className="text-2xl font-bold text-[#E06666]">
-              Holora Admin
+            <Link to="/admin" className="flex items-center gap-2">
+              <Logo size="sm" />
+              <div>
+                <div className="text-base font-bold text-[#E06666]">Holora Admin</div>
+                <div className="text-xs text-text-dim">{t("admin.medicalDashboard")}</div>
+              </div>
             </Link>
-            <p className="mt-1 text-sm text-text-dim">{t("admin.medicalDashboard")}</p>
           </div>
 
-          <nav className="space-y-2 p-4 overflow-y-auto flex-1" onClick={() => setSidebarOpen(false)}>
+          <nav className="space-y-1 p-4 overflow-y-auto flex-1" onClick={() => setSidebarOpen(false)}>
             <NavLink to="/admin" end className={navClass}>
-              {t("admin.dashboard")}
+              <LayoutDashboard className="w-5 h-5" />
+              <span>{t("admin.dashboard")}</span>
             </NavLink>
+
+            <div className="pt-3 pb-1">
+              <p className="px-4 text-xs font-semibold uppercase tracking-wider text-text-dim">
+                {t("admin.userAccessSection", { defaultValue: "User & Access" })}
+              </p>
+            </div>
 
             {canViewUsers && (
               <NavLink to="/admin/users" className={navClass}>
-                {t("admin.users")}
+                <Users className="w-5 h-5" />
+                <span>{t("admin.users")}</span>
               </NavLink>
             )}
 
             {canViewRoles && (
               <NavLink to="/admin/roles" className={navClass}>
-                {t("admin.rolesManagement")}
+                <ShieldCheck className="w-5 h-5" />
+                <span>{t("admin.rolesManagement")}</span>
               </NavLink>
             )}
 
             {canViewPermissions && (
               <NavLink to="/admin/permissions" className={navClass}>
-                {t("admin.permissionsManagement")}
+                <KeyRound className="w-5 h-5" />
+                <span>{t("admin.permissionsManagement")}</span>
               </NavLink>
             )}
 
+            <div className="pt-3 pb-1">
+              <p className="px-4 text-xs font-semibold uppercase tracking-wider text-text-dim">
+                {t("admin.clinicSection", { defaultValue: "Clinic" })}
+              </p>
+            </div>
+
             {canViewSpecialties && (
               <NavLink to="/admin/specialties" className={navClass}>
-                {t("specialty.managementTitle")}
+                <Stethoscope className="w-5 h-5" />
+                <span>{t("specialty.managementTitle")}</span>
               </NavLink>
             )}
 
             {canViewBranches && (
               <NavLink to="/admin/branches" className={navClass}>
-                {t("branch.managementTitle")}
+                <Building2 className="w-5 h-5" />
+                <span>{t("branch.managementTitle")}</span>
               </NavLink>
             )}
 
             {canViewDoctors && (
               <NavLink to="/admin/doctors" className={navClass}>
-                {t("admin.doctorsManagement")}
+                <UserCog className="w-5 h-5" />
+                <span>{t("admin.doctorsManagement")}</span>
               </NavLink>
             )}
 
             {canViewPatients && (
               <NavLink to="/admin/patients" className={navClass}>
-                {t("admin.patients")}
+                <UserRound className="w-5 h-5" />
+                <span>{t("admin.patients")}</span>
               </NavLink>
             )}
 
+            <div className="pt-3 pb-1">
+              <p className="px-4 text-xs font-semibold uppercase tracking-wider text-text-dim">
+                {t("admin.operationsSection", { defaultValue: "Operations" })}
+              </p>
+            </div>
+
             {canViewAppointments && (
               <NavLink to="/admin/appointments" className={navClass}>
-                {t("admin.appointments")}
+                <Calendar className="w-5 h-5" />
+                <span>{t("admin.appointments")}</span>
               </NavLink>
             )}
             {canViewDoctorAppointments && (
               <NavLink to="/doctor/appointments" className={navClass}>
-                {t("admin.myAppointments")}
+                <Calendar className="w-5 h-5" />
+                <span>{t("admin.myAppointments")}</span>
               </NavLink>
             )}
 
             {canViewSchedules && (
               <NavLink to="/admin/schedules" className={navClass}>
-                {t("admin.scheduleManagement")}
+                <CalendarClock className="w-5 h-5" />
+                <span>{t("admin.scheduleManagement")}</span>
               </NavLink>
             )}
 
             {canViewConsultations && (
               <NavLink to="/admin/consultations" className={navClass}>
-                {t("admin.consultations")}
+                <MessageSquare className="w-5 h-5" />
+                <span>{t("admin.consultations")}</span>
               </NavLink>
             )}
 
             {canViewDoctorRequests && (
               <NavLink to="/doctor/consultations" className={navClass}>
-                {t("admin.patientConsultations")}
+                <ClipboardList className="w-5 h-5" />
+                <span>{t("admin.patientConsultations")}</span>
               </NavLink>
             )}
 
+            <div className="pt-3 pb-1">
+              <p className="px-4 text-xs font-semibold uppercase tracking-wider text-text-dim">
+                {t("admin.systemSection", { defaultValue: "System" })}
+              </p>
+            </div>
+
             <NavLink to="/admin/version" className={navClass}>
-              {t("admin.versionHistory", { defaultValue: "Version History" })}
+              <GitBranch className="w-5 h-5" />
+              <span>{t("admin.versionHistory", { defaultValue: "Version History" })}</span>
             </NavLink>
           </nav>
+
+          <div className="border-t border-border-main p-4">
+            <div className="flex items-center gap-2 px-1 opacity-60">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#E06666]">{t("admin.adminZone", { defaultValue: "Admin Zone" })}</span>
+            </div>
+          </div>
         </aside>
 
         {/* Main content */}

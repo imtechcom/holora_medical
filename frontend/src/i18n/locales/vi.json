@@ -40,7 +40,10 @@
     "error": "Lỗi",
     "success": "Thành công",
     "empty": "trống",
-    "pricing": "Bảng giá"
+    "pricing": "Bảng giá",
+    "language": "Ngôn ngữ",
+    "darkMode": "Chế độ tối",
+    "lightMode": "Chế độ sáng"
   },
   "navbar": {
     "holora": "Holora Y Tế",

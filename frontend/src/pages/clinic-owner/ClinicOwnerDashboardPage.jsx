@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Home } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import branchService from "../../services/branchService";
 import { getDoctorsByOwnerBranchesApi } from "../../services/doctorService";
@@ -45,9 +46,15 @@ const ClinicOwnerDashboardPage = () => {
     <div className="space-y-6">
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-[#E06666] to-[#D85555] rounded-2xl sm:rounded-3xl shadow-md p-4 sm:p-8 text-white">
-        <h1 className="text-lg sm:text-3xl font-bold mb-1 leading-snug">
-          {t("clinicOwner.welcomeTitle") || "Welcome back"}, {user?.full_name || "Provider"}! 🏥
-        </h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-lg sm:text-3xl font-bold mb-1 leading-snug">
+            {t("clinicOwner.welcomeTitle") || "Welcome back"}, {user?.full_name || "Provider"}! 🏥
+          </h1>
+          <Link to="/" className="flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-xs font-medium text-white/80 hover:text-white hover:bg-white/25 transition shrink-0">
+            <Home className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Homepage</span>
+          </Link>
+        </div>
         <p className="text-white/85 text-xs sm:text-base mt-1">
           {t("clinicOwner.welcomeSubtitle") || "Manage your branches and doctors from here."}
         </p>

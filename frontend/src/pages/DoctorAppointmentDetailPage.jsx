@@ -247,7 +247,7 @@ const DoctorAppointmentDetailPage = () => {
                       await appointmentService.cancelRecurringSeries(a.recurring_id);
                       alert("Đã huỷ toàn bộ chuỗi lịch thành công.");
                       fetchDetail();
-                    } catch (e) {
+                    } catch {
                       alert("Huỷ chuỗi thất bại");
                     } finally {
                       setCancellingSeries(false);

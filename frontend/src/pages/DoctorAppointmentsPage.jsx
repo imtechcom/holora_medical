@@ -464,6 +464,11 @@ const DoctorAppointmentsPage = () => {
                             <span className="text-sm font-bold text-text-main truncate">{app.patient_name || "—"}</span>
                             <StatusPill status={app.status} label={sLabel[app.status] || app.status} />
                             <TypeBadge type={app.appointment_type} />
+                            {app.recurring_id && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                <Sparkles className="h-3 w-3" /> Recurring
+                              </span>
+                            )}
                           </div>
 
                           <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-dim">

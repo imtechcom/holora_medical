@@ -43,10 +43,16 @@ const PatientAppointmentDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [linkedConsultation, setLinkedConsultation] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState("loading");
+  const [paying, setPaying] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [existingReview, setExistingReview] = useState(null);
   const [prescriptions, setPrescriptions] = useState([]);
   const [viewRxDetail, setViewRxDetail] = useState(null);
+  // Recurring
+  const [recurringChildren, setRecurringChildren] = useState([]);
+  const [showRecurring, setShowRecurring] = useState(false);
+  const [cancellingSeries, setCancellingSeries] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     setLoading(true); setError("");
@@ -62,7 +68,18 @@ const PatientAppointmentDetailPage = () => {
     fetchDetail();
     consultationService.getByAppointmentId(id).then(r => setLinkedConsultation(r.data || null)).catch(() => setLinkedConsultation(null));
     getPrescriptionsByAppointmentApi(id).then(r => setPrescriptions((r.data || []).filter(rx => rx.status !== 'draft'))).catch(() => setPrescriptions([]));
+    // Fetch payment status
+    appointmentService.getPaymentStatus(id)
+      .then((r) => setPaymentStatus(r.payment_status || "unpaid"))
+      .catch(() => setPaymentStatus("unpaid"));
   }, [fetchDetail, id]);
+
+  // Fetch recurring children if needed
+  useEffect(() => {
+    if (showRecurring && appointment?.recurring_id) {
+      appointmentService.getRecurringChildren(appointment.recurring_id).then(setRecurringChildren).catch(() => setRecurringChildren([]));
+    }
+  }, [showRecurring, appointment]);
 
   // Check existing review when appointment is loaded
   useEffect(() => {
@@ -113,10 +130,112 @@ const PatientAppointmentDetailPage = () => {
 
       {appointment && !loading && (
         <>
+          {/* Recurring Series Info */}
+          {appointment.recurring_id && (
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm dark:border-blue-800/30 dark:bg-blue-900/10 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-4 w-4 text-blue-400" />
+                <span className="font-bold text-blue-700 dark:text-blue-300 text-sm">Lịch hẹn lặp lại (Recurring Series)</span>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-2">
+                <button
+                  className="inline-flex items-center gap-1 rounded-lg border border-blue-400 bg-white px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                  onClick={() => setShowRecurring((v) => !v)}
+                >
+                  {showRecurring ? "Ẩn chuỗi" : "Xem chuỗi"}
+                </button>
+                <button
+                  className="inline-flex items-center gap-1 rounded-lg border border-red-400 bg-white px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+                  disabled={cancellingSeries}
+                  onClick={async () => {
+                    if (!window.confirm("Bạn chắc chắn muốn huỷ toàn bộ chuỗi lịch này?")) return;
+                    setCancellingSeries(true);
+                    try {
+                      await appointmentService.cancelRecurringSeries(appointment.recurring_id);
+                      alert("Đã huỷ toàn bộ chuỗi lịch thành công.");
+                      fetchDetail();
+                    } catch (e) {
+                      alert("Huỷ chuỗi thất bại");
+                    } finally {
+                      setCancellingSeries(false);
+                    }
+                  }}
+                >
+                  Huỷ toàn bộ chuỗi
+                </button>
+              </div>
+              {showRecurring && (
+                <div className="mt-2">
+                  <div className="text-xs mb-1 text-text-dim">Danh sách các lịch trong chuỗi:</div>
+                  <div className="space-y-1">
+                    {recurringChildren.length === 0 && <div className="text-xs text-text-dim">Không có lịch nào.</div>}
+                    {recurringChildren.map(child => (
+                      <div key={child.id} className="flex items-center gap-2 text-xs p-2 rounded border border-border-main bg-white dark:bg-slate-800">
+                        <span className="font-mono text-sm text-blue-700">{child.appointment_code}</span>
+                        <span>{fmtDate(child.appointment_date)} {fmtTime(child.start_time)} - {fmtTime(child.end_time)}</span>
+                        <span className="text-text-dim">{child.status}</span>
+                        <button
+                          className="ml-auto text-xs text-red-500 underline"
+                          disabled={child.status === "cancelled"}
+                          onClick={async () => {
+                            if (!window.confirm("Huỷ lịch này?")) return;
+                            await appointmentService.cancelRecurringChild(child.id);
+                            setRecurringChildren((prev) => prev.map(c => c.id === child.id ? { ...c, status: "cancelled" } : c));
+                          }}
+                        >Huỷ lịch này</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {/* Payment Section */}
+          {paymentStatus === "unpaid" && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm dark:border-rose-800/30 dark:bg-slate-900/30 mb-4">
+              <h2 className="mb-3 text-sm font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                💳 Thanh toán lịch hẹn
+              </h2>
+              <p className="mb-3 text-xs text-rose-700 dark:text-rose-200">Bạn cần thanh toán để xác nhận lịch hẹn này.</p>
+              <button
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-500 px-5 py-3 text-sm font-bold text-white shadow transition hover:bg-rose-600 disabled:opacity-60"
+                disabled={paying}
+                onClick={async () => {
+                  setPaying(true);
+                  try {
+                    await appointmentService.payForAppointment(appointment.id);
+                    setPaymentStatus("paid");
+                    alert("Thanh toán thành công (mock)");
+                  } catch (e) {
+                    alert(e?.response?.data?.message || "Thanh toán thất bại");
+                  } finally {
+                    setPaying(false);
+                  }
+                }}
+              >
+                {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Thanh toán ngay</span>}
+              </button>
+            </div>
+          )}
+          {paymentStatus === "paid" && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm dark:border-emerald-800/30 dark:bg-emerald-900/20 mb-4">
+              <h2 className="mb-2 text-sm font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+                ✅ Đã thanh toán
+              </h2>
+              <p className="text-xs text-emerald-700 dark:text-emerald-200">Lịch hẹn này đã được thanh toán thành công.</p>
+            </div>
+          )}
           {/* Appointment Info */}
           <div className="rounded-2xl border border-border-main bg-bg-surface p-5 shadow-sm dark:bg-slate-800">
             <h2 className="mb-4 text-sm font-bold text-text-main">{t("patient.appointmentDetail.info", { defaultValue: "Appointment Info" })}</h2>
             <div className="space-y-4">
+              {/* Cancellation Policy Notice */}
+              <div className="mb-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200 flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 mt-0.5 shrink-0 text-amber-400" />
+                <span>
+                  <b>{t("patient.appointmentDetail.cancellationPolicyTitle", { defaultValue: "Cancellation Policy:" })}</b> {t("patient.appointmentDetail.cancellationPolicyDesc", { defaultValue: "Appointments can only be cancelled more than 2 hours before the scheduled time. If you attempt to cancel within 2 hours of the appointment, cancellation will not be allowed." })}
+                </span>
+              </div>
               <InfoRow icon={Calendar} label={t("patient.appointmentDetail.date", { defaultValue: "Date" })} value={fmtDate(appointment.appointment_date)} />
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-bg-app dark:bg-slate-700/50"><Clock className="h-4 w-4 text-emerald-500" /></div>

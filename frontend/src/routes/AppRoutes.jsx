@@ -1,4 +1,15 @@
-﻿import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+﻿import DoctorEarningsPage from "../pages/doctor/DoctorEarningsPage";
+        <Route
+          path="/doctor/earnings"
+          element={
+            <DoctorRoute>
+              <DoctorLayout>
+                <DoctorEarningsPage />
+              </DoctorLayout>
+            </DoctorRoute>
+          }
+        />
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 // Layouts

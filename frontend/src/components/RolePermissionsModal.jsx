@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import * as roleService from "../services/roleService";
 import * as permissionService from "../services/permissionService";
@@ -19,9 +19,9 @@ const RolePermissionsModal = ({ roleId, roleName, onClose, onSuccess }) => {
   // Fetch permissions and role permissions on mount
   useEffect(() => {
     fetchData();
-  }, [roleId]);
+  }, [roleId, fetchData]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -53,7 +53,7 @@ const RolePermissionsModal = ({ roleId, roleName, onClose, onSuccess }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [roleId, t]);
 
   const handleTogglePermission = (permissionId) => {
     setSelectedPermissions((prev) => {

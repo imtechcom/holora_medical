@@ -5,7 +5,7 @@ import {
   Activity, AlertCircle, ArrowLeft, Brain, Calendar, CheckCircle,
   ChevronDown, ChevronUp, Clock, Eye, EyeOff, FileText, Image,
   Loader2, Lock, MessageSquare, RefreshCw, Send, Shield,
-  Sparkles, Stethoscope, TrendingUp, User, XCircle,
+  Sparkles, Stethoscope, TrendingUp, User, XCircle, Check,
 } from "lucide-react";
 import { consultationService } from "../services/consultationService";
 import { aiService } from "../services/aiService";
@@ -203,16 +203,16 @@ const DoctorConsultationDetailPage = () => {
   /* ── Loading skeleton ── */
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl space-y-5">
+      <div className="mx-auto max-w-7xl space-y-5 p-4">
         <Pulse className="h-10 w-32" />
         <div className="rounded-3xl bg-gradient-to-br from-slate-800 to-slate-900 p-8 animate-pulse">
           <Pulse className="h-3 w-20 mb-4 !bg-slate-700" />
           <Pulse className="h-8 w-64 mb-3 !bg-slate-700" />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
             {[1,2,3,4].map(i => <Pulse key={i} className="h-16 !bg-white/5 !rounded-xl" />)}
           </div>
         </div>
-        <div className="grid gap-5 lg:grid-cols-12">
+        <div className="flex flex-col lg:grid lg:gap-5 lg:grid-cols-12">
           <div className="lg:col-span-5 space-y-5"><Pulse className="h-64 rounded-2xl" /><Pulse className="h-48 rounded-2xl" /></div>
           <div className="lg:col-span-7 space-y-5"><Pulse className="h-80 rounded-2xl" /><Pulse className="h-20 rounded-2xl" /></div>
         </div>
@@ -222,7 +222,7 @@ const DoctorConsultationDetailPage = () => {
 
   if (!data) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl p-4">
         <button onClick={() => navigate("/doctor/consultations")}
           className="inline-flex items-center gap-2 rounded-xl border border-border-main px-3.5 py-2 text-sm font-medium text-text-main transition hover:bg-bg-app">
           <ArrowLeft className="h-4 w-4" /> {t("common.back", { defaultValue: "Back" })}
@@ -241,7 +241,7 @@ const DoctorConsultationDetailPage = () => {
   const completedAI = aiData.filter(a => a.request_status === "completed");
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
+    <div className="mx-auto max-w-7xl space-y-5 overflow-x-hidden p-4">
 
       {/* ── Back ── */}
       <button onClick={() => navigate("/doctor/consultations")}
@@ -283,18 +283,18 @@ const DoctorConsultationDetailPage = () => {
           </div>
 
           {/* Bento mini-stats */}
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 transition-all">
             {[
               { icon: User, label: t("doctor.consultationDetail.patient", { defaultValue: "Patient" }), value: data.patient_name || "—" },
               { icon: Calendar, label: t("doctor.consultationDetail.created", { defaultValue: "Created" }), value: fmtDateTime(data.created_at, lng) },
               { icon: Brain, label: t("doctor.consultationDetail.aiAnalysis", { defaultValue: "AI Analysis" }), value: `${completedAI.length} / ${data.images?.length || 0}` },
               { icon: MessageSquare, label: t("doctor.consultationDetail.responses", { defaultValue: "Responses" }), value: String(data.responses?.length || 0) },
             ].map((item) => (
-              <div key={item.label} className="rounded-xl border border-white/10 bg-white/[0.06] p-3 backdrop-blur-md">
-                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              <div key={item.label} className="group relative rounded-xl border border-white/10 bg-white/[0.06] p-3 backdrop-blur-md transition-all hover:bg-white/[0.1] hover:shadow-lg hover:shadow-cyan-400/5">
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400 transition-colors group-hover:text-cyan-300">
                   <item.icon className="h-3 w-3 text-cyan-400" /> {item.label}
                 </div>
-                <p className="mt-1 text-sm font-bold text-white truncate">{item.value}</p>
+                <p className="mt-1 text-xs sm:text-sm font-bold text-white truncate">{item.value}</p>
               </div>
             ))}
           </div>
@@ -302,7 +302,7 @@ const DoctorConsultationDetailPage = () => {
       </section>
 
       {/* ── BENTO GRID: Main content ── */}
-      <div className="grid gap-5 lg:grid-cols-12">
+      <div className="flex flex-col lg:grid lg:gap-5 lg:grid-cols-12">
 
         {/* ── LEFT COLUMN (5 cols): Patient + Images + AI ── */}
         <div className="space-y-5 lg:col-span-5">
@@ -421,21 +421,21 @@ const DoctorConsultationDetailPage = () => {
                       </div>
 
                       {/* Image + Preprocessed side by side */}
-                      <div className="grid grid-cols-2 divide-x divide-border-main/30 dark:divide-slate-700/30">
+                      <div className="flex flex-col sm:grid sm:grid-cols-2 sm:divide-x divide-border-main/30 dark:divide-slate-700/30">
                         {/* Original */}
-                        <div>
+                        <div className="border-b sm:border-b-0 border-border-main/20">
                           <div className="bg-slate-50/60 px-3 py-1.5 text-center border-b border-border-main/30 dark:bg-slate-900/30">
                             <span className="text-[9px] font-bold uppercase tracking-widest text-text-dim">
                               {t("doctor.consultationDetail.original", { defaultValue: "Original" })}
                             </span>
                           </div>
-                          <div className="aspect-square overflow-hidden bg-bg-app dark:bg-slate-800 group">
+                          <div className="aspect-square sm:aspect-auto sm:h-64 overflow-hidden bg-bg-app dark:bg-slate-800 group">
                             <img src={img.image_url} alt={`Image ${idx + 1}`}
                               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                           </div>
                         </div>
-                        {/* Preprocessed (Phase 2) */}
-                        <div>
+                        {/* Preprocessed (Soon) */}
+                        <div className="bg-violet-50/10 dark:bg-violet-900/5">
                           <div className="bg-violet-50/60 px-3 py-1.5 text-center border-b border-border-main/30 dark:bg-violet-900/10 flex items-center justify-center gap-1.5">
                             <span className="text-[9px] font-bold uppercase tracking-widest text-violet-600 dark:text-violet-400">
                               {t("doctor.consultationDetail.preprocessed", { defaultValue: "Preprocessed" })}
@@ -444,7 +444,7 @@ const DoctorConsultationDetailPage = () => {
                               {t("doctor.consultationDetail.comingSoon", { defaultValue: "Soon" })}
                             </span>
                           </div>
-                          <div className="aspect-square flex flex-col items-center justify-center bg-violet-50/30 dark:bg-violet-900/5 gap-2 p-3">
+                          <div className="aspect-square sm:aspect-auto sm:h-64 flex flex-col items-center justify-center gap-2 p-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/20">
                               <Brain className="h-5 w-5 text-violet-500" />
                             </div>
@@ -459,9 +459,9 @@ const DoctorConsultationDetailPage = () => {
                       </div>
 
                       {/* Metrics row */}
-                      <div className="grid grid-cols-2 divide-x divide-border-main/30 dark:divide-slate-700/30 border-t border-border-main/30 text-[10px]">
+                      <div className="flex flex-col md:grid md:grid-cols-2 md:divide-x divide-border-main/30 dark:divide-slate-700/30 border-t border-border-main/30 text-[10px]">
                         {/* Preprocessing metrics */}
-                        <div className="px-3 py-2.5 bg-violet-50/30 dark:bg-violet-900/5">
+                        <div className="px-3 py-2.5 bg-violet-50/30 dark:bg-violet-900/5 border-b md:border-b-0 border-border-main/20">
                           <p className="font-bold text-[9px] uppercase tracking-widest text-violet-600 dark:text-violet-400 mb-2">
                             {t("doctor.consultationDetail.preprocessMetrics", { defaultValue: "Preprocess (Phase 2)" })}
                           </p>
@@ -622,7 +622,10 @@ const DoctorConsultationDetailPage = () => {
           )}
         </div>
 
-          {/* ── Prescriptions Section ── */}
+        {/* ── RIGHT COLUMN (7 cols): Prescriptions + AI Summary + Chat ── */}
+        <div className="space-y-5 lg:col-span-7">
+
+          {/* ── Prescriptions Section (Moved up on Desktop) ── */}
           {(role === "doctor" || role === "super_admin" || role === "admin") && (
             <div className={`${GLASS_CARD} overflow-hidden`}>
               <div className="flex items-center justify-between bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-6 py-4 dark:from-emerald-900/20 dark:to-teal-900/20">
@@ -669,9 +672,6 @@ const DoctorConsultationDetailPage = () => {
             </div>
           )}
 
-        {/* ── RIGHT COLUMN (7 cols): AI Summary + Chat ── */}
-        <div className="space-y-5 lg:col-span-7">
-
           {/* AI Summary Card */}
           {completedAI.length > 0 && (
             <div className={`${GLASS_CARD} overflow-hidden`}>
@@ -711,7 +711,7 @@ const DoctorConsultationDetailPage = () => {
           )}
 
           {/* ── CHAT INTERFACE ── */}
-          <div className={`${GLASS_CARD} flex flex-col overflow-hidden`} style={{ minHeight: "500px" }}>
+          <div className={`${GLASS_CARD} flex flex-col overflow-hidden min-h-[500px] lg:h-[650px] scroll-mt-20`} id="consultation-chat">
             {/* Chat Header */}
             <div className="bg-gradient-to-r from-cyan-500/10 to-teal-500/10 px-6 py-4 dark:from-cyan-900/20 dark:to-teal-900/20">
               <h2 className="flex items-center gap-2 text-base font-bold text-text-main">
@@ -721,7 +721,7 @@ const DoctorConsultationDetailPage = () => {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4" style={{ maxHeight: "500px" }}>
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {data.responses && data.responses.length > 0 ? (
                 data.responses.map((resp) => {
                   const isDoctor = resp.responder_role === "doctor" || resp.responder_role === "admin" || resp.responder_role === "super_admin";
@@ -852,16 +852,25 @@ const DoctorConsultationDetailPage = () => {
         patientName={data?.patient_name}
         initialData={editingRx}
         onSubmit={async (formData) => {
-          if (editingRx) {
-            await updatePrescriptionApi(editingRx.id, formData);
-          } else {
-            await createPrescriptionApi({
-              ...formData,
-              consultation_id: Number(id),
-              patient_id: data?.patient_id,
-            });
+          try {
+            console.log("Submitting prescription for consultation:", id, "patient_id:", data?.patient_id);
+            if (editingRx) {
+              await updatePrescriptionApi(editingRx.id, formData);
+            } else {
+              if (!data?.patient_id) {
+                throw new Error(t("prescription.error.noPatientId", { defaultValue: "Không xác định được ID bệnh nhân." }));
+              }
+              await createPrescriptionApi({
+                ...formData,
+                consultation_id: Number(id),
+                patient_id: Number(data.patient_id),
+              });
+            }
+            await fetchPrescriptions();
+          } catch (err) {
+            console.error("Prescription error:", err);
+            throw err; // Re-throw to show in PrescriptionFormModal error UI
           }
-          await fetchPrescriptions();
         }}
       />
 

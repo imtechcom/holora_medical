@@ -6,6 +6,8 @@ import {
   Home, MessageSquare, Sparkles, Stethoscope, UserCircle2, Users,
 } from "lucide-react";
 import { dashboardService } from "../../services/dashboardService";
+import { earningsService } from "../../services/earningsService";
+import { useAuth } from "../../context/AuthContext";
 
 /* ── Helpers ─────────────────────────────── */
 const formatDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
@@ -42,7 +44,9 @@ const SkeletonCard = ({ i }) => (
    ══════════════════════════════════════════════ */
 const DoctorDashboardPage = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [data, setData] = useState(null);
+  const [earnings, setEarnings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [, setError] = useState("");
 
@@ -50,19 +54,23 @@ const DoctorDashboardPage = () => {
     try {
       setLoading(true);
       setError("");
-      const res = await dashboardService.getDoctorDashboard();
-      setData(res);
+      const [dashboardRes, earningsRes] = await Promise.all([
+        dashboardService.getDoctorDashboard(),
+        user?.id ? earningsService.getDoctorEarnings(user.id) : Promise.resolve(null)
+      ]);
+      setData(dashboardRes);
+      setEarnings(earningsRes);
     } catch (err) {
       setError(err?.response?.data?.message || t("common.loadError", { defaultValue: "Failed to load data" }));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, user]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
   const doctor = data?.doctor || {};
-  const stats = data?.stats || {};
+  const stats = useMemo(() => data?.stats || {}, [data]);
   const upcomingSchedules = data?.upcoming_schedules || [];
   const recentAppointments = data?.recent_appointments || [];
 
@@ -86,6 +94,11 @@ const DoctorDashboardPage = () => {
       icon: Users, title: t("doctor.myPatients", { defaultValue: "My Patients" }),
       desc: t("doctor.dashboard.patientsDesc", { defaultValue: "{{count}} total", count: stats.total_patients || 0 }),
       link: "/doctor/patients", accent: "bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-300",
+    },
+    {
+      icon: CheckCircle2, title: t("doctor.earningsReport", { defaultValue: "Earnings Report" }),
+      desc: t("doctor.earningsReportDesc", { defaultValue: "View all earnings history" }),
+      link: "/doctor/earnings", accent: "bg-cyan-50 text-cyan-600 dark:bg-cyan-900/20 dark:text-cyan-300",
     },
   ], [t, stats]);
 
@@ -148,14 +161,15 @@ const DoctorDashboardPage = () => {
             )}
           </div>
 
-          {/* Stats bar */}
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
-            {(loading ? Array.from({ length: 5 }) : [
+          {/* Stats bar + Earnings */}
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-6">
+            {(loading ? Array.from({ length: 6 }) : [
               { label: t("doctor.dashboard.todayAppts", { defaultValue: "Today" }), value: stats.today_appointments, icon: Clock, accent: "text-cyan-400" },
               { label: t("doctor.dashboard.totalAppts", { defaultValue: "Appointments" }), value: stats.total_appointments, icon: Calendar, accent: "text-blue-400" },
               { label: t("doctor.dashboard.pendingConsult", { defaultValue: "Pending" }), value: stats.pending_consultations, icon: MessageSquare, accent: "text-amber-400" },
               { label: t("doctor.dashboard.totalConsult", { defaultValue: "Consultations" }), value: stats.total_consultations, icon: Stethoscope, accent: "text-emerald-400" },
               { label: t("doctor.dashboard.patients", { defaultValue: "Patients" }), value: stats.total_patients, icon: Users, accent: "text-rose-400" },
+              { label: t("doctor.dashboard.earnings", { defaultValue: "Earnings" }), value: earnings?.totalEarnings, icon: CheckCircle2, accent: "text-cyan-500" },
             ]).map((s, i) => loading ? (
               <div key={i} className="animate-pulse rounded-xl bg-white/5 px-4 py-3">
                 <div className="h-3 w-16 rounded bg-slate-700" />
@@ -167,7 +181,7 @@ const DoctorDashboardPage = () => {
                   <s.icon className={`h-4 w-4 ${s.accent}`} />
                   <span className="text-xs text-slate-400">{s.label}</span>
                 </div>
-                <p className="mt-1 text-lg font-bold text-white">{s.value ?? 0}</p>
+                <p className="mt-1 text-lg font-bold text-white">{s.label === t("doctor.dashboard.earnings", { defaultValue: "Earnings" }) ? (earnings ? earnings.totalEarnings?.toLocaleString("vi-VN") + " ₫" : 0) : (s.value ?? 0)}</p>
               </div>
             ))}
           </div>

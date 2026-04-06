@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   AlertCircle,
   CalendarDays,
@@ -57,7 +57,7 @@ const DoctorSchedulePage = () => {
   const [slotDuration, setSlotDuration] = useState(30);
   const [deleteId, setDeleteId] = useState(null);
 
-  const fetchSchedules = async () => {
+  const fetchSchedules = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -69,13 +69,13 @@ const DoctorSchedulePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [authDoctorId, t]);
 
   useEffect(() => {
     if (role === "doctor") {
       fetchSchedules();
     }
-  }, [authDoctorId, role]);
+  }, [authDoctorId, role, fetchSchedules]);
 
   const resetForm = () => {
     setEditId(null);

@@ -141,7 +141,7 @@ exports.bookAppointment = (req, res) => {
   });
 };
 
-const _doBookAppointment = (req, res, patient_id) => {
+const _doBookAppointment = async (req, res, patient_id) => {
   const { doctor_id, specialty_id, branch_id, appointment_date, start_time, duration_minutes, reason, appointment_type } = req.body;
 
   if (!doctor_id || !branch_id || !appointment_date || !start_time || !duration_minutes) {
@@ -171,7 +171,7 @@ const _doBookAppointment = (req, res, patient_id) => {
          WHERE doctor_id = ? AND status NOT IN ('cancelled', 'completed', 'no_show')
          AND (start_time < ? AND end_time > ?)`,
         [doctor_id, endDateTime, startDateTime],
-        (err, overlaps) => {
+        async (err, overlaps) => {
           if (err) return res.status(500).json({ message: err.message });
           if (overlaps.length > 0) {
             return res.status(409).json({ message: 'Rất tiếc, khung giờ NÀY VỪA BỊ ĐẶT. Vui lòng chọn khung giờ khác.' });
@@ -179,6 +179,44 @@ const _doBookAppointment = (req, res, patient_id) => {
 
           // Khớp Slot thành công, tạo Order
           const appointment_code = 'APP' + Date.now().toString().substring(5);
+
+          // Xử lý Lịch Hẹn Lặp Lại (Recurring)
+          const { recurring, recurring_type, recurring_interval, recurring_days, recurring_until } = req.body;
+
+          if (recurring === true || recurring === 'true') {
+            const recurringRepo = require('../repository/recurringAppointment.repository');
+            const recurringService = require('../services/recurringAppointment.service');
+
+            try {
+              const recurringData = {
+                patient_id,
+                doctor_id,
+                branch_id,
+                repeat_type: recurring_type || 'weekly',
+                repeat_interval: parseInt(recurring_interval) || 1,
+                repeat_days: recurring_days,
+                start_date: appointment_date,
+                end_date: recurring_until || null,
+                note: reason
+              };
+
+              const newRecurring = await recurringRepo.createRecurring(recurringData);
+              const createdIds = await recurringService.generateAppointments(newRecurring);
+
+              logAudit(req, "RECURRING_APPOINTMENT_CREATE", "recurring_appointments", newRecurring.id, { doctor_id, branch_id, appointment_date });
+
+              return res.status(201).json({
+                message: 'Đặt chuỗi lịch hẹn thành công!',
+                recurring_id: newRecurring.id,
+                appointment_ids: createdIds,
+                count: createdIds.length
+              });
+            } catch (recurringErr) {
+              return res.status(500).json({ message: 'Lỗi tạo chuỗi lịch lặp lại', error: recurringErr.message });
+            }
+          }
+
+          // Luồng Đặt Lịch Đơn (Single Appointment) như cũ
           const query = `
             INSERT INTO appointment (patient_id, doctor_id, specialty_id, branch_id, appointment_code, appointment_date, start_time, end_time, appointment_type, reason, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'scheduled')

@@ -35,15 +35,13 @@ const { errorHandler } = require("./middleware/error.middleware");
 
 
 const app = express();
-// Mount recurring appointment routes after app is initialized
-app.use("/api/recurring-appointments", recurringAppointmentChildRoutes);
-app.use("/api/recurring-appointments", recurringAppointmentRoutes);
-
 // Mount earningsHistoryRoutes sau khi app đã được khai báo
 const earningsHistoryRoutes = require("./routes/earnings-history.routes");
 app.use("/api/earnings", earningsHistoryRoutes);
 app.use("/api/emr", emrRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/recurring-appointments", recurringAppointmentChildRoutes);
+app.use("/api/recurring-appointments", recurringAppointmentRoutes);
 
 const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .split(",")

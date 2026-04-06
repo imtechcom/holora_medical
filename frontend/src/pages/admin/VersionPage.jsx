@@ -3,14 +3,25 @@ import { useTranslation } from "react-i18next";
 
 const VERSION_HISTORY = [
   {
-    version: "v1.5.0",
-    date: "2025-06-14",
-    tag: "HoloraMind AI + Versioning",
+    version: "v1.7.0",
+    date: "2026-04-06",
+    tag: "UI & Build Optimization",
     highlights: [
-      "HoloraMind AI chatbox — role-aware for patient & doctor",
-      "Doctor HoloraMind route + nav link in Doctor Zone",
-      "Admin Version History page",
-      "Git version tagging system",
+      "✨ Optimized Doctor Consultation UI (Desktop & Mobile)",
+      "💊 Fixed Prescription creation & detail logic",
+      "🛠️ Resolved all Frontend Lint & Build blockers",
+      "🚀 Fixed CI/CD Pipeline (DigitalOcean path alignment)",
+      "📅 Implemented Recurring Appointment Module (Backend)",
+    ],
+  },
+  {
+    version: "v1.6.0",
+    date: "2025-07-01",
+    tag: "Performance & UX",
+    highlights: [
+      "Improved initial load time",
+      "Optimized images and static assets",
+      "Fixed minor navigation bugs",
     ],
   },
   {

@@ -3,15 +3,19 @@ const db = require('../config/db');
 const queryAsync = (sql, params = []) =>
   new Promise((resolve, reject) => {
     db.query(sql, params, (err, results) => {
-      if (err) reject(err);
-      else resolve(results);
+      if (err) {
+        console.error('SQL Error:', { sql, params, message: err.message });
+        reject(err);
+      } else {
+        resolve(results);
+      }
     });
   });
 
 const getDashboardStats = (req, res) => {
   // Queries
   const userQuery = `SELECT COUNT(*) AS count FROM users WHERE deleted_at IS NULL`;
-  const patientQuery = `SELECT COUNT(*) AS count FROM patient WHERE deleted_at IS NULL`;
+  const patientQuery = `SELECT COUNT(*) AS count FROM patient WHERE status != 'blocked'`;
   const doctorQuery = `SELECT COUNT(*) AS count FROM doctor WHERE status <> 'deleted'`;
   const appointmentQuery = `SELECT COUNT(*) AS count FROM appointment`;
   const consultationQuery = `SELECT COUNT(*) AS count FROM consultation`;

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql
--- Generation Time: Apr 03, 2026 at 07:02 AM
+-- Generation Time: Apr 06, 2026 at 03:37 AM
 -- Server version: 8.0.45
 -- PHP Version: 8.3.26
 
@@ -76,6 +76,7 @@ CREATE TABLE `appointment` (
   `doctor_id` bigint UNSIGNED NOT NULL,
   `specialty_id` bigint UNSIGNED DEFAULT NULL,
   `branch_id` bigint UNSIGNED DEFAULT NULL,
+  `recurring_id` bigint UNSIGNED DEFAULT NULL,
   `appointment_code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `appointment_date` date NOT NULL,
   `start_time` datetime NOT NULL,
@@ -94,11 +95,11 @@ CREATE TABLE `appointment` (
 -- Dumping data for table `appointment`
 --
 
-INSERT INTO `appointment` (`id`, `patient_id`, `doctor_id`, `specialty_id`, `branch_id`, `appointment_code`, `appointment_date`, `start_time`, `end_time`, `appointment_type`, `reason`, `status`, `cancellation_reason`, `fee`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, 2, 6, 1, 3, 'APP61798061', '2026-04-01', '2026-04-01 08:30:00', '2026-04-01 09:00:00', 'offline', 'Test', 'scheduled', NULL, 0.00, NULL, '2026-03-31 12:56:38', '2026-03-31 12:56:38'),
-(2, 2, 3, 1, 3, 'APP32006031', '2026-04-02', '2026-04-02 19:30:00', '2026-04-02 20:00:00', 'offline', 'Test', 'completed', NULL, 0.00, NULL, '2026-04-02 12:13:26', '2026-04-02 12:49:55'),
-(3, 2, 3, 1, 3, 'APP33234937', '2026-04-02', '2026-04-02 18:00:00', '2026-04-02 18:30:00', 'online', 'Khám', 'scheduled', NULL, 0.00, NULL, '2026-04-02 12:33:54', '2026-04-02 12:33:54'),
-(4, 2, 3, 1, 3, 'APP99643024', '2026-04-03', '2026-04-03 14:00:00', '2026-04-03 14:30:00', 'online', 'Test', 'scheduled', NULL, 0.00, NULL, '2026-04-03 07:00:43', '2026-04-03 07:00:43');
+INSERT INTO `appointment` (`id`, `patient_id`, `doctor_id`, `specialty_id`, `branch_id`, `recurring_id`, `appointment_code`, `appointment_date`, `start_time`, `end_time`, `appointment_type`, `reason`, `status`, `cancellation_reason`, `fee`, `created_by`, `created_at`, `updated_at`) VALUES
+(1, 2, 6, 1, 3, NULL, 'APP61798061', '2026-04-01', '2026-04-01 08:30:00', '2026-04-01 09:00:00', 'offline', 'Test', 'scheduled', NULL, 0.00, NULL, '2026-03-31 12:56:38', '2026-03-31 12:56:38'),
+(2, 2, 3, 1, 3, NULL, 'APP32006031', '2026-04-02', '2026-04-02 19:30:00', '2026-04-02 20:00:00', 'offline', 'Test', 'completed', NULL, 0.00, NULL, '2026-04-02 12:13:26', '2026-04-02 12:49:55'),
+(3, 2, 3, 1, 3, NULL, 'APP33234937', '2026-04-02', '2026-04-02 18:00:00', '2026-04-02 18:30:00', 'online', 'Khám', 'scheduled', NULL, 0.00, NULL, '2026-04-02 12:33:54', '2026-04-02 12:33:54'),
+(4, 2, 3, 1, 3, NULL, 'APP99643024', '2026-04-03', '2026-04-03 14:00:00', '2026-04-03 14:30:00', 'online', 'Test', 'scheduled', NULL, 0.00, NULL, '2026-04-03 07:00:43', '2026-04-03 07:00:43');
 
 -- --------------------------------------------------------
 
@@ -119,6 +120,60 @@ CREATE TABLE `audit_log` (
   `user_agent` text COLLATE utf8mb4_unicode_ci,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `audit_logs`
+--
+
+CREATE TABLE `audit_logs` (
+  `id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED DEFAULT NULL,
+  `action` varchar(100) NOT NULL,
+  `entity_type` varchar(50) DEFAULT NULL,
+  `entity_id` bigint UNSIGNED DEFAULT NULL,
+  `details` json DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(500) DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `audit_logs`
+--
+
+INSERT INTO `audit_logs` (`id`, `user_id`, `action`, `entity_type`, `entity_id`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
+(1, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-04 05:32:31'),
+(2, NULL, 'AUTH_LOGIN', 'user', 15, '{\"email\": \"nguyentienlinh@holoramed.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-04 05:32:35'),
+(3, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-04 05:32:54'),
+(4, NULL, 'AUTH_LOGIN', 'user', 4, '{\"email\": \"patient@holora.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-04 05:32:56'),
+(5, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-04 12:27:21'),
+(6, NULL, 'AUTH_LOGIN', 'user', 15, '{\"email\": \"nguyentienlinh@holoramed.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-04 12:27:27'),
+(7, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-04 12:27:38'),
+(8, NULL, 'AUTH_LOGIN', 'user', 15, '{\"email\": \"nguyentienlinh@holoramed.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-04 12:27:40'),
+(9, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-04 12:50:06'),
+(10, NULL, 'AUTH_LOGIN', 'user', 15, '{\"email\": \"nguyentienlinh@holoramed.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-04 12:50:09'),
+(11, NULL, 'AUTH_LOGIN', 'user', 15, '{\"email\": \"nguyentienlinh@holoramed.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-05 11:38:16'),
+(12, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-05 11:39:32'),
+(13, NULL, 'AUTH_LOGIN', 'user', 4, '{\"email\": \"patient@holora.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-05 11:39:38'),
+(14, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-05 11:40:40'),
+(15, NULL, 'AUTH_LOGIN', 'user', 15, '{\"email\": \"nguyentienlinh@holoramed.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-05 11:40:46'),
+(16, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-05 11:41:29'),
+(17, NULL, 'AUTH_LOGIN', 'user', 1, '{\"email\": \"sadmin@holora.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-05 11:41:33'),
+(18, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-05 11:43:11'),
+(19, NULL, 'AUTH_LOGIN', 'user', 4, '{\"email\": \"patient@holora.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-05 11:43:20'),
+(20, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-05 11:43:37'),
+(21, NULL, 'AUTH_LOGIN', 'user', 15, '{\"email\": \"nguyentienlinh@holoramed.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-05 11:43:40'),
+(22, 15, 'CONSULTATION_RESPONSE', 'consultation', 3, '{\"complete\": true, \"response_type\": \"prescription_note\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-05 11:44:29'),
+(23, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-06 02:46:00'),
+(24, NULL, 'AUTH_LOGIN', 'user', 1, '{\"email\": \"sadmin@holora.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-06 02:46:03'),
+(25, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-06 03:20:57'),
+(26, NULL, 'AUTH_LOGIN', 'user', 4, '{\"email\": \"patient@holora.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-06 03:21:01'),
+(27, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-06 03:22:01'),
+(28, NULL, 'AUTH_LOGIN', 'user', 15, '{\"email\": \"nguyentienlinh@holoramed.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-06 03:22:04'),
+(29, NULL, 'AUTH_LOGOUT', 'user', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-06 03:24:09'),
+(30, NULL, 'AUTH_LOGIN', 'user', 4, '{\"email\": \"patient@holora.com\"}', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-06 03:24:12');
 
 -- --------------------------------------------------------
 
@@ -183,7 +238,7 @@ CREATE TABLE `consultation` (
 INSERT INTO `consultation` (`id`, `patient_id`, `doctor_id`, `appointment_id`, `consultation_type`, `chief_complaint`, `symptoms`, `notes`, `status`, `priority`, `started_at`, `completed_at`, `created_at`, `updated_at`) VALUES
 (1, 1, 6, NULL, 'text', 'Tôi bị đau răng', 'Đau răng số 8', NULL, 'in_progress', 'normal', '2026-04-01 03:06:31', NULL, '2026-03-29 06:12:56', '2026-04-01 03:06:31'),
 (2, 2, NULL, NULL, 'text', 'Test', 'Test', NULL, 'pending', 'normal', NULL, NULL, '2026-03-29 07:37:11', '2026-03-29 07:37:11'),
-(3, 2, 3, NULL, 'text', 'This is test feature', 'This is test feature: Symtom details', NULL, 'in_progress', 'normal', '2026-04-02 08:35:07', NULL, '2026-04-02 06:50:29', '2026-04-02 10:17:11'),
+(3, 2, 3, NULL, 'text', 'This is test feature', 'This is test feature: Symtom details', NULL, 'completed', 'normal', '2026-04-02 08:35:07', '2026-04-05 11:44:29', '2026-04-02 06:50:29', '2026-04-05 11:44:29'),
 (4, 2, 3, 3, 'text', 'Test', 'Test', NULL, 'pending', 'normal', NULL, NULL, '2026-04-02 13:11:06', '2026-04-02 13:11:06');
 
 -- --------------------------------------------------------
@@ -245,7 +300,8 @@ INSERT INTO `consultation_response` (`id`, `consultation_id`, `responder_user_id
 (6, 3, 15, 'recommendation', 'Bạn nên về ngủ\n', 0, '2026-04-02 09:18:10', '2026-04-02 09:18:10'),
 (7, 3, 15, 'prescription_note', 'Đây là toa thuốc\n', 0, '2026-04-02 09:48:39', '2026-04-02 09:48:39'),
 (8, 3, 4, 'message', 'What your doctor name?\n', 0, '2026-04-02 09:53:03', '2026-04-02 09:53:03'),
-(9, 3, 15, 'message', 'Kết thúc cuộc trò chuyện', 0, '2026-04-02 09:54:22', '2026-04-02 09:54:22');
+(9, 3, 15, 'message', 'Kết thúc cuộc trò chuyện', 0, '2026-04-02 09:54:22', '2026-04-02 09:54:22'),
+(10, 3, 15, 'prescription_note', 'tee', 0, '2026-04-05 11:44:29', '2026-04-05 11:44:29');
 
 -- --------------------------------------------------------
 
@@ -452,20 +508,57 @@ CREATE TABLE `patient` (
   `medical_history` text COLLATE utf8mb4_unicode_ci,
   `emergency_contact_name` varchar(150) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `emergency_contact_phone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `avatar_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `status` enum('active','inactive','blocked') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `patient`
 --
 
-INSERT INTO `patient` (`id`, `user_id`, `patient_code`, `full_name`, `phone`, `email`, `gender`, `date_of_birth`, `address`, `blood_group`, `allergies`, `medical_history`, `emergency_contact_name`, `emergency_contact_phone`, `status`, `created_at`, `updated_at`) VALUES
-(1, 5, 'PAT000005', 'Linh Hoàng', '', 'hoangvanlinhuit@gmail.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-03-28 15:07:41', '2026-03-28 15:07:41'),
-(2, 4, 'PAT000004', 'Patient User', '0900000003', 'patient@holora.com', 'male', '1991-12-03', '1298 Huỳnh Tấn Phát, Phú Mỹ, Quận 7, TP Hồ Chí Minh', '', '', '', '', '', 'active', '2026-03-29 07:36:48', '2026-03-30 00:09:07'),
-(3, 6, 'PAT000006', 'Patient One', '0123456789', 'patient1@example.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-03-30 01:18:59', '2026-03-30 01:18:59'),
-(4, 7, 'PAT000007', 'Tester One', '0987654321', 'tester1@example.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-03-30 01:20:48', '2026-03-30 01:20:48');
+INSERT INTO `patient` (`id`, `user_id`, `patient_code`, `full_name`, `phone`, `email`, `gender`, `date_of_birth`, `address`, `blood_group`, `allergies`, `medical_history`, `emergency_contact_name`, `emergency_contact_phone`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 5, 'PAT000005', 'Linh Hoàng', '', 'hoangvanlinhuit@gmail.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-03-28 15:07:41', '2026-03-28 15:07:41', NULL),
+(2, 4, 'PAT000004', 'Patient User', '0900000003', 'patient@holora.com', 'male', '1991-12-03', '1298 Huỳnh Tấn Phát, Phú Mỹ, Quận 7, TP Hồ Chí Minh', '', '', '', '', '', 'active', '2026-03-29 07:36:48', '2026-03-30 00:09:07', NULL),
+(3, 6, 'PAT000006', 'Patient One', '0123456789', 'patient1@example.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-03-30 01:18:59', '2026-03-30 01:18:59', NULL),
+(4, 7, 'PAT000007', 'Tester One', '0987654321', 'tester1@example.com', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '2026-03-30 01:20:48', '2026-03-30 01:20:48', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `patient_branch`
+--
+
+CREATE TABLE `patient_branch` (
+  `id` bigint UNSIGNED NOT NULL,
+  `patient_id` bigint UNSIGNED NOT NULL,
+  `branch_id` bigint UNSIGNED NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payment`
+--
+
+CREATE TABLE `payment` (
+  `id` bigint UNSIGNED NOT NULL,
+  `doctor_id` bigint UNSIGNED NOT NULL,
+  `appointment_id` bigint UNSIGNED DEFAULT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  `currency` varchar(8) DEFAULT 'VND',
+  `type` varchar(32) DEFAULT 'consultation',
+  `status` varchar(16) DEFAULT 'paid',
+  `note` varchar(255) DEFAULT NULL,
+  `paid_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -484,6 +577,9 @@ CREATE TABLE `payment_order` (
   `payment_method` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` enum('pending','paid','failed','expired') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
   `token` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `invoice_number` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `paid_at` datetime DEFAULT NULL,
+  `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `expires_at` datetime NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -493,8 +589,10 @@ CREATE TABLE `payment_order` (
 -- Dumping data for table `payment_order`
 --
 
-INSERT INTO `payment_order` (`id`, `user_id`, `plan_code`, `scope_type`, `months`, `amount_cents`, `currency`, `payment_method`, `status`, `token`, `expires_at`, `created_at`, `updated_at`) VALUES
-(1, 14, 'HOLORA_PLUS', 'account', 1, 299000, 'VND', 'momo', 'paid', '01c03f0b7198d7ae1b515e628904555ef40a3d68009c309d8630e2e708ce71be', '2026-03-31 13:45:17', '2026-03-31 06:30:17', '2026-03-31 06:30:19');
+INSERT INTO `payment_order` (`id`, `user_id`, `plan_code`, `scope_type`, `months`, `amount_cents`, `currency`, `payment_method`, `status`, `token`, `invoice_number`, `paid_at`, `description`, `expires_at`, `created_at`, `updated_at`) VALUES
+(1, 14, 'HOLORA_PLUS', 'account', 1, 299000, 'VND', 'momo', 'paid', '01c03f0b7198d7ae1b515e628904555ef40a3d68009c309d8630e2e708ce71be', NULL, NULL, NULL, '2026-03-31 13:45:17', '2026-03-31 06:30:17', '2026-03-31 06:30:19'),
+(2, 14, 'HOLORA_PLUS', 'account', 1, 299000, 'VND', 'momo', 'pending', '76efabb32daa57c8719f48300daa7f3e039b00c469d442146961c65431b2d4a4', NULL, NULL, NULL, '2026-04-03 21:25:31', '2026-04-03 14:10:31', '2026-04-03 14:10:31'),
+(3, 14, 'HOLORA_PLUS', 'account', 1, 299000, 'VND', 'bank_transfer', 'pending', 'd84bbe85089e274a8d92959f36caa6780c6ddf3a32fbf2a99a497781f22c18a4', NULL, NULL, NULL, '2026-04-03 21:25:48', '2026-04-03 14:10:47', '2026-04-03 14:10:47');
 
 -- --------------------------------------------------------
 
@@ -586,6 +684,47 @@ INSERT INTO `permission` (`id`, `name`, `code`, `module_name`, `description`, `s
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `prescription`
+--
+
+CREATE TABLE `prescription` (
+  `id` bigint UNSIGNED NOT NULL,
+  `consultation_id` bigint UNSIGNED DEFAULT NULL,
+  `appointment_id` bigint UNSIGNED DEFAULT NULL,
+  `doctor_id` bigint UNSIGNED NOT NULL,
+  `patient_id` bigint UNSIGNED NOT NULL,
+  `prescription_code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `diagnosis` text COLLATE utf8mb4_unicode_ci,
+  `notes` text COLLATE utf8mb4_unicode_ci,
+  `status` enum('draft','issued','cancelled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'draft',
+  `issued_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `prescription_item`
+--
+
+CREATE TABLE `prescription_item` (
+  `id` bigint UNSIGNED NOT NULL,
+  `prescription_id` bigint UNSIGNED NOT NULL,
+  `medication_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `dosage` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `frequency` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `duration` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `quantity` int UNSIGNED DEFAULT NULL,
+  `unit` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `route` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `instructions` text COLLATE utf8mb4_unicode_ci,
+  `sort_order` int UNSIGNED NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `provider_subscription`
 --
 
@@ -613,6 +752,78 @@ INSERT INTO `provider_subscription` (`id`, `plan_id`, `scope_type`, `scope_id`, 
 (1, 3, 'branch', 3, 14, 'trialing', '2026-03-30 08:16:14', '2026-04-29 08:16:14', '2026-04-29 08:16:14', 0, '2026-03-30 08:16:14', '2026-03-30 08:16:14', NULL),
 (2, 3, 'branch', 4, 16, 'trialing', '2026-03-30 08:28:39', '2026-04-29 08:28:39', '2026-04-29 08:28:39', 0, '2026-03-30 08:28:39', '2026-03-30 08:28:39', NULL),
 (3, 10, 'account', 14, 14, 'active', '2026-03-31 13:30:19', NULL, NULL, 1, '2026-03-31 06:30:19', '2026-03-31 06:30:19', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `recurring_appointments`
+--
+
+CREATE TABLE `recurring_appointments` (
+  `id` bigint UNSIGNED NOT NULL,
+  `patient_id` bigint UNSIGNED NOT NULL,
+  `doctor_id` bigint UNSIGNED NOT NULL,
+  `branch_id` bigint UNSIGNED NOT NULL,
+  `repeat_type` enum('daily','weekly','monthly') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `repeat_interval` int UNSIGNED DEFAULT '1',
+  `repeat_days` json DEFAULT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date DEFAULT NULL,
+  `note` text COLLATE utf8mb4_unicode_ci,
+  `status` enum('active','inactive') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `refresh_tokens`
+--
+
+CREATE TABLE `refresh_tokens` (
+  `id` bigint UNSIGNED NOT NULL,
+  `user_id` bigint UNSIGNED NOT NULL,
+  `token_hash` varchar(255) NOT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(500) DEFAULT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `revoked_at` datetime DEFAULT NULL,
+  `replaced_by_hash` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `refresh_tokens`
+--
+
+INSERT INTO `refresh_tokens` (`id`, `user_id`, `token_hash`, `ip_address`, `user_agent`, `expires_at`, `created_at`, `revoked_at`, `replaced_by_hash`) VALUES
+(1, 1, '2ea0a614e1e75f0a45b9b925ea41946408e9621a6187f33ba0ea463bf7dffa70', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-11 10:10:55', '2026-04-04 03:10:55', '2026-04-04 05:32:31', NULL),
+(2, 15, '65b8d1dfc968f975fb104bf2d9e5c91891bade0b128faac229c1e366fd9fed39', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-11 12:32:35', '2026-04-04 05:32:35', '2026-04-04 05:32:54', NULL),
+(3, 4, '879180766111ce884df35bc70fa6896db3756ccfa2b5a3d4941d08400b4125cd', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-11 12:32:57', '2026-04-04 05:32:56', '2026-04-04 06:59:04', 'c9d46475cdcce08036bb32eb36012647ede19433d84c9a76d32d2be87fa72c24'),
+(4, 4, 'c9d46475cdcce08036bb32eb36012647ede19433d84c9a76d32d2be87fa72c24', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-11 13:59:04', '2026-04-04 06:59:04', '2026-04-04 07:15:10', 'de22d6e35b254b7d02cca9b167f2f7e6030d19a4f6f9444c08aa1e3d78a42d03'),
+(5, 4, 'de22d6e35b254b7d02cca9b167f2f7e6030d19a4f6f9444c08aa1e3d78a42d03', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-11 14:15:10', '2026-04-04 07:15:10', '2026-04-04 12:27:21', NULL),
+(6, 15, '17f8856092841f5a90f657b567fac266870fd34db4cdc4b47c6037cd4c5ddef2', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-11 19:27:27', '2026-04-04 12:27:27', '2026-04-04 12:27:38', NULL),
+(7, 15, 'd52d4f2147cbccc4651a10fffe7c621a3bcfc2fd2337eba73bc8639120655eb3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-11 19:27:41', '2026-04-04 12:27:40', '2026-04-04 12:48:50', '0abc3e03d0dda7b1a40f9665536832ab24c78cc3765c23d22671440c57cb4b53'),
+(8, 15, '0abc3e03d0dda7b1a40f9665536832ab24c78cc3765c23d22671440c57cb4b53', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-11 19:48:50', '2026-04-04 12:48:50', '2026-04-04 12:50:06', NULL),
+(9, 15, 'da1f98403b90ce92d72e01279c99176ee29923d0a99d9df36c0e6ecd4adf2998', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-11 19:50:09', '2026-04-04 12:50:09', '2026-04-04 14:31:47', 'b5c77f489eb890dba860f6c599838c5baabe098d0eb077c58b4ba4d152dc1aca'),
+(10, 15, 'b5c77f489eb890dba860f6c599838c5baabe098d0eb077c58b4ba4d152dc1aca', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-11 21:31:47', '2026-04-04 14:31:47', NULL, NULL),
+(11, 15, '5d39d27d4636af1e3fb00b0bba3fbe2a6b25546dcca0e8bc338f77378c19c509', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-12 18:38:17', '2026-04-05 11:38:16', '2026-04-05 11:39:32', NULL),
+(12, 4, '79acfd3ae1893f330f1c0eef3aa33604b34f7b5c89acacfe350c97db6553e072', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-12 18:39:38', '2026-04-05 11:39:38', '2026-04-05 11:40:40', NULL),
+(13, 15, 'c077039fef2374718e1d8b27e17d12ca610f5a3710dfeff590e01210ef68270e', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-12 18:40:47', '2026-04-05 11:40:46', '2026-04-05 11:41:29', NULL),
+(14, 1, '5ca34101889b30495d6e873caf87e379d5250c5637b67ab9324de5bf72b32f7b', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-12 18:41:34', '2026-04-05 11:41:33', '2026-04-05 11:43:11', NULL),
+(15, 4, '926ec9e3e75348aa4728798c0f41e01e4cab1a74b1391741f0e02a9ded35fd40', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-12 18:43:20', '2026-04-05 11:43:20', '2026-04-05 11:43:37', NULL),
+(16, 15, '632273951232e00ac8121b6c3d9427fab2971326e6d603f88cddb5dda524284d', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-12 18:43:40', '2026-04-05 11:43:40', '2026-04-06 01:38:21', 'a086fd398f23828dbfad55b288da077122bae22fdd6c10b000dbe8e7159eb9c9'),
+(17, 15, 'a086fd398f23828dbfad55b288da077122bae22fdd6c10b000dbe8e7159eb9c9', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 08:38:22', '2026-04-06 01:38:22', '2026-04-06 01:53:25', '182e6f161540c6a7d323ea644619e5c94bd278127d5ddabc462f2d9985170685'),
+(18, 15, '182e6f161540c6a7d323ea644619e5c94bd278127d5ddabc462f2d9985170685', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 08:53:26', '2026-04-06 01:53:26', '2026-04-06 01:53:26', 'ecf1f47ca63a6afd93276b095f79ef388cf3c690ad2326f1045329a6d0b326ed'),
+(19, 15, 'ecf1f47ca63a6afd93276b095f79ef388cf3c690ad2326f1045329a6d0b326ed', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 08:53:27', '2026-04-06 01:53:26', '2026-04-06 02:13:30', '67f54887d855ae22ac39583d29f871a5aea54c1c260829cce0d56c4c2e641557'),
+(20, 15, '32e2e9faa84e1c3264188ed4c9ccb8b2a11227e49243a7ebede1ac1e5b8c27b7', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 09:13:30', '2026-04-06 02:13:30', NULL, NULL),
+(21, 15, '67f54887d855ae22ac39583d29f871a5aea54c1c260829cce0d56c4c2e641557', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 09:13:30', '2026-04-06 02:13:30', '2026-04-06 02:46:00', NULL),
+(22, 1, '96ec6fe36851b36b814e953140608d175d1a37ba415f055b9d242ad84628617d', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 09:46:03', '2026-04-06 02:46:03', '2026-04-06 03:08:30', 'cb85cbb285283473e5982794302b2279e04d36664dd8a9cebb18b42b76f87c66'),
+(23, 1, 'cb85cbb285283473e5982794302b2279e04d36664dd8a9cebb18b42b76f87c66', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 10:08:30', '2026-04-06 03:08:30', '2026-04-06 03:20:57', NULL),
+(24, 4, '4df85a3e6b229a52a012dd71dcf3f086f9ea342c3b0fe80151a5f0a0c092b93d', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 10:21:01', '2026-04-06 03:21:01', '2026-04-06 03:22:01', NULL),
+(25, 15, '60e702650d7d4341219a5823fdc9e3249e55208322eb6d108e43c2ec7cc0ebc6', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 10:22:04', '2026-04-06 03:22:04', '2026-04-06 03:24:08', NULL),
+(26, 4, '6c29f8480895564d9a03fe2ff813fed95c43667058bab78e0af43188489e261b', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', '2026-04-13 10:24:12', '2026-04-06 03:24:12', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -660,8 +871,8 @@ INSERT INTO `role` (`id`, `name`, `code`, `description`, `is_system_role`, `stat
 (2, 'Admin', 'admin', 'Quản trị hệ thống', 1, 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
 (3, 'Doctor', 'doctor', 'Bác sĩ', 1, 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
 (4, 'Patient', 'patient', 'Bệnh nhân', 1, 'active', '2026-03-28 09:52:25', '2026-03-28 09:52:25'),
-(5, 'Clinic Owner', 'clinic_owner', 'Owner of clinic/provider account', 0, 'active', '2026-03-30 04:20:47', '2026-03-30 04:20:47'),
-(6, 'Branch Manager', 'branch_manager', 'Manager of a specific branch', 0, 'active', '2026-03-30 04:20:47', '2026-03-30 04:20:47');
+(5, 'Clinic Owner', 'clinic_owner', 'Owner of clinic/provider account', 0, 'active', '2026-03-30 04:20:47', '2026-04-06 03:27:31'),
+(6, 'Branch Manager', 'branch_manager', 'Manager of a specific branch', 0, 'active', '2026-03-30 04:20:47', '2026-04-06 03:27:31');
 
 -- --------------------------------------------------------
 
@@ -751,30 +962,30 @@ CREATE TABLE `specialty` (
 --
 
 INSERT INTO `specialty` (`id`, `name`, `code`, `parent_id`, `description`, `status`, `created_at`, `updated_at`, `deleted_at`, `doctor_count`) VALUES
-(1, 'Răng Hàm Mặt', 'S000001', NULL, 'Răng Hàm Mặt', 'active', '2026-03-29 05:33:04', '2026-03-30 07:09:56', NULL, 0),
-(2, 'Nội khoa', 'INTERNAL_MEDICINE', NULL, 'Điều trị bệnh bằng thuốc', 'active', '2026-03-30 07:08:37', '2026-03-30 07:16:17', NULL, 0),
-(3, 'Ngoại khoa', 'SURGERY', NULL, 'Điều trị bệnh bằng phẫu thuật', 'active', '2026-03-30 07:08:57', '2026-03-30 07:16:17', NULL, 0),
+(1, 'Răng Hàm Mặt', 'S000001', NULL, 'Răng Hàm Mặt', 'active', '2026-03-29 05:33:04', '2026-04-06 03:23:58', NULL, 3),
+(2, 'Nội khoa', 'INTERNAL_MEDICINE', NULL, 'Điều trị bệnh bằng thuốc', 'active', '2026-03-30 07:08:37', '2026-04-06 03:27:32', NULL, 0),
+(3, 'Ngoại khoa', 'SURGERY', NULL, 'Điều trị bệnh bằng phẫu thuật', 'active', '2026-03-30 07:08:57', '2026-04-06 03:27:32', NULL, 0),
 (4, 'Sản phụ khoa', 'S000004', NULL, 'Sản phụ khoa', 'active', '2026-03-30 07:09:16', '2026-03-30 07:09:16', NULL, 0),
 (5, 'Nhi khoa', 'S000005', NULL, 'Nhi khoa', 'active', '2026-03-30 07:09:37', '2026-03-30 07:09:37', NULL, 0),
 (6, 'Y tế công cộng/Y học dự phòng', 'S000006', NULL, 'Y tế công cộng/Y học dự phòng', 'active', '2026-03-30 07:10:14', '2026-03-30 07:10:14', NULL, 0),
 (7, 'Dược học', 'S000007', NULL, 'Dược học', 'active', '2026-03-30 07:10:31', '2026-03-30 07:10:31', NULL, 0),
 (8, 'Điều dưỡng/Hộ sinh', 'S000008', NULL, 'Điều dưỡng/Hộ sinh', 'active', '2026-03-30 07:10:46', '2026-03-30 07:10:46', NULL, 0),
 (9, 'Chuyên khoa giác quan/da', 'S000009', NULL, 'Chuyên khoa giác quan/da', 'active', '2026-03-30 07:11:10', '2026-03-30 07:11:10', NULL, 0),
-(10, 'Chuyên khoa chức năng/hỗ trợ', 'S000010', NULL, 'Chuyên khoa chức năng/hỗ trợ', 'active', '2026-03-30 07:11:29', '2026-03-30 07:11:29', NULL, 0),
+(10, 'Chuyên khoa chức năng/hỗ trợ', 'S000010', NULL, 'Chuyên khoa chức năng/hỗ trợ', 'active', '2026-03-30 07:11:29', '2026-04-06 03:23:58', NULL, 1),
 (11, 'Chuyên khoa đặc thù', 'S000011', NULL, 'Chuyên khoa đặc thù', 'active', '2026-03-30 07:11:44', '2026-03-30 07:11:44', NULL, 0),
-(13, 'Tim mạch', 'CARDIOLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
-(14, 'Tiêu hóa', 'GASTROENTEROLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
-(15, 'Hô hấp', 'RESPIRATORY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
-(16, 'Nội tiết', 'ENDOCRINOLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
-(17, 'Thận - Tiết niệu', 'NEPHRO_UROLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
-(18, 'Xương khớp', 'RHEUMATOLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
-(19, 'Huyết học', 'HEMATOLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
-(20, 'Truyền nhiễm/Nhiệt đới', 'INFECTIOUS_DISEASE', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
-(21, 'Ngoại tổng quát', 'GENERAL_SURGERY', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
-(22, 'Ngoại thần kinh', 'NEUROSURGERY', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
-(23, 'Ngoại lồng ngực', 'THORACIC_SURGERY', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
-(24, 'Chấn thương chỉnh hình', 'ORTHOPEDIC_TRAUMA', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0),
-(25, 'Ngoại nhi', 'PEDIATRIC_SURGERY', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-03-30 07:16:17', NULL, 0);
+(13, 'Tim mạch', 'CARDIOLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 0),
+(14, 'Tiêu hóa', 'GASTROENTEROLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 0),
+(15, 'Hô hấp', 'RESPIRATORY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 0),
+(16, 'Nội tiết', 'ENDOCRINOLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 0),
+(17, 'Thận - Tiết niệu', 'NEPHRO_UROLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 0),
+(18, 'Xương khớp', 'RHEUMATOLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 0),
+(19, 'Huyết học', 'HEMATOLOGY', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 0),
+(20, 'Truyền nhiễm/Nhiệt đới', 'INFECTIOUS_DISEASE', 2, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 0),
+(21, 'Ngoại tổng quát', 'GENERAL_SURGERY', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 0),
+(22, 'Ngoại thần kinh', 'NEUROSURGERY', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 0),
+(23, 'Ngoại lồng ngực', 'THORACIC_SURGERY', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 0),
+(24, 'Chấn thương chỉnh hình', 'ORTHOPEDIC_TRAUMA', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 1),
+(25, 'Ngoại nhi', 'PEDIATRIC_SURGERY', 3, NULL, 'active', '2026-03-30 07:16:17', '2026-04-06 03:27:32', NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -797,22 +1008,22 @@ CREATE TABLE `subscription_entitlement` (
 --
 
 INSERT INTO `subscription_entitlement` (`id`, `plan_id`, `feature_code`, `is_enabled`, `limit_value`, `created_at`, `updated_at`) VALUES
-(1, 4, 'branch.manage', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
-(2, 3, 'branch.manage', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
-(3, 2, 'branch.manage', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
-(4, 1, 'branch.manage', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
-(8, 4, 'doctor.manage', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
-(9, 3, 'doctor.manage', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
-(10, 2, 'doctor.manage', 1, 3, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
-(11, 1, 'doctor.manage', 1, 1, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
-(15, 4, 'appointment.receive', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
-(16, 3, 'appointment.receive', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
-(17, 2, 'appointment.receive', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
-(18, 1, 'appointment.receive', 1, NULL, '2026-03-30 03:24:55', '2026-03-30 08:24:44'),
-(25, 9, 'branch.manage', 1, 3, '2026-03-30 09:04:45', '2026-03-30 09:04:45'),
-(26, 9, 'doctor.manage', 1, 3, '2026-03-30 09:04:45', '2026-03-30 09:04:45'),
-(27, 10, 'branch.manage', 1, NULL, '2026-03-30 09:04:45', '2026-03-30 09:04:45'),
-(28, 10, 'doctor.manage', 1, NULL, '2026-03-30 09:04:45', '2026-03-30 09:04:45');
+(1, 4, 'branch.manage', 1, NULL, '2026-03-30 03:24:55', '2026-04-06 03:27:33'),
+(2, 3, 'branch.manage', 1, NULL, '2026-03-30 03:24:55', '2026-04-06 03:27:33'),
+(3, 2, 'branch.manage', 1, NULL, '2026-03-30 03:24:55', '2026-04-06 03:27:33'),
+(4, 1, 'branch.manage', 1, NULL, '2026-03-30 03:24:55', '2026-04-06 03:27:33'),
+(8, 4, 'doctor.manage', 1, NULL, '2026-03-30 03:24:55', '2026-04-06 03:27:33'),
+(9, 3, 'doctor.manage', 1, NULL, '2026-03-30 03:24:55', '2026-04-06 03:27:33'),
+(10, 2, 'doctor.manage', 1, 3, '2026-03-30 03:24:55', '2026-04-06 03:27:33'),
+(11, 1, 'doctor.manage', 1, 1, '2026-03-30 03:24:55', '2026-04-06 03:27:33'),
+(15, 4, 'appointment.receive', 1, NULL, '2026-03-30 03:24:55', '2026-04-06 03:27:33'),
+(16, 3, 'appointment.receive', 1, NULL, '2026-03-30 03:24:55', '2026-04-06 03:27:33'),
+(17, 2, 'appointment.receive', 1, NULL, '2026-03-30 03:24:55', '2026-04-06 03:27:33'),
+(18, 1, 'appointment.receive', 1, NULL, '2026-03-30 03:24:55', '2026-04-06 03:27:33'),
+(25, 9, 'branch.manage', 1, 3, '2026-03-30 09:04:45', '2026-04-06 03:27:33'),
+(26, 9, 'doctor.manage', 1, 3, '2026-03-30 09:04:45', '2026-04-06 03:27:33'),
+(27, 10, 'branch.manage', 1, NULL, '2026-03-30 09:04:45', '2026-04-06 03:27:33'),
+(28, 10, 'doctor.manage', 1, NULL, '2026-03-30 09:04:45', '2026-04-06 03:27:33');
 
 -- --------------------------------------------------------
 
@@ -839,12 +1050,12 @@ CREATE TABLE `subscription_plan` (
 --
 
 INSERT INTO `subscription_plan` (`id`, `code`, `name`, `scope_type`, `billing_cycle`, `price_cents`, `currency`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'DOCTOR_TRIAL_14D', 'Doctor Trial 14 Days', 'doctor', 'monthly', 0, 'VND', 'active', '2026-03-30 03:24:55', '2026-03-30 08:24:44', NULL),
-(2, 'DOCTOR_PRO_MONTHLY', 'Doctor Pro Monthly', 'doctor', 'monthly', 299000, 'VND', 'active', '2026-03-30 03:24:55', '2026-03-30 08:24:44', NULL),
-(3, 'BRANCH_TRIAL_30D', 'Branch Trial 30 Days', 'branch', 'monthly', 0, 'VND', 'active', '2026-03-30 03:24:55', '2026-03-30 08:24:44', NULL),
-(4, 'BRANCH_GROWTH_MONTHLY', 'Branch Growth Monthly', 'branch', 'monthly', 999000, 'VND', 'active', '2026-03-30 03:24:55', '2026-03-30 08:24:44', NULL),
-(9, 'HOLORA_FREE', 'Holora Free', 'account', 'monthly', 0, 'VND', 'active', '2026-03-30 09:04:45', '2026-03-30 09:04:45', NULL),
-(10, 'HOLORA_PLUS', 'Holora Plus', 'account', 'monthly', 299000, 'VND', 'active', '2026-03-30 09:04:45', '2026-03-30 09:04:45', NULL);
+(1, 'DOCTOR_TRIAL_14D', 'Doctor Trial 14 Days', 'doctor', 'monthly', 0, 'VND', 'active', '2026-03-30 03:24:55', '2026-04-06 03:27:33', NULL),
+(2, 'DOCTOR_PRO_MONTHLY', 'Doctor Pro Monthly', 'doctor', 'monthly', 299000, 'VND', 'active', '2026-03-30 03:24:55', '2026-04-06 03:27:33', NULL),
+(3, 'BRANCH_TRIAL_30D', 'Branch Trial 30 Days', 'branch', 'monthly', 0, 'VND', 'active', '2026-03-30 03:24:55', '2026-04-06 03:27:33', NULL),
+(4, 'BRANCH_GROWTH_MONTHLY', 'Branch Growth Monthly', 'branch', 'monthly', 999000, 'VND', 'active', '2026-03-30 03:24:55', '2026-04-06 03:27:33', NULL),
+(9, 'HOLORA_FREE', 'Holora Free', 'account', 'monthly', 0, 'VND', 'active', '2026-03-30 09:04:45', '2026-04-06 03:27:33', NULL),
+(10, 'HOLORA_PLUS', 'Holora Plus', 'account', 'monthly', 299000, 'VND', 'active', '2026-03-30 09:04:45', '2026-04-06 03:27:33', NULL);
 
 -- --------------------------------------------------------
 
@@ -993,7 +1204,8 @@ ALTER TABLE `appointment`
   ADD KEY `idx_appointment_date` (`appointment_date`),
   ADD KEY `idx_appointment_status` (`status`),
   ADD KEY `idx_appointment_start_time` (`start_time`),
-  ADD KEY `idx_appointment_branch_id` (`branch_id`);
+  ADD KEY `idx_appointment_branch_id` (`branch_id`),
+  ADD KEY `idx_appointment_recurring_id` (`recurring_id`);
 
 --
 -- Indexes for table `audit_log`
@@ -1005,6 +1217,16 @@ ALTER TABLE `audit_log`
   ADD KEY `idx_audit_log_module_name` (`module_name`),
   ADD KEY `idx_audit_log_entity` (`entity_type`,`entity_id`),
   ADD KEY `idx_audit_log_created_at` (`created_at`);
+
+--
+-- Indexes for table `audit_logs`
+--
+ALTER TABLE `audit_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_audit_user` (`user_id`),
+  ADD KEY `idx_audit_action` (`action`),
+  ADD KEY `idx_audit_entity` (`entity_type`,`entity_id`),
+  ADD KEY `idx_audit_created` (`created_at`);
 
 --
 -- Indexes for table `branch`
@@ -1127,7 +1349,26 @@ ALTER TABLE `patient`
   ADD KEY `idx_patient_phone` (`phone`),
   ADD KEY `idx_patient_email` (`email`),
   ADD KEY `idx_patient_status` (`status`),
-  ADD KEY `idx_patient_code` (`patient_code`);
+  ADD KEY `idx_patient_code` (`patient_code`),
+  ADD KEY `idx_patient_deleted_at` (`deleted_at`);
+
+--
+-- Indexes for table `patient_branch`
+--
+ALTER TABLE `patient_branch`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_patient_branch` (`patient_id`,`branch_id`),
+  ADD KEY `idx_patient_branch_patient` (`patient_id`),
+  ADD KEY `idx_patient_branch_branch` (`branch_id`),
+  ADD KEY `idx_patient_branch_deleted_at` (`deleted_at`);
+
+--
+-- Indexes for table `payment`
+--
+ALTER TABLE `payment`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `doctor_id` (`doctor_id`),
+  ADD KEY `appointment_id` (`appointment_id`);
 
 --
 -- Indexes for table `payment_order`
@@ -1135,6 +1376,7 @@ ALTER TABLE `patient`
 ALTER TABLE `payment_order`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uq_payment_token` (`token`),
+  ADD UNIQUE KEY `uq_invoice_number` (`invoice_number`),
   ADD KEY `idx_user_status` (`user_id`,`status`);
 
 --
@@ -1147,6 +1389,25 @@ ALTER TABLE `permission`
   ADD KEY `idx_permission_status` (`status`);
 
 --
+-- Indexes for table `prescription`
+--
+ALTER TABLE `prescription`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_prescription_code` (`prescription_code`),
+  ADD KEY `idx_prescription_consultation` (`consultation_id`),
+  ADD KEY `idx_prescription_appointment` (`appointment_id`),
+  ADD KEY `idx_prescription_doctor` (`doctor_id`),
+  ADD KEY `idx_prescription_patient` (`patient_id`),
+  ADD KEY `idx_prescription_status` (`status`);
+
+--
+-- Indexes for table `prescription_item`
+--
+ALTER TABLE `prescription_item`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_item_prescription` (`prescription_id`);
+
+--
 -- Indexes for table `provider_subscription`
 --
 ALTER TABLE `provider_subscription`
@@ -1156,6 +1417,24 @@ ALTER TABLE `provider_subscription`
   ADD KEY `idx_provider_subscription_status` (`status`),
   ADD KEY `idx_provider_subscription_deleted` (`deleted_at`),
   ADD KEY `fk_provider_subscription_plan` (`plan_id`);
+
+--
+-- Indexes for table `recurring_appointments`
+--
+ALTER TABLE `recurring_appointments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_recurring_patient` (`patient_id`),
+  ADD KEY `idx_recurring_doctor` (`doctor_id`),
+  ADD KEY `idx_recurring_branch` (`branch_id`);
+
+--
+-- Indexes for table `refresh_tokens`
+--
+ALTER TABLE `refresh_tokens`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_rt_token_hash` (`token_hash`),
+  ADD KEY `idx_rt_user_id` (`user_id`),
+  ADD KEY `idx_rt_expires` (`expires_at`);
 
 --
 -- Indexes for table `review`
@@ -1275,6 +1554,12 @@ ALTER TABLE `audit_log`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `audit_logs`
+--
+ALTER TABLE `audit_logs`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+
+--
 -- AUTO_INCREMENT for table `branch`
 --
 ALTER TABLE `branch`
@@ -1296,7 +1581,7 @@ ALTER TABLE `consultation_image`
 -- AUTO_INCREMENT for table `consultation_response`
 --
 ALTER TABLE `consultation_response`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `doctor`
@@ -1347,10 +1632,22 @@ ALTER TABLE `patient`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
+-- AUTO_INCREMENT for table `patient_branch`
+--
+ALTER TABLE `patient_branch`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `payment`
+--
+ALTER TABLE `payment`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `payment_order`
 --
 ALTER TABLE `payment_order`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `permission`
@@ -1359,10 +1656,34 @@ ALTER TABLE `permission`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
 
 --
+-- AUTO_INCREMENT for table `prescription`
+--
+ALTER TABLE `prescription`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `prescription_item`
+--
+ALTER TABLE `prescription_item`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `provider_subscription`
 --
 ALTER TABLE `provider_subscription`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `recurring_appointments`
+--
+ALTER TABLE `recurring_appointments`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `refresh_tokens`
+--
+ALTER TABLE `refresh_tokens`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `review`
@@ -1374,7 +1695,7 @@ ALTER TABLE `review`
 -- AUTO_INCREMENT for table `role`
 --
 ALTER TABLE `role`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `role_permission`
@@ -1392,13 +1713,13 @@ ALTER TABLE `specialty`
 -- AUTO_INCREMENT for table `subscription_entitlement`
 --
 ALTER TABLE `subscription_entitlement`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
 
 --
 -- AUTO_INCREMENT for table `subscription_plan`
 --
 ALTER TABLE `subscription_plan`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -1445,6 +1766,7 @@ ALTER TABLE `appointment`
   ADD CONSTRAINT `fk_appointment_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_appointment_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_appointment_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_appointment_recurring` FOREIGN KEY (`recurring_id`) REFERENCES `recurring_appointments` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_appointment_specialty` FOREIGN KEY (`specialty_id`) REFERENCES `specialty` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
@@ -1452,6 +1774,12 @@ ALTER TABLE `appointment`
 --
 ALTER TABLE `audit_log`
   ADD CONSTRAINT `fk_audit_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `audit_logs`
+--
+ALTER TABLE `audit_logs`
+  ADD CONSTRAINT `audit_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `branch`
@@ -1535,11 +1863,54 @@ ALTER TABLE `patient`
   ADD CONSTRAINT `fk_patient_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
+-- Constraints for table `patient_branch`
+--
+ALTER TABLE `patient_branch`
+  ADD CONSTRAINT `fk_patient_branch_branch` FOREIGN KEY (`branch_id`) REFERENCES `branch` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_patient_branch_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `payment`
+--
+ALTER TABLE `payment`
+  ADD CONSTRAINT `payment_ibfk_1` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `payment_ibfk_2` FOREIGN KEY (`appointment_id`) REFERENCES `appointment` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `prescription`
+--
+ALTER TABLE `prescription`
+  ADD CONSTRAINT `fk_prescription_appointment` FOREIGN KEY (`appointment_id`) REFERENCES `appointment` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_prescription_consultation` FOREIGN KEY (`consultation_id`) REFERENCES `consultation` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_prescription_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_prescription_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `prescription_item`
+--
+ALTER TABLE `prescription_item`
+  ADD CONSTRAINT `fk_item_prescription` FOREIGN KEY (`prescription_id`) REFERENCES `prescription` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `provider_subscription`
 --
 ALTER TABLE `provider_subscription`
   ADD CONSTRAINT `fk_provider_subscription_owner` FOREIGN KEY (`owner_user_id`) REFERENCES `users` (`id`),
   ADD CONSTRAINT `fk_provider_subscription_plan` FOREIGN KEY (`plan_id`) REFERENCES `subscription_plan` (`id`);
+
+--
+-- Constraints for table `recurring_appointments`
+--
+ALTER TABLE `recurring_appointments`
+  ADD CONSTRAINT `fk_recurring_branch` FOREIGN KEY (`branch_id`) REFERENCES `branch` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_recurring_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctor` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_recurring_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `refresh_tokens`
+--
+ALTER TABLE `refresh_tokens`
+  ADD CONSTRAINT `refresh_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `review`

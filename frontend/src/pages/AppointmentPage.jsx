@@ -69,6 +69,11 @@ const AppointmentPage = () => {
   const [selectedDate, setSelectedDate] = useState("");
   const [duration, setDuration] = useState(30);
   const [reason, setReason] = useState("");
+  // Recurring appointment state
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringType, setRecurringType] = useState("none"); // none|daily|weekly|monthly
+  const [recurringCount, setRecurringCount] = useState(2);
+  const [recurringUntil, setRecurringUntil] = useState("");
   const [availableSlots, setAvailableSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState("");
   const [isBooking, setIsBooking] = useState(false);
@@ -211,6 +216,11 @@ const AppointmentPage = () => {
         duration_minutes: duration,
         reason,
         appointment_type: appointmentType,
+        // Recurring fields
+        recurring: isRecurring,
+        recurring_type: isRecurring ? recurringType : undefined,
+        recurring_count: isRecurring && recurringType !== "none" ? recurringCount : undefined,
+        recurring_until: isRecurring && recurringType !== "none" ? recurringUntil : undefined,
       });
 
       setSuccessMessage(t("patient.appointmentsPage.bookingSuccess", { time: selectedSlot }));
@@ -548,6 +558,35 @@ const AppointmentPage = () => {
                   )}
                 </div>
 
+                {/* Recurring Appointment */}
+                <div className="border rounded-xl p-3 mb-2">
+                  <label className="flex items-center gap-2 mb-2 text-sm font-semibold text-text-main">
+                    <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} />
+                    Đặt lịch lặp lại
+                  </label>
+                  {isRecurring && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Kiểu lặp lại</label>
+                        <select value={recurringType} onChange={e => setRecurringType(e.target.value)} className="w-full rounded border px-2 py-1">
+                          <option value="none">Chọn kiểu lặp</option>
+                          <option value="daily">Hàng ngày</option>
+                          <option value="weekly">Hàng tuần</option>
+                          <option value="monthly">Hàng tháng</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Số lần lặp lại</label>
+                        <input type="number" min={2} max={100} value={recurringCount} onChange={e => setRecurringCount(Number(e.target.value))} className="w-full rounded border px-2 py-1" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Hoặc đến ngày</label>
+                        <input type="date" value={recurringUntil} onChange={e => setRecurringUntil(e.target.value)} className="w-full rounded border px-2 py-1" min={selectedDate} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Reason */}
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-text-main">{t("patient.appointmentsPage.reasonLabel")}</label>
@@ -618,6 +657,12 @@ const AppointmentPage = () => {
                   <div className="flex items-center gap-3">
                     <Hospital className="h-4 w-4 text-[#E06666] shrink-0" />
                     <span className="text-sm text-text-main">{app.branch_name || "-"}</span>
+                    {app.recurring_id && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 ml-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-3 w-3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Lặp lại
+                      </span>
+                    )}
                     {app.appointment_type === "online" && (
                       <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                         <Video className="h-3 w-3" /> Trực tuyến
@@ -680,7 +725,15 @@ const AppointmentPage = () => {
                         <div className="text-xs text-text-dim">{app.specialty_name || "-"}</div>
                       </td>
                       <td className="px-6 py-4 text-sm text-text-main">
-                        <div>{app.branch_name || "-"}</div>
+                        <div className="flex items-center gap-2">
+                          <span>{app.branch_name || "-"}</span>
+                          {app.recurring_id && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-3 w-3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                              Lặp lại
+                            </span>
+                          )}
+                        </div>
                         {app.appointment_type === "online" && (
                           <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                             <Video className="h-3 w-3" /> Trực tuyến

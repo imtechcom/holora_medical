@@ -39,8 +39,14 @@ export const appointmentService = {
   },
 
   // Tiến hành xuất lệnh đặt chỗ (Patient)
+  /**
+   * Đặt lịch hẹn (có thể lặp lại)
+   * payload: {
+   *   doctor_id, specialty_id, branch_id, appointment_date, start_time, duration_minutes, reason, appointment_type,
+   *   recurring, recurring_type, recurring_count, recurring_until
+   * }
+   */
   bookAppointment: async (payload) => {
-    // payload: { doctor_id, specialty_id, branch_id, appointment_date, start_time, duration_minutes, reason, appointment_type }
     const response = await api.post("/appointments", payload);
     return response.data;
   },
@@ -84,6 +90,34 @@ export const appointmentService = {
   // Lấy chi tiết lịch khám bằng ID
   getAppointmentById: async (id) => {
     const response = await api.get(`/appointments/${id}`);
+    return response.data;
+  },
+
+  // Recurring: lấy danh sách các lịch con theo recurring_id
+  getRecurringChildren: async (recurring_id) => {
+    const response = await api.get(`/recurring-appointments/${recurring_id}/children`);
+    return response.data;
+  },
+  // Recurring: huỷ 1 lịch con
+  cancelRecurringChild: async (id) => {
+    const response = await api.post(`/recurring-appointments/children/${id}/cancel`);
+    return response.data;
+  },
+  // Recurring: huỷ cả chuỗi
+  cancelRecurringSeries: async (recurring_id) => {
+    const response = await api.post(`/recurring-appointments/${recurring_id}/cancel-all`);
+    return response.data;
+  },
+
+  // Mock: Get payment status for appointment
+  getPaymentStatus: async (appointmentId) => {
+    const response = await api.get(`/payments/appointments/${appointmentId}/payment-status`);
+    return response.data;
+  },
+
+  // Mock: Pay for appointment
+  payForAppointment: async (appointmentId) => {
+    const response = await api.post(`/payments/appointments/${appointmentId}/pay`);
     return response.data;
   }
 };

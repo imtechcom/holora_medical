@@ -3,13 +3,13 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const DoctorRoute = ({ children }) => {
-  const { isAuthenticated, role } = useAuth();
+  const { isAuthenticated, hasRole } = useAuth();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (role !== "doctor") {
+  if (!hasRole("doctor")) {
     return <Navigate to="/" replace />;
   }
 

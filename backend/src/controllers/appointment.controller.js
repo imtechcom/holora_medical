@@ -247,13 +247,34 @@ exports.getMyAppointments = (req, res) => {
 exports.updateAppointmentStatus = (req, res) => {
   const { id } = req.params;
   const { status, cancellation_reason } = req.body;
-  
-  db.query('UPDATE appointment SET status = ?, cancellation_reason = ? WHERE id = ?', 
-  [status, cancellation_reason || null, id], (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    logAudit(req, "APPOINTMENT_STATUS_CHANGE", "appointment", Number(id), { status, cancellation_reason });
-    res.json({ message: 'Đã cập nhật trạng thái ca khám!' });
-  });
+
+  // If cancelling, enforce cancellation policy: only allow if >2h before scheduled time
+  if (status === 'cancelled') {
+    db.query('SELECT scheduled_at FROM appointment WHERE id = ?', [id], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!rows.length) return res.status(404).json({ message: 'Appointment not found' });
+      const scheduledAt = new Date(rows[0].scheduled_at);
+      const now = new Date();
+      const diffMs = scheduledAt - now;
+      const diffHours = diffMs / (1000 * 60 * 60);
+      if (diffHours < 2) {
+        return res.status(400).json({ message: 'Không thể hủy lịch trong vòng 2 giờ trước khi bắt đầu. Vui lòng liên hệ phòng khám.' });
+      }
+      db.query('UPDATE appointment SET status = ?, cancellation_reason = ? WHERE id = ?', 
+        [status, cancellation_reason || null, id], (err2, result) => {
+          if (err2) return res.status(500).json({ error: err2.message });
+          logAudit(req, "APPOINTMENT_STATUS_CHANGE", "appointment", Number(id), { status, cancellation_reason });
+          res.json({ message: 'Đã hủy lịch thành công!' });
+        });
+    });
+  } else {
+    db.query('UPDATE appointment SET status = ?, cancellation_reason = ? WHERE id = ?', 
+      [status, cancellation_reason || null, id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        logAudit(req, "APPOINTMENT_STATUS_CHANGE", "appointment", Number(id), { status, cancellation_reason });
+        res.json({ message: 'Đã cập nhật trạng thái ca khám!' });
+      });
+  }
 };
 
 // Admin: Lấy TẤT CẢ lịch khám với filter (status, date range, search)

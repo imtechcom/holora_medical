@@ -67,9 +67,15 @@ const DoctorLayout = ({ children }) => {
               <span>{t("doctor.schedule") || "Work Schedule"}</span>
             </NavLink>
 
+
             <NavLink to="/doctor/reviews" className={navClass}>
               <span>⭐</span>
               <span>{t("doctor.myReviews") || "My Reviews"}</span>
+            </NavLink>
+
+            <NavLink to="/doctor/earnings" className={navClass}>
+              <span>💰</span>
+              <span>{t("doctor.earningsReport", { defaultValue: "Earnings Report" })}</span>
             </NavLink>
 
             <div className="pt-3 pb-1">

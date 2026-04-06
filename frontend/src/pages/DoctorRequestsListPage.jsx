@@ -38,8 +38,7 @@ const DoctorRequestsListPage = () => {
 
   useEffect(() => {
     fetchRequests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchRequests]);
 
   const fetchRequests = async () => {
     try {

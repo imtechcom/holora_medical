@@ -59,6 +59,10 @@ const DoctorAppointmentDetailPage = () => {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [linkedConsultation, setLinkedConsultation] = useState(null);
   const [cancelModal, setCancelModal] = useState({ open: false, reason: "" });
+  // Recurring
+  const [recurringChildren, setRecurringChildren] = useState([]);
+  const [showRecurring, setShowRecurring] = useState(false);
+  const [cancellingSeries, setCancellingSeries] = useState(false);
 
   const sLabel = (status) => t(`doctor.appointmentDetail.status.${status === "checked_in" ? "checkedIn" : status === "in_progress" ? "inProgress" : status === "no_show" ? "noShow" : status}`, { defaultValue: status });
 
@@ -79,6 +83,13 @@ const DoctorAppointmentDetailPage = () => {
       .then((res) => setLinkedConsultation(res.data || null))
       .catch(() => setLinkedConsultation(null));
   }, [fetchDetail, id]);
+
+  // Fetch recurring children if needed
+  useEffect(() => {
+    if (showRecurring && appointment?.recurring_id) {
+      appointmentService.getRecurringChildren(appointment.recurring_id).then(setRecurringChildren).catch(() => setRecurringChildren([]));
+    }
+  }, [showRecurring, appointment]);
 
   /* ── Status update ── */
   const handleUpdateStatus = async (newStatus, reason) => {
@@ -212,6 +223,67 @@ const DoctorAppointmentDetailPage = () => {
         {/* ── LEFT COLUMN (8 cols) ── */}
         <div className="space-y-5 lg:col-span-8">
 
+          {/* Recurring Series Info */}
+          {a.recurring_id && (
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm dark:border-blue-800/30 dark:bg-blue-900/10 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-4 w-4 text-blue-400" />
+                <span className="font-bold text-blue-700 dark:text-blue-300 text-sm">Lịch hẹn lặp lại (Recurring Series)</span>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-2">
+                <button
+                  className="inline-flex items-center gap-1 rounded-lg border border-blue-400 bg-white px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                  onClick={() => setShowRecurring((v) => !v)}
+                >
+                  {showRecurring ? "Ẩn chuỗi" : "Xem chuỗi"}
+                </button>
+                <button
+                  className="inline-flex items-center gap-1 rounded-lg border border-red-400 bg-white px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+                  disabled={cancellingSeries}
+                  onClick={async () => {
+                    if (!window.confirm("Bạn chắc chắn muốn huỷ toàn bộ chuỗi lịch này?")) return;
+                    setCancellingSeries(true);
+                    try {
+                      await appointmentService.cancelRecurringSeries(a.recurring_id);
+                      alert("Đã huỷ toàn bộ chuỗi lịch thành công.");
+                      fetchDetail();
+                    } catch {
+                      alert("Huỷ chuỗi thất bại");
+                    } finally {
+                      setCancellingSeries(false);
+                    }
+                  }}
+                >
+                  Huỷ toàn bộ chuỗi
+                </button>
+              </div>
+              {showRecurring && (
+                <div className="mt-2">
+                  <div className="text-xs mb-1 text-text-dim">Danh sách các lịch trong chuỗi:</div>
+                  <div className="space-y-1">
+                    {recurringChildren.length === 0 && <div className="text-xs text-text-dim">Không có lịch nào.</div>}
+                    {recurringChildren.map(child => (
+                      <div key={child.id} className="flex items-center gap-2 text-xs p-2 rounded border border-border-main bg-white dark:bg-slate-800">
+                        <span className="font-mono text-sm text-blue-700">{child.appointment_code}</span>
+                        <span>{fmtDate(child.appointment_date, lng)} {fmtTime(child.start_time)} - {fmtTime(child.end_time)}</span>
+                        <span className="text-text-dim">{child.status}</span>
+                        <button
+                          className="ml-auto text-xs text-red-500 underline"
+                          disabled={child.status === "cancelled"}
+                          onClick={async () => {
+                            if (!window.confirm("Huỷ lịch này?")) return;
+                            await appointmentService.cancelRecurringChild(child.id);
+                            setRecurringChildren((prev) => prev.map(c => c.id === child.id ? { ...c, status: "cancelled" } : c));
+                          }}
+                        >Huỷ lịch này</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Appointment Details Card */}
           <div className={`${GLASS_CARD} p-6`}>
             <h2 className="flex items-center gap-2 text-base font-bold text-text-main">
@@ -276,6 +348,7 @@ const DoctorAppointmentDetailPage = () => {
               )}
             </div>
 
+
             {/* Reason (Progressive Disclosure — expandable area) */}
             <div className="mt-5 rounded-xl border border-border-main/50 bg-bg-app/50 p-4 dark:bg-slate-800/50">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-text-dim mb-2">
@@ -284,6 +357,14 @@ const DoctorAppointmentDetailPage = () => {
               <p className="text-sm leading-relaxed text-text-main">
                 {a.reason || t("doctor.appointmentDetail.noReason", { defaultValue: "No reason provided" })}
               </p>
+            </div>
+
+            {/* Cancellation Policy Notice */}
+            <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200 flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 mt-0.5 shrink-0 text-amber-400" />
+              <span>
+                <b>{t("doctor.appointmentDetail.cancellationPolicyTitle", { defaultValue: "Cancellation Policy:" })}</b> {t("doctor.appointmentDetail.cancellationPolicyDesc", { defaultValue: "Appointments can only be cancelled more than 2 hours before the scheduled time. If you attempt to cancel within 2 hours of the appointment, cancellation will not be allowed." })}
+              </span>
             </div>
 
             {/* Cancellation reason */}

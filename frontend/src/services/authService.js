@@ -52,3 +52,9 @@ export const logoutAllApi = async () => {
   const response = await api.post("/auth/logout-all");
   return response.data;
 };
+
+// Đổi mật khẩu
+export const changePasswordApi = async (current_password, new_password) => {
+  const response = await api.post("/auth/change-password", { current_password, new_password });
+  return response.data;
+};

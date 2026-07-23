@@ -42,7 +42,7 @@ const UserDropdown = ({ profilePath = "/patient/profile", showTheme = false, sho
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+        className="flex items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E06666]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:hover:bg-slate-700 dark:focus-visible:ring-offset-slate-900"
       >
         <div className="w-9 h-9 rounded-full bg-[#E06666] flex items-center justify-center text-white font-bold text-sm shadow-sm">
           {getInitials(user?.full_name)}
@@ -121,7 +121,7 @@ const UserDropdown = ({ profilePath = "/patient/profile", showTheme = false, sho
                 {showTheme && (
                   <button
                     onClick={toggleTheme}
-                    className="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm text-text-main hover:bg-[#FFF5F5] dark:hover:bg-slate-700 transition-colors"
+                    className="flex w-full items-center justify-between rounded-xl border border-transparent px-3 py-2.5 text-sm text-text-main transition-colors hover:bg-[#FFF5F5] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E06666]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:hover:bg-slate-700 dark:focus-visible:ring-offset-slate-900"
                   >
                     <div className="flex items-center gap-3">
                       {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4 text-yellow-400" />}

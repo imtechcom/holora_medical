@@ -157,13 +157,14 @@ const HomePage = () => {
         </p>
 
         <h1 className="mt-7 text-center text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl dark:text-slate-100">
-          {isVi ? "Chọn vai trò để bắt đầu" : "Choose your role to start"}
+          {isVi ? "HoloraMed - Nâng tầm y tế kỹ thuật số" : "HoloraMed - Empowering Digital Health"}
         </h1>
 
-        <p className="mt-4 max-w-2xl text-center text-base leading-7 text-gray-600 sm:text-lg dark:text-slate-400">
-          {isVi
-            ? "Một điểm vào duy nhất, hệ thống đưa bạn thẳng đến đúng khu vực chức năng."
-            : "One clean entry point, then direct routing to the right workspace."}
+        <p className="mt-4 text-center text-lg text-gray-500 max-w-xl mx-auto dark:text-slate-400">
+          {isVi 
+            ? "Hệ sinh thái y khoa thông minh, kết nối bảo mật giữa người bệnh và các cơ sở y tế hàng đầu." 
+            : "A smart medical ecosystem seamlessly connecting patients with leading healthcare providers."
+          }
         </p>
 
         <div className="mt-10 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2">
@@ -173,15 +174,15 @@ const HomePage = () => {
             className="group flex min-h-[230px] flex-col rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#E06666]/40 hover:shadow-lg dark:border-slate-700 dark:bg-[#141B29] dark:hover:border-[#E06666]/50 dark:hover:shadow-[0_18px_35px_rgba(0,0,0,0.35)]"
           >
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E06666] dark:text-[#F29A9A]">
-              {isVi ? "For Patients" : "For Patients"}
+              {isVi ? "Dành cho bệnh nhân" : "For Patients"}
             </p>
             <h2 className="mt-3 text-2xl font-semibold text-gray-900 dark:text-slate-100">
               {isVi ? "Bệnh nhân" : "Patients"}
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-slate-400">
               {isVi
-                ? "Đặt lịch, theo dõi lịch khám, gửi yêu cầu tư vấn trong một luồng đơn giản."
-                : "Book appointments, track schedule, and request consultations in one simple flow."}
+                ? "Chủ động đặt lịch, quản lý lịch khám và kết nối bác sĩ trong một trải nghiệm liền mạch."
+                : "Seamlessly book appointments, manage your health schedule, and connect with doctors in one unified experience."}
             </p>
             <p className="mt-auto pt-5 text-sm font-semibold text-[#C14D4D] transition group-hover:translate-x-1 dark:text-[#F29A9A]">
               {patientEntryLabel} →
@@ -194,15 +195,15 @@ const HomePage = () => {
             className="group flex min-h-[230px] flex-col rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#E06666]/40 hover:shadow-lg dark:border-slate-700 dark:bg-[#141B29] dark:hover:border-[#E06666]/50 dark:hover:shadow-[0_18px_35px_rgba(0,0,0,0.35)]"
           >
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E06666] dark:text-[#F29A9A]">
-              {isVi ? "For Doctors / Branch Owners" : "For Doctors / Branch Owners"}
+              {isVi ? "Dành cho Bác sĩ & Chủ chi nhánh" : "For Doctors & Branch Owners"}
             </p>
             <h2 className="mt-3 text-2xl font-semibold text-gray-900 dark:text-slate-100">
               {isVi ? "Bác sĩ / Chủ chi nhánh" : "Doctors / Branch Owners"}
             </h2>
             <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-slate-400">
               {isVi
-                ? "Mở chi nhánh, quản lý đội ngũ bác sĩ và vận hành lịch khám theo hệ thống."
-                : "Open branches, manage doctor teams, and operate schedules in a focused workspace."}
+                ? "Mở rộng quy mô, quản trị đội ngũ chuyên gia và tối ưu hóa hiệu suất vận hành trên một nền tảng số."
+                : "Scale clinical operations, manage expert teams, and optimize workflow efficiency in a single workspace."}
             </p>
             <p className="mt-auto pt-5 text-sm font-semibold text-[#C14D4D] transition group-hover:translate-x-1 dark:text-[#F29A9A]">
               {providerEntryLabel} →

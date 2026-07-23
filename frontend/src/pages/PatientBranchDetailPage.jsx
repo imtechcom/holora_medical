@@ -105,7 +105,7 @@ const PatientBranchDetailPage = () => {
 
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
-                to="/appointments"
+                to={`/patient/appointments?branchId=${id}`}
                 className="inline-flex items-center rounded-xl bg-[#E06666] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#D55555]"
               >
                 Dat lich kham

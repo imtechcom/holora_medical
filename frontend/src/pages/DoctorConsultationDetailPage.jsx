@@ -246,16 +246,6 @@ const DoctorConsultationDetailPage = () => {
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-  const parseAiPayload = (resultPayload) => {
-    if (!resultPayload) return {};
-    if (typeof resultPayload !== "string") return resultPayload;
-    try {
-      return JSON.parse(resultPayload);
-    } catch {
-      return {};
-    }
-  };
-
   const getAiDisplayUrl = (aiResult, currentView = "processed") => {
     const urls = getAiVisionUrls(aiResult);
     return urls[currentView] || urls.processed || null;

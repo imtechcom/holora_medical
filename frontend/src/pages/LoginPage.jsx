@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Eye, EyeOff } from "lucide-react";
 import { googleAuthApi, loginApi } from "../services/authService";
 import { useAuth } from "../context/AuthContext";
 
@@ -15,6 +16,7 @@ const LoginPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const googleBtnRef = useRef(null);
   const isVi = i18n.language === "vi";
 
@@ -160,12 +162,15 @@ const LoginPage = () => {
               {isVi ? "Holora Access" : "Holora Access"}
             </p>
             <h1 className="mt-6 max-w-lg text-5xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
-              {isVi ? "Đăng nhập và đi thẳng vào đúng không gian làm việc" : "Sign in and go straight to the right workspace"}
+              {isVi 
+                ? "Đăng nhập một chạm, kết nối ngay không gian làm việc chuyên biệt" 
+                : "Single sign-in, instant access to your dedicated workspace"
+              }
             </h1>
             <p className="mt-4 max-w-xl text-lg leading-8 text-gray-600 dark:text-slate-400">
               {isVi
-                ? "Một luồng đăng nhập gọn gàng cho bệnh nhân, bác sĩ và chủ chi nhánh, không thêm bước thừa."
-                : "A clean sign-in flow for patients, doctors, and branch owners without unnecessary steps."}
+                ? "Trải nghiệm quy trình xác thực tối giản dành riêng cho từng nhóm người dùng, loại bỏ mọi bước trung gian rườm rà."
+                : "An ultra-streamlined authentication flow tailored for each user role, eliminating all unnecessary friction."}
             </p>
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-gray-500 dark:text-slate-500">
               <Link to="/pricing" className="transition hover:text-[#E06666] dark:hover:text-[#F29A9A]">
@@ -224,15 +229,26 @@ const LoginPage = () => {
                     {isVi ? "Quên mật khẩu?" : "Forgot password?"}
                   </Link>
                 </div>
-                <input
-                  type="password"
-                  name="password"
-                  placeholder={t("auth.passwordPlaceholder")}
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-gray-900 outline-none transition focus:border-[#E06666]/50 focus:ring-4 focus:ring-[#E06666]/10 dark:border-slate-700 dark:bg-[#0F141F] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-[#E06666]/60 dark:focus:ring-[#E06666]/10"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder={t("auth.passwordPlaceholder")}
+                    value={formData.password}
+                    onChange={handleChange}
+                    autoComplete="current-password"
+                    required
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 pr-12 text-gray-900 outline-none transition focus:border-[#E06666]/50 focus:ring-4 focus:ring-[#E06666]/10 dark:border-slate-700 dark:bg-[#0F141F] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-[#E06666]/60 dark:focus:ring-[#E06666]/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? (isVi ? "Ẩn mật khẩu" : "Hide password") : (isVi ? "Hiện mật khẩu" : "Show password")}
+                    className="absolute inset-y-0 right-3 flex items-center text-gray-400 transition hover:text-[#E06666] dark:text-slate-500 dark:hover:text-[#F29A9A]"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               <button

@@ -114,7 +114,8 @@ const ReceptionistLayout = ({ children }) => {
               <NotificationBadge />
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-yellow-400 hover:bg-gray-200 dark:hover:bg-slate-600 transition"
+                aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 text-gray-700 transition hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E06666]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:bg-slate-700 dark:text-yellow-400 dark:focus-visible:ring-offset-slate-900 dark:hover:bg-slate-600"
               >
                 {theme === "light" ? (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

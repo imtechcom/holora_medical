@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Eye, EyeOff } from "lucide-react";
 import { googleAuthApi, registerApi } from "../services/authService";
 import { useAuth } from "../context/AuthContext";
 
@@ -31,6 +32,8 @@ const RegisterPage = ({ defaultAccountType = "patient" }) => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const googleBtnRef = useRef(null);
 
   const handleGoogleCredential = useCallback(
@@ -279,30 +282,52 @@ const RegisterPage = ({ defaultAccountType = "patient" }) => {
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-slate-300">
                     {t("auth.password")}
                   </label>
-                  <input
-                    type="password"
-                    name="password"
-                    placeholder={t("auth.passwordPlaceholder")}
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-gray-900 outline-none transition focus:border-[#E06666]/50 focus:ring-4 focus:ring-[#E06666]/10 dark:border-slate-700 dark:bg-[#0F141F] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-[#E06666]/60 dark:focus:ring-[#E06666]/10"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      placeholder={t("auth.passwordPlaceholder")}
+                      value={formData.password}
+                      onChange={handleChange}
+                      autoComplete="new-password"
+                      required
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 pr-12 text-gray-900 outline-none transition focus:border-[#E06666]/50 focus:ring-4 focus:ring-[#E06666]/10 dark:border-slate-700 dark:bg-[#0F141F] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-[#E06666]/60 dark:focus:ring-[#E06666]/10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? (isVi ? "Ẩn mật khẩu" : "Hide password") : (isVi ? "Hiện mật khẩu" : "Show password")}
+                      className="absolute inset-y-0 right-3 flex items-center text-gray-400 transition hover:text-[#E06666] dark:text-slate-500 dark:hover:text-[#F29A9A]"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-slate-300">
                     {t("auth.confirmPassword")}
                   </label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    placeholder={t("auth.confirmPasswordPlaceholder")}
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-gray-900 outline-none transition focus:border-[#E06666]/50 focus:ring-4 focus:ring-[#E06666]/10 dark:border-slate-700 dark:bg-[#0F141F] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-[#E06666]/60 dark:focus:ring-[#E06666]/10"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      placeholder={t("auth.confirmPasswordPlaceholder")}
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      autoComplete="new-password"
+                      required
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 pr-12 text-gray-900 outline-none transition focus:border-[#E06666]/50 focus:ring-4 focus:ring-[#E06666]/10 dark:border-slate-700 dark:bg-[#0F141F] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-[#E06666]/60 dark:focus:ring-[#E06666]/10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      aria-label={showConfirmPassword ? (isVi ? "Ẩn xác nhận mật khẩu" : "Hide confirm password") : (isVi ? "Hiện xác nhận mật khẩu" : "Show confirm password")}
+                      className="absolute inset-y-0 right-3 flex items-center text-gray-400 transition hover:text-[#E06666] dark:text-slate-500 dark:hover:text-[#F29A9A]"
+                    >
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
               </div>
 

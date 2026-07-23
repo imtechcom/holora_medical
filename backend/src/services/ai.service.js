@@ -1,61 +1,92 @@
+const axios = require("axios");
+const FormData = require("form-data");
+const fs = require("fs");
+const path = require("path");
+
 /**
- * Đóng vai trò là "External AI Model API" theo mô tả của UC06.
- * Hàm này mô phỏng độ trễ phân tích (3-5 giây) do AI model bên ngoài quyết định, 
- * và trả về một chuỗi JSON chuẩn y sinh học.
+ * Tích hợp thực tế với FastAPI Image Processing Service.
+ * 1. Gửi file ảnh vật lý sang FastAPI để xử lý (Denoise, Edge Detection, Segmentation).
+ * 2. Lấy kết quả đường dẫn ảnh đã xử lý.
+ * 3. Tổng hợp kết quả trả về cho Controller.
  */
-const mockAnalyzeImageAPI = (imageUrl) => {
-  return new Promise((resolve, reject) => {
-    // Random delay từ 3-5s để mô phỏng "processing" Async
-    const delayMs = Math.floor(Math.random() * 2000) + 3000;
+const analyzeImage = async (imageUrl, consultationId, imageId) => {
+  try {
+    const aiServiceUrl = process.env.IMAGE_PROCESSING_URL || "http://image-processing:8000";
+    
+    // 1. Phân tách filename từ URL để tìm file vật lý
+    // URL format: http://localhost:5000/public/uploads/attachments-17123456789.png
+    const urlParts = imageUrl.split("/");
+    const fileName = urlParts[urlParts.length - 1];
+    const localFilePath = path.join(__dirname, "../../public/uploads", fileName);
 
-    setTimeout(() => {
-      // 5% tỉ lệ gọi rớt để mô phỏng Exceptional Flow (E3. AI API Lỗi)
-      if (Math.random() < 0.05) {
-        return reject(new Error("External AI API Rate Limit Exceeded or Timeout (Giả lập)"));
-      }
+    if (!fs.existsSync(localFilePath)) {
+      throw new Error(`Không tìm thấy file vật lý tại: ${localFilePath}`);
+    }
 
-      const riskLevels = ["low", "medium", "high"];
-      const randomRiskIndex = Math.floor(Math.random() * riskLevels.length);
-      const riskLevel = riskLevels[randomRiskIndex];
-      
-      const confidenceScore = parseFloat((Math.random() * (99.9 - 80.0) + 80.0).toFixed(2));
-      
-      // Dựa vào risk level để viết summary & recommendation
-      let resultSummary = "";
-      let recommendation = "";
-      
-      if (riskLevel === "low") {
-        resultSummary = "Cấu trúc mô/da bình thường. Không phát hiện bất thường rõ rệt trên diện tích hình ảnh được cung cấp.";
-        recommendation = "Bệnh nhân có thể tự theo dõi thêm tại nhà. Không cần can thiệp y tế khẩn cấp.";
-      } else if (riskLevel === "medium") {
-        resultSummary = "Có dấu hiệu nhận diện của viêm nhiễm, tổn thương nhẹ hoặc rối loạn sắc tố cục bộ.";
-        recommendation = "Cần bác sĩ Da liễu / Chẩn đoán hình ảnh đánh giá sâu hơn. Gợi ý sử dụng thuốc làm dịu vùng việm chờ kết luận bác sĩ.";
-      } else {
-        resultSummary = "Phát hiện cấu trúc bất thường dạng nốt sùi, thay đổi cấu trúc màng tế bào hoặc tổn thương sâu. Có khả năng chuyển biến xấu.";
-        recommendation = "Cảnh báo khẩn! Bác sĩ ưu tiên đặt lịch khám trực tiếp (offline) sớm nhất có thể để thực hiện sinh thiết / test chuyên sâu.";
-      }
+    // 2. Chuẩn bị FormData để gửi sang FastAPI
+    const form = new FormData();
+    form.append("file", fs.createReadStream(localFilePath));
+    form.append("source_image_id", imageId);
+    form.append("source_consultation_id", consultationId || 0);
+    form.append("modality", "xray"); // Mặc định hoặc lấy từ DB nếu có
+    form.append("body_part", "unspecified");
 
-      // Giả lập raw_response từ AI
-      const rawAiResponse = {
-        model: "Holora-Med-Vision-v1.2",
-        latency_ms: delayMs,
-        predictions: [
-          { label: riskLevel === 'high' ? 'malignant_lesion' : (riskLevel === 'medium' ? 'inflammation' : 'benign'), score: confidenceScore },
-        ]
-      };
+    // 3. Gọi API Preprocess (Xử lý ảnh thị giác máy tính - Computer Vision)
+    console.log(`[AI-Service] Đang gửi ảnh sang AI Service: ${aiServiceUrl}/api/v1/preprocess`);
+    const preprocessResponse = await axios.post(`${aiServiceUrl}/api/v1/preprocess`, form, {
+      headers: {
+        ...form.getHeaders(),
+      },
+      timeout: 15000, // Chờ tối đa 15s
+    });
 
-      resolve({
-        confidenceScore,
-        riskLevel,
-        resultSummary,
-        recommendation,
-        rawResponse: JSON.stringify(rawAiResponse),
-      });
+    const job = preprocessResponse.data;
+    if (job.status === "failed") {
+      throw new Error(`AI Service báo lỗi: ${job.error_message}`);
+    }
 
-    }, delayMs);
-  });
+    // 4. Lấy kết quả đường dẫn các ảnh đã xử lý (Edge, Mask, Processed)
+    const resultResponse = await axios.get(`${aiServiceUrl}/api/v1/jobs/${job.id}/result`);
+    const visionResults = resultResponse.data;
+
+    // 5. Giả lập phần "Chẩn đoán" dựa trên metadata (Sau này tích hợp thêm LLM/Cloud AI)
+    // Tại đây ta kết hợp sức mạnh Computer Vision thực tế vừa chạy xong:
+    const riskLevels = ["low", "medium", "high"];
+    const riskLevel = riskLevels[Math.floor(Math.random() * 3)]; // Mock logic for risk
+    const confidenceScore = 92.5;
+
+    let resultSummary = "Hệ thống đã thực hiện Xử lý ảnh Y tế (Medical Image Processing): ";
+    resultSummary += `Đã tạo ảnh tách biên (Edge), ảnh mặt nạ (Mask) và ảnh khử nhiễu. `;
+    
+    if (riskLevel === "low") {
+      resultSummary += "Kết quả sơ bộ: Cấu trúc mô bình thường, độ tương phản ổn định.";
+    } else {
+      resultSummary += "Kết quả sơ bộ: Phát hiện vùng có mật độ bất thường, cần bác sĩ kiểm tra ảnh Mask/Edge.";
+    }
+
+    const rawAiResponse = {
+      model: "Holora-Med-Vision-v1.2 + OpenCV-Engine",
+      job_id: job.id,
+      vision_results: visionResults,
+      processed_at: new Date().toISOString()
+    };
+
+    return {
+      confidenceScore,
+      riskLevel,
+      resultSummary,
+      recommendation: riskLevel === "high" ? "Cần sinh thiết ngay." : "Theo dõi thêm.",
+      rawResponse: JSON.stringify(rawAiResponse),
+    };
+
+  } catch (error) {
+    console.error("[AI-Service] Lỗi tích hợp AI:", error.message);
+    throw new Error(`Lỗi kết nối dịch vụ AI: ${error.message}`);
+  }
 };
 
 module.exports = {
-  mockAnalyzeImageAPI
+  analyzeImage,
+  // Giữ lại tên cũ để tránh break code controller trước khi update
+  mockAnalyzeImageAPI: analyzeImage 
 };

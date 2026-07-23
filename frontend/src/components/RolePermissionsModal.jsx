@@ -16,11 +16,6 @@ const RolePermissionsModal = ({ roleId, roleName, onClose, onSuccess }) => {
   const [selectedModule, setSelectedModule] = useState("");
   const [modules, setModules] = useState([]);
 
-  // Fetch permissions and role permissions on mount
-  useEffect(() => {
-    fetchData();
-  }, [roleId, fetchData]);
-
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -53,7 +48,12 @@ const RolePermissionsModal = ({ roleId, roleName, onClose, onSuccess }) => {
     } finally {
       setLoading(false);
     }
-  }, [roleId, t]);
+  }, [roleId]);
+
+  // Fetch permissions and role permissions on mount
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleTogglePermission = (permissionId) => {
     setSelectedPermissions((prev) => {

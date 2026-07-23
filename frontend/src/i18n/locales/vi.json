@@ -3,7 +3,7 @@
     "login": "Đăng nhập",
     "logout": "Đăng xuất",
     "register": "Đăng ký",
-    "holora": "Holora Y Tế",
+    "holora": "HoloraMed",
     "home": "Trang chủ",
     "doctors": "Bác sĩ",
     "appointments": "Lịch hẹn",
@@ -12,6 +12,7 @@
     "welcome": "Chào mừng",
     "hello": "Xin chào",
     "user": "Người dùng",
+    "guest": "Khách",
     "doctor": "Bác sĩ",
     "patient": "Bệnh nhân",
     "profile": "Hồ sơ",
@@ -43,10 +44,16 @@
     "pricing": "Bảng giá",
     "language": "Ngôn ngữ",
     "darkMode": "Chế độ tối",
-    "lightMode": "Chế độ sáng"
+    "lightMode": "Chế độ sáng",
+    "back": "Quay lại",
+    "reset": "Đặt lại",
+    "zoomIn": "Phóng to",
+    "zoomOut": "Thu nhỏ",
+    "processing": "Đang xử lý...",
+    "sending": "Đang gửi..."
   },
   "navbar": {
-    "holora": "Holora Y Tế",
+    "holora": "HoloraMed",
     "home": "Trang chủ",
     "doctors": "Bác sĩ",
     "appointments": "Lịch hẹn",
@@ -99,7 +106,139 @@
     "passwordNotMatch": "Xác nhận mật khẩu không khớp.",
     "invalidEmail": "Email hoặc mật khẩu không hợp lệ",
     "orContinueWith": "hoặc tiếp tục với",
-    "googleAuthFailed": "Xác thực Google thất bại. Vui lòng thử lại."
+    "googleAuthFailed": "Xác thực Google thất bại. Vui lòng thử lại.",
+    "change_password": "Đổi mật khẩu",
+    "current_password": "Mật khẩu hiện tại",
+    "new_password": "Mật khẩu mới",
+    "confirm_password": "Xác nhận mật khẩu mới",
+    "update_password": "Cập nhật mật khẩu",
+    "change_password_success": "Đổi mật khẩu thành công!",
+    "change_password_failed": "Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu cũ.",
+    "passwords_do_not_match": "Mật khẩu xác nhận không khớp.",
+    "password_too_short": "Mật khẩu mới phải có ít nhất 6 ký tự."
+  },
+  "prescription": {
+    "sectionTitle": "Toa thuốc",
+    "createBtn": "Kê toa",
+    "empty": "Chưa có toa thuốc nào.",
+    "error": {
+      "noPatientId": "Không xác định được ID bệnh nhân."
+    },
+    "status": {
+      "draft": "Nháp",
+      "issued": "Đã phát hành",
+      "cancelled": "Đã hủy"
+    },
+    "card": {
+      "items": "thuốc",
+      "doctor": "BS",
+      "diagnosis": "Chẩn đoán",
+      "medName": "Thuốc",
+      "dosage": "Liều",
+      "freq": "Tần suất",
+      "qty": "SL",
+      "route": "Đường dùng",
+      "notes": "Ghi chú",
+      "viewDetail": "Xem chi tiết",
+      "edit": "Sửa",
+      "issue": "Phát hành",
+      "cancel": "Hủy toa"
+    },
+    "detail": {
+      "title": "Chi tiết toa thuốc",
+      "notFound": "Không tìm thấy toa thuốc.",
+      "status": "Trạng thái",
+      "createdAt": "Ngày tạo",
+      "issuedAt": "Ngày phát hành",
+      "doctor": "Bác sĩ",
+      "patient": "Bệnh nhân",
+      "diagnosis": "Chẩn đoán",
+      "medications": "Danh sách thuốc",
+      "freq": "Tần suất",
+      "duration": "Thời gian",
+      "qty": "Số lượng",
+      "route": "Đường dùng",
+      "notes": "Ghi chú"
+    },
+    "form": {
+      "errorNoItems": "Cần ít nhất 1 dòng thuốc.",
+      "titleEdit": "Sửa toa thuốc",
+      "titleNew": "Kê toa thuốc",
+      "forPatient": "Bệnh nhân",
+      "diagnosis": "Chẩn đoán",
+      "diagnosisPlaceholder": "Nhập chẩn đoán bệnh...",
+      "medications": "Danh sách thuốc",
+      "addMed": "Thêm thuốc",
+      "medName": "Tên thuốc",
+      "dosage": "Liều lượng",
+      "frequency": "Tần suất",
+      "duration": "Thời gian",
+      "quantity": "Số lượng",
+      "route": "Đường dùng",
+      "instructions": "Ghi chú",
+      "notes": "Ghi chú chung",
+      "notesPlaceholder": "Lời dặn, lưu ý cho bệnh nhân...",
+      "update": "Cập nhật toa",
+      "save": "Lưu toa thuốc",
+      "errorCreate": "Lỗi tạo toa thuốc",
+      "exampleMedName": "VD: Paracetamol 500mg",
+      "exampleDosage": "VD: 500mg",
+      "exampleFrequency": "VD: 3 lần/ngày",
+      "exampleDuration": "VD: 7 ngày",
+      "exampleInstructions": "VD: Uống sau ăn"
+    },
+    "routeOptions": {
+      "oral": "Uống",
+      "injection": "Tiêm",
+      "topical": "Bôi",
+      "drop": "Nhỏ",
+      "spray": "Xịt",
+      "insert": "Đặt",
+      "sublingual": "Ngậm",
+      "inhalation": "Hít"
+    },
+    "unitOptions": {
+      "tablet": "viên",
+      "pack": "gói",
+      "ampoule": "ống",
+      "bottle": "chai",
+      "tube": "tuýp",
+      "vial": "lọ",
+      "ml": "ml",
+      "mg": "mg"
+    }
+  },
+  "receptionist": {
+    "zone": "Khu Lễ Tân"
+  },
+  "accountant": {
+    "zone": "Khu Kế Toán"
+  },
+  "pricing": {
+    "title": "Bảng giá",
+    "heroTitle": "Bảng giá đơn giản, rõ ràng",
+    "heroDesc": "Bắt đầu miễn phí, nâng cấp khi cần mở rộng. Không rối, không nhiều tầng gói không cần thiết.",
+    "free": "Miễn phí",
+    "freeDesc": "Phù hợp cho phòng khám vừa khởi đầu",
+    "popular": "Phổ biến nhất",
+    "plusDesc": "Dành cho chuỗi phòng khám muốn mở rộng không giới hạn",
+    "perMonth": "/ tháng",
+    "feature": {
+      "branchLimit": "Tối đa {{count}} chi nhánh",
+      "doctorLimit": "Tối đa {{count}} bác sĩ / chi nhánh",
+      "appointments": "Quản lý lịch hẹn",
+      "patientRecords": "Hồ sơ bệnh nhân",
+      "basicTelehealth": "Tư vấn trực tuyến cơ bản",
+      "advancedTelehealth": "Tư vấn trực tuyến nâng cao",
+      "unlimitedBranches": "Chi nhánh không giới hạn",
+      "unlimitedDoctors": "Bác sĩ không giới hạn",
+      "analytics": "Báo cáo & phân tích chi tiết",
+      "prioritySupport": "Hỗ trợ ưu tiên 24/7"
+    },
+    "cta": {
+      "free": "Đăng ký miễn phí",
+      "plus": "Nâng cấp ngay"
+    }
   },
   "admin": {
     "dashboard": "Bảng điều khiển",
@@ -758,6 +897,90 @@
         "loadDetail": "Không thể tải chi tiết tư vấn.",
         "sendReply": "Không thể gửi phản hồi.",
         "emptyDetail": "Không thể hiển thị chi tiết tư vấn."
+      }
+    },
+    "consultationDetail": {
+      "backToList": "Quay lại danh sách tư vấn",
+      "messagesShort": "tin nhắn",
+      "patientInfo": "Thông tin bệnh nhân",
+      "patientName": "Họ tên",
+      "ageGender": "Tuổi / Giới tính",
+      "yearsOld": "tuổi",
+      "medicalHistory": "Tiền sử bệnh",
+      "allergies": "Dị ứng",
+      "notAvailable": "Chưa cập nhật",
+      "symptoms": "Lý do khám",
+      "linkedAppointment": "Lịch hẹn liên quan",
+      "appointmentRef": "Từ lịch hẹn",
+      "viewAppointment": "Xem lịch hẹn",
+      "clinicalImages": "Hình ảnh lâm sàng",
+      "imageNum": "Ảnh",
+      "original": "Ảnh gốc",
+      "originalImage": "Ảnh gốc",
+      "originalLabel": "Ảnh gốc",
+      "aiLabel": "AI",
+      "aiVision": "Phân tích AI",
+      "viewMode": {
+        "processed": "Đã xử lý",
+        "edge": "Biên",
+        "mask": "Mặt nạ"
+      },
+      "aiAnalyzing": "AI đang phân tích...",
+      "failed": "Thất bại",
+      "noVisualData": "Không có dữ liệu hình ảnh",
+      "aiEngineRunning": "AI đang xử lý...",
+      "cvAnalysisAvailable": "Sẵn sàng phân tích ảnh",
+      "aiComplete": "AI hoàn tất",
+      "idle": "Chờ xử lý",
+      "addReview": "Thêm đánh giá",
+      "editReview": "Sửa đánh giá",
+      "hideFindings": "Ẩn",
+      "findings": "Kết quả",
+      "finding": "Phát hiện",
+      "recommendation": "Khuyến nghị",
+      "reviewResult": "Đánh giá kết quả AI",
+      "reviewNote": "Ghi chú đánh giá (tùy chọn)...",
+      "aiReport": "Báo cáo phân tích AI",
+      "aiReportDesc": "Tóm tắt kết quả phân tích AI trên tất cả hình ảnh",
+      "imageId": "Ảnh",
+      "suggestion": "Gợi ý",
+      "chatTitle": "Lịch sử chẩn đoán và tư vấn",
+      "msgType": {
+        "diagnosis": "Kết luận y khoa"
+      },
+      "noMessages": "Chưa có tin nhắn nào.",
+      "replyType": {
+        "message": "Tin nhắn",
+        "diagnosis": "Chẩn đoán",
+        "recommendation": "Khuyến nghị",
+        "prescription": "Ghi chú toa thuốc"
+      },
+      "patientPlaceholder": "Nhập câu hỏi của bạn...",
+      "doctorPlaceholder": "Nhập phản hồi của bạn...",
+      "send": "Gửi",
+      "sendComplete": "Gửi và hoàn tất",
+      "caseCompleted": "Ca tư vấn này đã được đánh dấu là hoàn tất.",
+      "reopenCase": "Mở lại ca tư vấn",
+      "analyzeNow": "Phân tích ngay",
+      "aiConfirmTitle": "Gửi hình ảnh tới Holora AI để phân tích?",
+      "aiConfirmDesc": "Quá trình này có thể mất vài giây trước khi hình ảnh được gửi tới dịch vụ AI để xử lý.",
+      "aiConfirmBtn": "Chạy phân tích",
+      "previewHint": "Dùng phím trái/phải để chuyển ảnh, con lăn để phóng to và kéo để di chuyển.",
+      "previewDragHint": "Kéo để di chuyển hoặc dùng con lăn để phóng to",
+      "reviewStatus": {
+        "pendingReview": "Chờ đánh giá",
+        "approved": "Đã duyệt",
+        "approvedWatch": "Đã duyệt và theo dõi",
+        "notStandard": "Chưa đạt chuẩn",
+        "revoked": "Đã thu hồi"
+      },
+      "errors": {
+        "loadFailed": "Không thể tải chi tiết tư vấn."
+      },
+      "risk": {
+        "low": "Thấp",
+        "medium": "Trung bình",
+        "high": "Cao"
       }
     },
     "profilePage": {

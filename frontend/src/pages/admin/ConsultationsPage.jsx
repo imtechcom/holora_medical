@@ -611,6 +611,8 @@ const ConsultationsPage = () => {
                     ) : (
                       detailData.responses.map((msg) => {
                         const isPatient = msg.responder_role === "patient";
+                        const attachments = Array.isArray(msg.attachments) ? msg.attachments : [];
+                        const messageText = typeof msg.content === "string" ? msg.content.trim() : "";
                         return (
                           <div key={msg.id} className={`flex w-full ${isPatient ? "justify-start" : "justify-end"}`}>
                             <div className={`max-w-[80%] sm:max-w-[70%] rounded-2xl p-3 shadow-sm ${
@@ -621,7 +623,18 @@ const ConsultationsPage = () => {
                               <div className={`text-[11px] font-semibold mb-1 ${isPatient ? "text-text-dim" : "text-emerald-100"}`}>
                                 {msg.responder_name} • {fmtDateTime(msg.created_at)}
                               </div>
-                              <div className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</div>
+                              {messageText && <div className="whitespace-pre-wrap text-sm leading-relaxed">{messageText}</div>}
+                              {attachments.length > 0 && (
+                                <div className={`mt-2 grid gap-2 ${attachments.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                                  {attachments.map((attachment) => (
+                                    <a key={attachment.id} href={resolveApiUrl(attachment.image_url)} target="_blank" rel="noreferrer"
+                                      className="group overflow-hidden rounded-xl border border-white/20 bg-black/10">
+                                      <img src={resolveApiUrl(attachment.image_url)} alt={attachment.file_name || "attachment"}
+                                        className="h-44 w-full object-cover transition duration-200 group-hover:scale-[1.02]" />
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         );

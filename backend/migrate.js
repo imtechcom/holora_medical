@@ -23,6 +23,9 @@ connection.connect((err) => {
     "ALTER TABLE `doctor` ADD CONSTRAINT `unique_license_number` UNIQUE KEY `uk_license_number` (`license_number`)",
     "ALTER TABLE `doctor` ADD INDEX `idx_doctor_code` (`doctor_code`)",
     "ALTER TABLE `doctor` MODIFY `status` enum('active','inactive','on_leave','deleted') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active'",
+    "ALTER TABLE `consultation_image` ADD COLUMN `response_id` bigint unsigned NULL AFTER `uploaded_by`",
+    "ALTER TABLE `consultation_image` ADD INDEX `idx_consultation_image_response_id` (`response_id`)",
+    "ALTER TABLE `consultation_image` ADD CONSTRAINT `fk_consultation_image_response` FOREIGN KEY (`response_id`) REFERENCES `consultation_response` (`id`) ON DELETE CASCADE ON UPDATE CASCADE",
   ];
 
   let completedQueries = 0;

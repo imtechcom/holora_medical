@@ -284,8 +284,6 @@ const PatientConsultationDetailPage = () => {
                   const isPending = data.status === "pending";
                   // Bệnh nhân thấy có AI khi data được chia sẻ
                   // Backend sẽ block nếu có ai_analysis_request bất kể shared hay không
-                  const canDelete = isPending && !hasAI;
-                  const analyzedButNotShared = isPending && !hasAI; // button vẫn hiện, backend sẽ bảo vệ
                   const isDeleting = deletingImageId === img.id;
                   const imgError = imageErrors[img.id];
 

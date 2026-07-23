@@ -1,13 +1,16 @@
 const db = require("../config/db");
-const { mockAnalyzeImageAPI } = require("../services/ai.service");
+const { analyzeImage } = require("../services/ai.service");
+const { createNotification } = require("../utils/notification.util");
+
 
 // [UC06] Yêu cầu phân tích AI từ hình ảnh
 const requestAnalysis = (req, res) => {
   const userId = req.user.id;
   const { consultation_id, consultation_image_id } = req.body;
+  console.log("[AI-Debug] Request Body:", req.body);
 
   if (!consultation_id || !consultation_image_id) {
-    return res.status(400).json({ message: "Thiếu thông tin (consultation_id / consultation_image_id)!" });
+    return res.status(400).json({ message: "Thiếu thông tin (consultation_id / consultation_image_id)! [v3-AI]" });
   }
 
   // 1. Kiểm tra hình ảnh đầu vào (Main Flow 3)
@@ -43,8 +46,8 @@ const requestAnalysis = (req, res) => {
       // ============================================
       // BACKGROUND ASYNC PROCESSING (Không chặn Request UI)
       // ============================================
-      // 4. Gửi request đến External AI Service API
-      mockAnalyzeImageAPI(imageUrl)
+      // 4. Gửi request đến External AI Service API (Thực tế là FastAPI Container)
+      analyzeImage(imageUrl, consultation_id, consultation_image_id)
         .then((aiResponse) => {
           // 5. AI service xử lý & trả về -> Parse (Main Flow 5 & 6)
           const { confidenceScore, riskLevel, resultSummary, recommendation, rawResponse } = aiResponse;
@@ -92,12 +95,12 @@ const getAIAnalysisForConsultation = (req, res) => {
          req.id as request_id, req.consultation_image_id, req.status as request_status, req.requested_at,
          img.image_url,
          res.result_summary, res.confidence_score, res.risk_level, res.recommendation, res.created_at as completed_at,
-         res.doctor_review_status, res.shared_with_patient, res.review_note
+         res.doctor_review_status, res.shared_with_patient, res.review_note, res.result_payload
        FROM ai_analysis_request req
        INNER JOIN ai_analysis_result res ON req.id = res.request_id AND res.shared_with_patient = 1
        LEFT JOIN consultation_image img ON req.consultation_image_id = img.id
        WHERE req.consultation_id = ?
-       ORDER BY req.created_at DESC
+       ORDER BY req.requested_at DESC
      `;
    } else {
      // Bác sĩ / admin thấy tất cả + trạng thái đánh giá
@@ -106,12 +109,12 @@ const getAIAnalysisForConsultation = (req, res) => {
          req.id as request_id, req.consultation_image_id, req.status as request_status, req.requested_at,
          req.error_message, img.image_url,
          res.result_summary, res.confidence_score, res.risk_level, res.recommendation, res.created_at as completed_at,
-         res.doctor_review_status, res.shared_with_patient, res.review_note
+         res.doctor_review_status, res.shared_with_patient, res.review_note, res.result_payload
        FROM ai_analysis_request req
        LEFT JOIN ai_analysis_result res ON req.id = res.request_id
        LEFT JOIN consultation_image img ON req.consultation_image_id = img.id
        WHERE req.consultation_id = ?
-       ORDER BY req.created_at DESC
+       ORDER BY req.requested_at DESC
      `;
    }
 
@@ -155,10 +158,37 @@ const reviewAIResult = (req, res) => {
     db.query(updateSql, [review_status, sharedWithPatient, review_note || null, doctorId, requestId], (err2, result) => {
       if (err2) return res.status(500).json({ error: err2.message });
       if (result.affectedRows === 0) return res.status(404).json({ message: "Không tìm thấy kết quả AI cần cập nhật." });
+
+      // Gửi thông báo cho bệnh nhân khi bác sĩ chia sẻ kết quả AI
+      if (sharedWithPatient) {
+        const patientUserSql = `
+          SELECT p.user_id
+          FROM ai_analysis_request req
+          JOIN consultation c ON c.id = req.consultation_id
+          JOIN patient p ON p.id = c.patient_id
+          WHERE req.id = ?
+          LIMIT 1
+        `;
+        db.query(patientUserSql, [requestId], (pErr, pRows) => {
+          if (pErr || !pRows.length) return; // silent — không ảnh hưởng response đã gửi
+          const patientUserId = pRows[0].user_id;
+          createNotification(db, {
+            userId:  patientUserId,
+            type:    'ai_result_shared',
+            title:   'Bác sĩ vừa chia sẻ kết quả phân tích AI với bạn',
+            body:    review_note
+              ? `Ghi chú của bác sĩ: ${review_note}`
+              : 'Hãy vào xem chi tiết tư vấn để xem kết quả AI được chia sẻ.',
+            link:    `/patient/consultations`, // frontend tự hiển thị
+          });
+        });
+      }
+
       return res.json({ message: "Đã lưu đánh giá kết quả AI.", shared_with_patient: sharedWithPatient });
     });
   });
 };
+
 
 module.exports = {
   requestAnalysis,

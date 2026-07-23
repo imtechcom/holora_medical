@@ -1,4 +1,4 @@
-﻿import DoctorEarningsPage from "../pages/doctor/DoctorEarningsPage";
+import DoctorEarningsPage from "../pages/doctor/DoctorEarningsPage";
         <Route
           path="/doctor/earnings"
           element={
@@ -11,6 +11,7 @@
         />
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import RouteTitleManager from "../components/RouteTitleManager";
 
 // Layouts
 import MainLayout from "../components/layout/MainLayout";
@@ -113,34 +114,31 @@ import AccountantRoute from "./AccountantRoute";
 // Role-based home redirect
 const HomeRedirect = () => {
   const { user, role } = useAuth();
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
   switch (role) {
-    case "patient":
-      return <Navigate to="/patient" replace />;
-    case "doctor":
-      return <Navigate to="/doctor" replace />;
-    case "clinic_owner":
-      return <Navigate to="/clinic-owner" replace />;
-      case "receptionist":
-        return <Navigate to="/receptionist" replace />;
-      case "accountant":
-        return <Navigate to="/accountant" replace />;
+    case "patient": return <Navigate to="/patient" replace />;
+    case "doctor": return <Navigate to="/doctor" replace />;
+    case "clinic_owner": return <Navigate to="/clinic-owner" replace />;
+    case "receptionist": return <Navigate to="/receptionist" replace />;
+    case "accountant": return <Navigate to="/accountant" replace />;
     case "admin":
-    case "super_admin":
-      return <Navigate to="/admin" replace />;
-    default:
-      return <Navigate to="/" replace />;
+    case "super_admin": return <Navigate to="/admin" replace />;
+    default: return <Navigate to="/" replace />;
   }
 };
 
+const HoloraMindRedirect = () => {
+  const { user, role } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (role === "doctor") return <Navigate to="/doctor/holoramind" replace />;
+  return <Navigate to="/patient/holoramind" replace />;
+};
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
+      <RouteTitleManager />
       <Routes>
         {/* ═══════════════════════════════════════════════════════════════ */}
         {/* PUBLIC ZONE - No authentication required */}
@@ -155,6 +153,7 @@ const AppRoutes = () => {
         />
 
         <Route path="/home-redirect" element={<HomeRedirect />} />
+        <Route path="/holoramind" element={<HoloraMindRedirect />} />
 
         <Route
           path="/pricing"

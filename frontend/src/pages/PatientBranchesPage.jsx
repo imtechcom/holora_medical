@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Building2, ChevronLeft, ChevronRight, LocateFixed, Mail, MapPin, Phone, Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Building2, Calendar, ChevronLeft, ChevronRight, LocateFixed, Mail, MapPin, Phone, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import branchService from "../services/branchService";
 
 const PAGE_SIZE = 9;
@@ -397,12 +397,21 @@ const PatientBranchesPage = () => {
                   )}
 
                   <div className="mt-4">
-                    <Link
-                      to={`/branches/${branch.id}`}
-                      className="inline-flex items-center rounded-xl border border-[#E06666]/30 bg-[#FFF5F5] px-3 py-2 text-sm font-semibold text-[#B64949] transition hover:bg-[#FFECEB]"
-                    >
-                      {t("publicBranches.card.viewDetail")}
-                    </Link>
+                    <div className="flex flex-wrap gap-3">
+                      <Link
+                        to={`/patient/appointments?branchId=${branch.id}`}
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#E06666] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#D55555]"
+                      >
+                        <Calendar size={16} />
+                        {t("publicBranches.card.bookAppointment", { defaultValue: "Đặt lịch" })}
+                      </Link>
+                      <Link
+                        to={`/branches/${branch.id}`}
+                        className="inline-flex items-center rounded-xl border border-[#E06666]/30 bg-[#FFF5F5] px-3 py-2 text-sm font-semibold text-[#B64949] transition hover:bg-[#FFECEB]"
+                      >
+                        {t("publicBranches.card.viewDetail")}
+                      </Link>
+                    </div>
                   </div>
                 </article>
               ))}

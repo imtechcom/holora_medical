@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
@@ -14,7 +14,7 @@ import {
   User,
   Video,
 } from "lucide-react";
-import { searchDoctorsApi } from "../services/doctorService";
+import { getDoctorByIdApi, searchDoctorsApi } from "../services/doctorService";
 import { appointmentService } from "../services/appointmentService";
 import { useAuth } from "../context/AuthContext";
 
@@ -52,6 +52,9 @@ const AppointmentPage = () => {
   const { t, i18n } = useTranslation();
   const { role } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialDoctorId = searchParams.get("doctorId") || "";
+  const initialBranchId = searchParams.get("branchId") || "";
 
   const [activeTab, setActiveTab] = useState("booking");
   const [mobileStep, setMobileStep] = useState("select"); // "select" | "book" — mobile only
@@ -81,6 +84,24 @@ const AppointmentPage = () => {
   const [appointmentType, setAppointmentType] = useState("offline");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  const getBranchSelectionForDoctor = useCallback(
+    (doctor) => {
+      const branches = doctor?.branches || [];
+
+      if (initialBranchId && branches.some((branch) => String(branch.id) === String(initialBranchId))) {
+        return String(initialBranchId);
+      }
+
+      if (branches.length === 1) {
+        return String(branches[0].id);
+      }
+
+      return "";
+    },
+    [initialBranchId]
+  );
+
   const statusLabels = {
     scheduled: t("patient.appointmentsPage.statusScheduled"),
     confirmed: t("patient.appointmentsPage.statusConfirmed"),
@@ -101,6 +122,7 @@ const AppointmentPage = () => {
         status: "active",
         page,
         limit: 20,
+        branch_id: initialBranchId || undefined,
       });
 
       const nextDoctors = data?.data || [];
@@ -116,7 +138,33 @@ const AppointmentPage = () => {
       setLoadingDoctors(false);
       setLoadingMoreDoctors(false);
     }
-  }, [t]);
+  }, [initialBranchId, t]);
+
+  useEffect(() => {
+    if (!initialDoctorId) return;
+
+    let cancelled = false;
+
+    const loadDoctor = async () => {
+      try {
+        const response = await getDoctorByIdApi(initialDoctorId);
+        const doctor = response?.data || response;
+        if (!doctor || cancelled) return;
+
+        setSelectedDoctor(doctor);
+        setSelectedBranchId(getBranchSelectionForDoctor(doctor));
+        setMobileStep("book");
+      } catch (err) {
+        console.error("Failed to load initial doctor", err);
+      }
+    };
+
+    loadDoctor();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getBranchSelectionForDoctor, initialDoctorId]);
 
   const fetchMyAppointments = useCallback(async () => {
     try {
@@ -243,7 +291,7 @@ const AppointmentPage = () => {
 
   const handleChooseDoctor = (doctor) => {
     setSelectedDoctor(doctor);
-    setSelectedBranchId("");
+    setSelectedBranchId(getBranchSelectionForDoctor(doctor));
     setSelectedSlot("");
     setAvailableSlots([]);
     setMobileStep("book"); // auto-advance on mobile

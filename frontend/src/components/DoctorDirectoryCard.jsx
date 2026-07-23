@@ -1,11 +1,22 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Building2, UserRound } from "lucide-react";
+import { Building2, Calendar, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const formatCurrency = (value, locale, fallback) => {
   if (!value) return fallback;
   return `${Number(value).toLocaleString(locale)} VND`;
+};
+
+const buildBookingPath = (doctor) => {
+  const params = new URLSearchParams();
+  params.set("doctorId", doctor.id);
+
+  if (Array.isArray(doctor.branches) && doctor.branches.length === 1) {
+    params.set("branchId", doctor.branches[0].id);
+  }
+
+  return `/patient/appointments?${params.toString()}`;
 };
 
 const DoctorDirectoryCard = ({ doctor }) => {
@@ -73,12 +84,21 @@ const DoctorDirectoryCard = ({ doctor }) => {
           </span>
         </div>
 
-        <Link
-          to={`/doctors/${doctor.id}`}
-          className="inline-flex w-full items-center justify-center rounded-2xl border border-[#E06666]/30 bg-[#FFF5F5] px-4 py-3 text-sm font-semibold text-[#B64949] transition hover:bg-[#FFECEB] dark:border-[#E06666]/20 dark:bg-[#2B1F28] dark:text-[#F3A3A3]"
-        >
-          {t("publicDoctors.directory.card.viewProfile")}
-        </Link>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Link
+            to={buildBookingPath(doctor)}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#E06666] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#D55555]"
+          >
+            <Calendar size={16} />
+            {t("publicDoctors.directory.card.bookAppointment", { defaultValue: "Đặt lịch" })}
+          </Link>
+          <Link
+            to={`/doctors/${doctor.id}`}
+            className="inline-flex items-center justify-center rounded-2xl border border-[#E06666]/30 bg-[#FFF5F5] px-4 py-3 text-sm font-semibold text-[#B64949] transition hover:bg-[#FFECEB] dark:border-[#E06666]/20 dark:bg-[#2B1F28] dark:text-[#F3A3A3]"
+          >
+            {t("publicDoctors.directory.card.viewProfile")}
+          </Link>
+        </div>
       </div>
     </article>
   );

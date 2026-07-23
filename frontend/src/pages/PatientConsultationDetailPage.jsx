@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Send,
   Star,
+  Trash2,
 } from "lucide-react";
 import { resolveApiUrl } from "../services/api";
 import { consultationService } from "../services/consultationService";
@@ -56,6 +57,8 @@ const PatientConsultationDetailPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [replyError, setReplyError] = useState("");
   const [mobileTab, setMobileTab] = useState("info");
+  const [deletingImageId, setDeletingImageId] = useState(null);
+  const [imageErrors, setImageErrors] = useState({}); // { [imageId]: errorMsg }
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [existingReview, setExistingReview] = useState(null);
   const [prescriptions, setPrescriptions] = useState([]);
@@ -97,6 +100,28 @@ const PatientConsultationDetailPage = () => {
       setPrescriptions(rxRes.data || []);
     } catch {
       setPrescriptions([]);
+    }
+  };
+
+  const handleDeleteImage = async (imageId) => {
+    // Clear error trước khi thử lại
+    setImageErrors(prev => ({ ...prev, [imageId]: null }));
+    setDeletingImageId(imageId);
+    try {
+      await consultationService.deleteImage(id, imageId);
+      const res = await consultationService.getConsultationDetails(id);
+      setData(res.data);
+    } catch (err) {
+      const serverMsg = err.response?.data?.message || "";
+      const code = err.response?.data?.code || "";
+      const displayMsg = code === "IMAGE_ALREADY_ANALYZED"
+        ? "Không thể xóa — ảnh này đã được phân tích AI."
+        : serverMsg || "Không thể xóa ảnh, vui lòng thử lại.";
+      setImageErrors(prev => ({ ...prev, [imageId]: displayMsg }));
+      // Tự xóa error sau 5 giây
+      setTimeout(() => setImageErrors(prev => ({ ...prev, [imageId]: null })), 5000);
+    } finally {
+      setDeletingImageId(null);
     }
   };
 
@@ -247,20 +272,79 @@ const PatientConsultationDetailPage = () => {
 
           {/* Images */}
           <div className="mt-4 rounded-xl border border-red-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <p className="mb-2 text-sm font-semibold text-text-dim">
-              {t("patient.consultationsPage.fields.images", { count: data.images?.length || 0 })}
-            </p>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-text-dim">
+                {t("patient.consultationsPage.fields.images", { count: data.images?.length || 0 })}
+              </p>
+            </div>
             {data.images?.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
-                {data.images.map((img, idx) => (
-                  <a key={idx} href={resolveApiUrl(img.image_url)} target="_blank" rel="noreferrer">
-                    <img
-                      src={resolveApiUrl(img.image_url)}
-                      alt="symptom"
-                      className="h-28 w-full cursor-pointer rounded-lg border border-border-main object-cover transition hover:opacity-80 sm:h-24"
-                    />
-                  </a>
-                ))}
+              <div className="grid grid-cols-2 gap-3">
+                {data.images.map((img, idx) => {
+                  const hasAI = patientAiData.some(a => a.consultation_image_id === img.id);
+                  const isPending = data.status === "pending";
+                  // Bệnh nhân thấy có AI khi data được chia sẻ
+                  // Backend sẽ block nếu có ai_analysis_request bất kể shared hay không
+                  const isDeleting = deletingImageId === img.id;
+                  const imgError = imageErrors[img.id];
+
+                  return (
+                    <div key={idx} className="flex flex-col gap-1">
+                      <div className="group relative">
+                        <a href={resolveApiUrl(img.image_url)} target="_blank" rel="noreferrer">
+                          <img
+                            src={resolveApiUrl(img.image_url)}
+                            alt={`symptom-${idx + 1}`}
+                            className="h-28 w-full cursor-pointer rounded-xl border border-border-main object-cover transition hover:opacity-80 sm:h-24"
+                          />
+                        </a>
+
+                        {/* Ánh đã có AI phân tích (shared với bệnh nhân): hiện icon khóa + tooltip */}
+                        {hasAI && isPending && (
+                          <div className="absolute right-1 top-1 group/lock">
+                            <div className="flex h-6 w-6 cursor-not-allowed items-center justify-center rounded-full bg-indigo-600/90 text-white shadow-md backdrop-blur">
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                              </svg>
+                            </div>
+                            {/* Tooltip */}
+                            <div className="pointer-events-none absolute right-0 top-8 z-20 w-44 rounded-xl border border-indigo-100 bg-white px-2.5 py-2 text-[10px] leading-relaxed text-indigo-700 shadow-xl opacity-0 transition-opacity group-hover/lock:opacity-100 dark:border-indigo-800/40 dark:bg-slate-800 dark:text-indigo-300">
+                              🔒 Không thể xóa — ảnh này đã được phân tích AI.
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Nút xóa: chỉ hiện khi pending */}
+                        {isPending && !hasAI && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteImage(img.id)}
+                            disabled={isDeleting}
+                            title="Xóa ảnh này"
+                            className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white shadow-md transition hover:bg-red-700 disabled:opacity-60 sm:opacity-0 sm:group-hover:opacity-100"
+                          >
+                            {isDeleting
+                              ? <Loader2 className="h-3 w-3 animate-spin" />
+                              : <Trash2 className="h-3 w-3" />}
+                          </button>
+                        )}
+
+                        {/* Badge số thứ tự */}
+                        <div className="absolute bottom-1 left-1 rounded-full bg-black/50 px-1.5 py-0.5 text-[8px] font-bold text-white/90 backdrop-blur">
+                          #{idx + 1}
+                        </div>
+                      </div>
+
+                      {/* Inline error — hiện khi xóa thất bại */}
+                      {imgError && (
+                        <div className="flex items-start gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 dark:border-red-800/40 dark:bg-red-900/15">
+                          <AlertCircle className="mt-0.5 h-3 w-3 flex-shrink-0 text-red-500" />
+                          <p className="text-[10px] leading-relaxed text-red-600 dark:text-red-400">{imgError}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-xs italic text-text-dim">{t("patient.consultationsPage.emptyImages")}</p>
@@ -366,7 +450,9 @@ const PatientConsultationDetailPage = () => {
             ) : (
               data.responses?.map((msg) => {
                 const iAmSending = msg.responder_role === "patient";
-                const isDoctor = msg.responder_role === "doctor" || msg.responder_role === "admin";
+                const isDoctor = msg.responder_role === "doctor" || msg.responder_role === "admin" || msg.responder_role === "super_admin" || msg.responder_role === "clinic_owner";
+                const attachments = Array.isArray(msg.attachments) ? msg.attachments : [];
+                const messageText = typeof msg.content === "string" ? msg.content.trim() : "";
 
                 let bubbleClass;
                 if (iAmSending) {
@@ -398,7 +484,26 @@ const PatientConsultationDetailPage = () => {
                       {isDoctor && msg.response_type === "prescription_note" && (
                         <div className="mb-1 text-xs font-bold uppercase text-white/90">💊 DẶN DÒ DÙNG THUỐC</div>
                       )}
-                      <div className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</div>
+                      {messageText && <div className="whitespace-pre-wrap text-sm leading-relaxed">{messageText}</div>}
+                      {attachments.length > 0 && (
+                        <div className={`mt-2 grid gap-2 ${attachments.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                          {attachments.map((attachment) => (
+                            <a
+                              key={attachment.id}
+                              href={resolveApiUrl(attachment.image_url)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="group overflow-hidden rounded-xl border border-white/20 bg-black/10"
+                            >
+                              <img
+                                src={resolveApiUrl(attachment.image_url)}
+                                alt={attachment.file_name || "attachment"}
+                                className="h-44 w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

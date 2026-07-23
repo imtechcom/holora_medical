@@ -43,6 +43,12 @@ export const consultationService = {
     return response.data;
   },
 
+  // Patient deletes an image (only allowed if no AI analysis has been run)
+  deleteImage: async (consultationId, imageId) => {
+    const response = await api.delete(`/consultations/${consultationId}/images/${imageId}`);
+    return response.data;
+  },
+
   // Clinic Owner: Lấy tất cả tư vấn thuộc chi nhánh
   getOwnerConsultations: async ({ status, priority, start_date, end_date, search, branch_id, doctor_id } = {}) => {
     const params = {};

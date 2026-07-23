@@ -19,8 +19,10 @@ import {
   Shield,
   User,
   X,
+  Lock,
 } from "lucide-react";
 import { getMyProfileApi, updateMyProfileApi } from "../services/patientService";
+import ChangePasswordModal from "../components/profile/ChangePasswordModal";
 
 const EMPTY_VALUE = "-";
 
@@ -76,13 +78,14 @@ const getProfileCompletion = (profileData) => {
 const PatientProfilePage = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { isAuthenticated, role } = useAuth();
+  const { isAuthenticated, role, user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [profileData, setProfileData] = useState({
     full_name: "",
     phone: "",
@@ -527,6 +530,17 @@ const PatientProfilePage = () => {
                   <p className="mt-2 text-sm font-medium text-text-main">{profileData.emergency_contact_name || EMPTY_VALUE}</p>
                   <p className="mt-1 text-sm text-text-dim">{profileData.emergency_contact_phone || EMPTY_VALUE}</p>
                 </div>
+
+                {(!user || user.auth_provider === "local") && (
+                  <button
+                    type="button"
+                    onClick={() => setIsPasswordModalOpen(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border-main bg-bg-surface py-3 text-sm font-semibold text-text-main transition hover:bg-bg-app dark:bg-slate-800 dark:hover:bg-slate-700"
+                  >
+                    <Lock className="h-4 w-4 text-[#E06666]" />
+                    {t("auth.change_password")}
+                  </button>
+                )}
               </div>
             </section>
 
@@ -639,6 +653,11 @@ const PatientProfilePage = () => {
           </div>
         </div>
       </form>
+
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+      />
     </div>
   );
 };

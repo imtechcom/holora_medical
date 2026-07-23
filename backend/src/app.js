@@ -1,6 +1,3 @@
-const recurringAppointmentChildRoutes = require("./routes/recurringAppointment.child.routes");
-const recurringAppointmentRoutes = require("./routes/recurringAppointment.routes");
-// earningsHistoryRoutes require và app.use sẽ được đặt sau khi khai báo app
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -8,6 +5,11 @@ const path = require("path");
 const rateLimit = require("express-rate-limit");
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
+// Load routes only after environment variables are available.
+const recurringAppointmentChildRoutes = require("./routes/recurringAppointment.child.routes");
+const recurringAppointmentRoutes = require("./routes/recurringAppointment.routes");
+// earningsHistoryRoutes require và app.use sẽ được đặt sau khi khai báo app
 
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
@@ -31,6 +33,8 @@ const prescriptionRoutes = require("./routes/prescription.routes");
 const earningsRoutes = require("./routes/earnings.routes");
 const emrRoutes = require("./routes/emr.routes");
 const paymentRoutes = require("./routes/payment.routes");
+const notificationRoutes = require("./routes/notification.routes");
+
 const { errorHandler } = require("./middleware/error.middleware");
 
 
@@ -122,6 +126,8 @@ app.use("/audit-logs", auditRoutes);
 app.use("/reviews", reviewRoutes);
 app.use("/prescriptions", prescriptionRoutes);
 app.use("/earnings", earningsRoutes);
+app.use("/notifications", notificationRoutes);
+
 
 // Phục vụ thư mục hình ảnh tĩnh (Upload)
 app.use('/public', express.static(path.join(__dirname, '../public')));

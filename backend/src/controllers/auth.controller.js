@@ -79,19 +79,20 @@ const issueTokenAndRespond = (res, user, req) => {
       logAudit(req, "AUTH_LOGIN", "user", user.id, { email: user.email });
 
       return res.json({
-        message: "Login successful",
-        token: accessToken,
-        refreshToken,
-        user: {
-          id: user.id,
-          full_name: user.full_name,
-          username: user.username,
-          email: user.email,
-          status: user.status,
-          role: primaryRole,
-          roles,
-        },
-      });
+      message: "Login successful",
+      token: accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        username: user.username,
+        email: user.email,
+        auth_provider: user.auth_provider || "local",
+        status: user.status,
+        role: primaryRole,
+        roles,
+      },
+    });
     } catch (rtErr) {
       console.error("Create refresh token error:", rtErr);
       return res.status(500).json({
@@ -146,11 +147,12 @@ const register = async (req, res) => {
           email,
           password_hash,
           phone,
+          auth_provider,
           status,
           created_at,
           updated_at
         )
-        VALUES (?, ?, ?, ?, ?, 'active', NOW(), NOW())
+        VALUES (?, ?, ?, ?, ?, 'local', 'active', NOW(), NOW())
       `;
 
       db.query(
@@ -299,6 +301,7 @@ const login = (req, res) => {
       u.gender,
       u.date_of_birth,
       u.password_hash,
+      u.auth_provider,
       u.status,
       u.email_verified_at,
       u.last_login_at,
@@ -374,7 +377,7 @@ const googleAuth = async (req, res) => {
     }
 
     const getUserSql = `
-      SELECT id, full_name, username, email, status
+      SELECT id, full_name, username, email, auth_provider, status
       FROM users
       WHERE email = ? AND deleted_at IS NULL
       LIMIT 1
@@ -418,17 +421,19 @@ const googleAuth = async (req, res) => {
           username,
           email,
           password_hash,
+          auth_provider,
+          google_id,
           status,
           email_verified_at,
           created_at,
           updated_at
         )
-        VALUES (?, ?, ?, ?, 'active', NOW(), NOW(), NOW())
+        VALUES (?, ?, ?, ?, 'google', ?, 'active', NOW(), NOW(), NOW())
       `;
 
       db.query(
         insertUserSql,
-        [fullName, username, email, password_hash],
+        [fullName, username, email, password_hash, payload.sub],
         (insertUserErr, userResult) => {
           if (insertUserErr) {
             console.error("Insert Google user error:", insertUserErr);
@@ -506,6 +511,7 @@ const googleAuth = async (req, res) => {
                       full_name: fullName,
                       username,
                       email,
+                      auth_provider: "google",
                       status: "active",
                     };
 
@@ -841,4 +847,63 @@ const logoutAll = async (req, res) => {
   }
 };
 
-module.exports = { register, login, googleAuth, acceptDoctorInvite, forgotPassword, resetPassword, refreshToken, logoutUser, logoutAll };
+const changePassword = async (req, res) => {
+  const { current_password, new_password } = req.body;
+  const userId = req.user.id;
+
+  if (!current_password || !new_password) {
+    return res.status(400).json({ message: "Vui lòng nhập đầy đủ mật khẩu cũ và mới" });
+  }
+
+  if (new_password.length < 6) {
+    return res.status(400).json({ message: "Mật khẩu mới phải có ít nhất 6 ký tự" });
+  }
+
+  try {
+    const userRows = await queryAsync(
+      `SELECT password_hash, auth_provider FROM users WHERE id = ? AND deleted_at IS NULL`,
+      [userId]
+    );
+
+    if (!userRows.length) {
+      return res.status(404).json({ message: "Người dùng không tồn tại" });
+    }
+
+    const user = userRows[0];
+
+    // Check auth_provider
+    if (user.auth_provider === "google") {
+      return res.status(400).json({ message: "Tài khoản Google không thể đổi mật khẩu tại đây" });
+    }
+
+    const isMatch = await bcrypt.compare(current_password, user.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Mật khẩu hiện tại không chính xác" });
+    }
+
+    const newPasswordHash = await bcrypt.hash(new_password, 10);
+    await queryAsync(
+      `UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?`,
+      [newPasswordHash, userId]
+    );
+
+    logAudit(req, "AUTH_CHANGE_PASSWORD", "user", userId);
+    return res.json({ message: "Đổi mật khẩu thành công!" });
+  } catch (error) {
+    console.error("Change password error:", error);
+    return res.status(500).json({ message: "Lỗi Server khi đổi mật khẩu", error: error.message });
+  }
+};
+
+module.exports = {
+  login,
+  register,
+  googleAuth,
+  acceptDoctorInvite,
+  forgotPassword,
+  resetPassword,
+  refreshToken,
+  logoutUser,
+  logoutAll,
+  changePassword,
+};

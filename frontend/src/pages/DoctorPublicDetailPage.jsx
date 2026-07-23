@@ -171,9 +171,15 @@ const DoctorPublicDetailPage = () => {
     }
 
     if (role === "patient") {
+      const params = new URLSearchParams({ doctorId: id });
+
+      if (Array.isArray(doctor?.branches) && doctor.branches.length === 1) {
+        params.set("branchId", doctor.branches[0].id);
+      }
+
       return {
-        to: "/patient/appointments",
-        label: t("publicDoctors.detail.cta.patientZone"),
+        to: `/patient/appointments?${params.toString()}`,
+        label: t("publicDoctors.detail.cta.bookAppointment", { defaultValue: "Đặt lịch hẹn" }),
       };
     }
 
@@ -195,7 +201,7 @@ const DoctorPublicDetailPage = () => {
       to: "/home-redirect",
       label: t("publicDoctors.detail.cta.defaultZone"),
     };
-  }, [role, t, user]);
+  }, [doctor, id, role, t, user]);
 
   return (
     <div className="relative min-h-[calc(100vh-140px)] overflow-hidden bg-[#F7F9FC] text-gray-900 dark:bg-[#0F141F] dark:text-slate-100">

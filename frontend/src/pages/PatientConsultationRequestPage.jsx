@@ -7,7 +7,8 @@ import { uploadService } from "../services/uploadService";
 import branchService from "../services/branchService";
 import api from "../services/api";
 
-const MAX_FILES = 5;
+const MAX_FILES = 3;
+
 
 const PatientConsultationRequestPage = () => {
   const navigate = useNavigate();

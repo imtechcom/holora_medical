@@ -2,43 +2,42 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "react-i18next";
 
-const PLANS = [
+const getPlans = (t) => [
   {
     code: "HOLORA_FREE",
     name: "Holora Free",
-    priceLabel: "Miễn phí",
+    priceLabel: t("pricing.free") || "Miễn phí",
     badge: null,
-    description: "Phù hợp cho phòng khám vừa khởi đầu",
+    description: t("pricing.freeDesc") || "Phù hợp cho phòng khám vừa khởi đầu",
     features: [
-      { text: "Tối đa 3 chi nhánh", included: true },
-      { text: "Tối đa 3 bác sĩ / chi nhánh", included: true },
-      { text: "Quản lý lịch hẹn", included: true },
-      { text: "Hồ sơ bệnh nhân", included: true },
-      { text: "Tư vấn trực tuyến cơ bản", included: true },
-      { text: "Chi nhánh không giới hạn", included: false },
-      { text: "Bác sĩ không giới hạn", included: false },
-      { text: "Hỗ trợ ưu tiên 24/7", included: false },
+      { text: t("pricing.feature.branchLimit", { count: 3 }) || "Tối đa 3 chi nhánh", included: true },
+      { text: t("pricing.feature.doctorLimit", { count: 3 }) || "Tối đa 3 bác sĩ / chi nhánh", included: true },
+      { text: t("pricing.feature.appointments") || "Quản lý lịch hẹn", included: true },
+      { text: t("pricing.feature.patientRecords") || "Hồ sơ bệnh nhân", included: true },
+      { text: t("pricing.feature.basicTelehealth") || "Tư vấn trực tuyến cơ bản", included: true },
+      { text: t("pricing.feature.unlimitedBranches") || "Chi nhánh không giới hạn", included: false },
+      { text: t("pricing.feature.unlimitedDoctors") || "Bác sĩ không giới hạn", included: false },
     ],
-    cta: "Đăng ký miễn phí",
+    cta: t("pricing.cta.free") || "Đăng ký miễn phí",
     ctaVariant: "outline",
   },
   {
     code: "HOLORA_PLUS",
     name: "Holora Plus",
     priceLabel: "299.000 ₫",
-    priceSuffix: "/ tháng",
-    badge: "Phổ biến nhất",
-    description: "Dành cho chuỗi phòng khám muốn mở rộng không giới hạn",
+    priceSuffix: t("pricing.perMonth") || "/ tháng",
+    badge: t("pricing.popular") || "Phổ biến nhất",
+    description: t("pricing.plusDesc") || "Dành cho chuỗi phòng khám muốn mở rộng không giới hạn",
     features: [
-      { text: "Chi nhánh không giới hạn", included: true },
-      { text: "Bác sĩ không giới hạn", included: true },
-      { text: "Quản lý lịch hẹn", included: true },
-      { text: "Hồ sơ bệnh nhân", included: true },
-      { text: "Tư vấn trực tuyến nâng cao", included: true },
-      { text: "Báo cáo & phân tích chi tiết", included: true },
-      { text: "Hỗ trợ ưu tiên 24/7", included: true },
+      { text: t("pricing.feature.unlimitedBranches") || "Chi nhánh không giới hạn", included: true },
+      { text: t("pricing.feature.unlimitedDoctors") || "Bác sĩ không giới hạn", included: true },
+      { text: t("pricing.feature.appointments") || "Quản lý lịch hẹn", included: true },
+      { text: t("pricing.feature.patientRecords") || "Hồ sơ bệnh nhân", included: true },
+      { text: t("pricing.feature.advancedTelehealth") || "Tư vấn trực tuyến nâng cao", included: true },
+      { text: t("pricing.feature.analytics") || "Báo cáo & phân tích chi tiết", included: true },
+      { text: t("pricing.feature.prioritySupport") || "Hỗ trợ ưu tiên 24/7", included: true },
     ],
-    cta: "Nâng cấp ngay",
+    cta: t("pricing.cta.plus") || "Nâng cấp ngay",
     ctaVariant: "primary",
   },
 ];
@@ -76,8 +75,9 @@ const FeatureIcon = ({ included }) => (
 const PricingPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isVi = i18n.language === "vi";
+  const plans = getPlans(t);
 
   const handleCta = (plan) => {
     if (plan.code === "HOLORA_FREE") {
@@ -107,22 +107,20 @@ const PricingPage = () => {
       <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <div className="mx-auto max-w-3xl text-center">
           <p className="inline-flex items-center rounded-full border border-[#E06666]/25 bg-[#FFF5F5] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[#C14D4D] dark:border-[#E06666]/35 dark:bg-[#2B1F28] dark:text-[#F3A3A3]">
-            {isVi ? "Holora Pricing" : "Holora Pricing"}
+            {t("pricing.title") || "Holora Pricing"}
           </p>
 
           <h1 className="mt-7 text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl dark:text-slate-100">
-            {isVi ? "Bảng giá đơn giản, rõ ràng" : "Simple, transparent pricing"}
+            {t("pricing.heroTitle") || "Simple, transparent pricing"}
           </h1>
 
           <p className="mt-4 text-base leading-7 text-gray-600 sm:text-lg dark:text-slate-400">
-            {isVi
-              ? "Bắt đầu miễn phí, nâng cấp khi cần mở rộng. Không rối, không nhiều tầng gói không cần thiết."
-              : "Start free, upgrade when you need to scale. No clutter, no unnecessary pricing tiers."}
+            {t("pricing.heroDesc") || "Start free, upgrade when you need to scale. No clutter, no unnecessary pricing tiers."}
           </p>
         </div>
 
         <div className="mx-auto mt-12 grid max-w-5xl gap-5 lg:grid-cols-2">
-          {PLANS.map((plan) => {
+          {plans.map((plan) => {
             const isFeatured = plan.code === "HOLORA_PLUS";
 
             return (

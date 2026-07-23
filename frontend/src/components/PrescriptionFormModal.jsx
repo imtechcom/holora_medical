@@ -18,6 +18,28 @@ const emptyItem = () => ({
 const ROUTE_OPTIONS = ["Uống", "Tiêm", "Bôi", "Nhỏ", "Xịt", "Đặt", "Ngậm", "Hít"];
 const UNIT_OPTIONS = ["viên", "gói", "ống", "chai", "tuýp", "lọ", "ml", "mg"];
 
+const getRouteOptionLabel = (value, t) => ({
+  "Uống": t("prescription.routeOptions.oral", { defaultValue: "Oral" }),
+  "Tiêm": t("prescription.routeOptions.injection", { defaultValue: "Injection" }),
+  "Bôi": t("prescription.routeOptions.topical", { defaultValue: "Topical" }),
+  "Nhỏ": t("prescription.routeOptions.drop", { defaultValue: "Drops" }),
+  "Xịt": t("prescription.routeOptions.spray", { defaultValue: "Spray" }),
+  "Đặt": t("prescription.routeOptions.insert", { defaultValue: "Insert" }),
+  "Ngậm": t("prescription.routeOptions.sublingual", { defaultValue: "Sublingual" }),
+  "Hít": t("prescription.routeOptions.inhalation", { defaultValue: "Inhalation" }),
+}[value] || value);
+
+const getUnitOptionLabel = (value, t) => ({
+  "viên": t("prescription.unitOptions.tablet", { defaultValue: "tablet" }),
+  "gói": t("prescription.unitOptions.pack", { defaultValue: "pack" }),
+  "ống": t("prescription.unitOptions.ampoule", { defaultValue: "ampoule" }),
+  "chai": t("prescription.unitOptions.bottle", { defaultValue: "bottle" }),
+  "tuýp": t("prescription.unitOptions.tube", { defaultValue: "tube" }),
+  "lọ": t("prescription.unitOptions.vial", { defaultValue: "vial" }),
+  ml: t("prescription.unitOptions.ml", { defaultValue: "ml" }),
+  mg: t("prescription.unitOptions.mg", { defaultValue: "mg" }),
+}[value] || value);
+
 const PrescriptionFormModal = ({ isOpen, onClose, onSubmit, patientName, initialData }) => {
   const { t } = useTranslation();
   const [diagnosis, setDiagnosis] = useState("");
@@ -71,7 +93,7 @@ const PrescriptionFormModal = ({ isOpen, onClose, onSubmit, patientName, initial
       });
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Lỗi tạo toa thuốc");
+      setError(err.response?.data?.message || err.message || t("prescription.form.errorCreate", { defaultValue: "Failed to create prescription" }));
     } finally {
       setSubmitting(false);
     }
@@ -155,26 +177,26 @@ const PrescriptionFormModal = ({ isOpen, onClose, onSubmit, patientName, initial
                       <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-text-dim">
                         {t("prescription.form.medName", { defaultValue: "Tên thuốc" })} *
                       </label>
-                      <input
-                        type="text"
-                        value={item.medication_name}
-                        onChange={(e) => updateItem(idx, "medication_name", e.target.value)}
-                        className="w-full rounded-lg border border-border-main/60 bg-white px-3 py-2 text-sm text-text-main outline-none focus:ring-2 focus:ring-emerald-400/40 dark:bg-slate-800 dark:border-slate-600"
-                        placeholder="VD: Paracetamol 500mg"
-                        required
-                      />
+                        <input
+                          type="text"
+                          value={item.medication_name}
+                          onChange={(e) => updateItem(idx, "medication_name", e.target.value)}
+                          className="w-full rounded-lg border border-border-main/60 bg-white px-3 py-2 text-sm text-text-main outline-none focus:ring-2 focus:ring-emerald-400/40 dark:bg-slate-800 dark:border-slate-600"
+                          placeholder={t("prescription.form.exampleMedName", { defaultValue: "e.g. Paracetamol 500mg" })}
+                          required
+                        />
                     </div>
                     <div>
                       <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-text-dim">
                         {t("prescription.form.dosage", { defaultValue: "Liều lượng" })}
                       </label>
-                      <input
-                        type="text"
-                        value={item.dosage}
-                        onChange={(e) => updateItem(idx, "dosage", e.target.value)}
-                        className="w-full rounded-lg border border-border-main/60 bg-white px-3 py-2 text-sm text-text-main outline-none focus:ring-2 focus:ring-emerald-400/40 dark:bg-slate-800 dark:border-slate-600"
-                        placeholder="VD: 500mg"
-                      />
+                        <input
+                          type="text"
+                          value={item.dosage}
+                          onChange={(e) => updateItem(idx, "dosage", e.target.value)}
+                          className="w-full rounded-lg border border-border-main/60 bg-white px-3 py-2 text-sm text-text-main outline-none focus:ring-2 focus:ring-emerald-400/40 dark:bg-slate-800 dark:border-slate-600"
+                          placeholder={t("prescription.form.exampleDosage", { defaultValue: "e.g. 500mg" })}
+                        />
                     </div>
                   </div>
 
@@ -184,25 +206,25 @@ const PrescriptionFormModal = ({ isOpen, onClose, onSubmit, patientName, initial
                       <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-text-dim">
                         {t("prescription.form.frequency", { defaultValue: "Tần suất" })}
                       </label>
-                      <input
-                        type="text"
-                        value={item.frequency}
-                        onChange={(e) => updateItem(idx, "frequency", e.target.value)}
-                        className="w-full rounded-lg border border-border-main/60 bg-white px-3 py-2 text-sm text-text-main outline-none focus:ring-2 focus:ring-emerald-400/40 dark:bg-slate-800 dark:border-slate-600"
-                        placeholder="VD: 3 lần/ngày"
-                      />
+                        <input
+                          type="text"
+                          value={item.frequency}
+                          onChange={(e) => updateItem(idx, "frequency", e.target.value)}
+                          className="w-full rounded-lg border border-border-main/60 bg-white px-3 py-2 text-sm text-text-main outline-none focus:ring-2 focus:ring-emerald-400/40 dark:bg-slate-800 dark:border-slate-600"
+                          placeholder={t("prescription.form.exampleFrequency", { defaultValue: "e.g. 3 times/day" })}
+                        />
                     </div>
                     <div>
                       <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-text-dim">
                         {t("prescription.form.duration", { defaultValue: "Thời gian" })}
                       </label>
-                      <input
-                        type="text"
-                        value={item.duration}
-                        onChange={(e) => updateItem(idx, "duration", e.target.value)}
-                        className="w-full rounded-lg border border-border-main/60 bg-white px-3 py-2 text-sm text-text-main outline-none focus:ring-2 focus:ring-emerald-400/40 dark:bg-slate-800 dark:border-slate-600"
-                        placeholder="VD: 7 ngày"
-                      />
+                        <input
+                          type="text"
+                          value={item.duration}
+                          onChange={(e) => updateItem(idx, "duration", e.target.value)}
+                          className="w-full rounded-lg border border-border-main/60 bg-white px-3 py-2 text-sm text-text-main outline-none focus:ring-2 focus:ring-emerald-400/40 dark:bg-slate-800 dark:border-slate-600"
+                          placeholder={t("prescription.form.exampleDuration", { defaultValue: "e.g. 7 days" })}
+                        />
                     </div>
                     <div>
                       <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-text-dim">
@@ -221,7 +243,7 @@ const PrescriptionFormModal = ({ isOpen, onClose, onSubmit, patientName, initial
                           onChange={(e) => updateItem(idx, "unit", e.target.value)}
                           className="flex-1 rounded-lg border border-border-main/60 bg-white px-2 py-2 text-sm text-text-main dark:bg-slate-800 dark:border-slate-600"
                         >
-                          {UNIT_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}
+                          {UNIT_OPTIONS.map((u) => <option key={u} value={u}>{getUnitOptionLabel(u, t)}</option>)}
                         </select>
                       </div>
                     </div>
@@ -238,7 +260,7 @@ const PrescriptionFormModal = ({ isOpen, onClose, onSubmit, patientName, initial
                         onChange={(e) => updateItem(idx, "route", e.target.value)}
                         className="w-full rounded-lg border border-border-main/60 bg-white px-3 py-2 text-sm text-text-main dark:bg-slate-800 dark:border-slate-600"
                       >
-                        {ROUTE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                        {ROUTE_OPTIONS.map((r) => <option key={r} value={r}>{getRouteOptionLabel(r, t)}</option>)}
                       </select>
                     </div>
                     <div>
@@ -250,7 +272,7 @@ const PrescriptionFormModal = ({ isOpen, onClose, onSubmit, patientName, initial
                         value={item.instructions}
                         onChange={(e) => updateItem(idx, "instructions", e.target.value)}
                         className="w-full rounded-lg border border-border-main/60 bg-white px-3 py-2 text-sm text-text-main outline-none focus:ring-2 focus:ring-emerald-400/40 dark:bg-slate-800 dark:border-slate-600"
-                        placeholder="VD: Uống sau ăn"
+                        placeholder={t("prescription.form.exampleInstructions", { defaultValue: "e.g. Take after meals" })}
                       />
                     </div>
                   </div>

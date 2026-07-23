@@ -14,12 +14,55 @@ const formatDate = (v, lng) => {
   return d.toLocaleDateString(lng === "vi" ? "vi-VN" : "en-US", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
 
+const getPrescriptionStatusLabel = (status, t) => ({
+  draft: t("prescription.status.draft", { defaultValue: "Draft" }),
+  issued: t("prescription.status.issued", { defaultValue: "Issued" }),
+  cancelled: t("prescription.status.cancelled", { defaultValue: "Cancelled" }),
+}[status] || status);
+
+const getPrescriptionRouteLabel = (route, t) => ({
+  "Uống": t("prescription.routeOptions.oral", { defaultValue: "Oral" }),
+  oral: t("prescription.routeOptions.oral", { defaultValue: "Oral" }),
+  "Tiêm": t("prescription.routeOptions.injection", { defaultValue: "Injection" }),
+  injection: t("prescription.routeOptions.injection", { defaultValue: "Injection" }),
+  "Bôi": t("prescription.routeOptions.topical", { defaultValue: "Topical" }),
+  topical: t("prescription.routeOptions.topical", { defaultValue: "Topical" }),
+  "Nhỏ": t("prescription.routeOptions.drop", { defaultValue: "Drops" }),
+  drop: t("prescription.routeOptions.drop", { defaultValue: "Drops" }),
+  "Xịt": t("prescription.routeOptions.spray", { defaultValue: "Spray" }),
+  spray: t("prescription.routeOptions.spray", { defaultValue: "Spray" }),
+  "Đặt": t("prescription.routeOptions.insert", { defaultValue: "Insert" }),
+  insert: t("prescription.routeOptions.insert", { defaultValue: "Insert" }),
+  "Ngậm": t("prescription.routeOptions.sublingual", { defaultValue: "Sublingual" }),
+  sublingual: t("prescription.routeOptions.sublingual", { defaultValue: "Sublingual" }),
+  "Hít": t("prescription.routeOptions.inhalation", { defaultValue: "Inhalation" }),
+  inhalation: t("prescription.routeOptions.inhalation", { defaultValue: "Inhalation" }),
+}[route] || route || "—");
+
+const getPrescriptionUnitLabel = (unit, t) => ({
+  "viên": t("prescription.unitOptions.tablet", { defaultValue: "tablet" }),
+  tablet: t("prescription.unitOptions.tablet", { defaultValue: "tablet" }),
+  "gói": t("prescription.unitOptions.pack", { defaultValue: "pack" }),
+  pack: t("prescription.unitOptions.pack", { defaultValue: "pack" }),
+  "ống": t("prescription.unitOptions.ampoule", { defaultValue: "ampoule" }),
+  ampoule: t("prescription.unitOptions.ampoule", { defaultValue: "ampoule" }),
+  "chai": t("prescription.unitOptions.bottle", { defaultValue: "bottle" }),
+  bottle: t("prescription.unitOptions.bottle", { defaultValue: "bottle" }),
+  "tuýp": t("prescription.unitOptions.tube", { defaultValue: "tube" }),
+  tube: t("prescription.unitOptions.tube", { defaultValue: "tube" }),
+  "lọ": t("prescription.unitOptions.vial", { defaultValue: "vial" }),
+  vial: t("prescription.unitOptions.vial", { defaultValue: "vial" }),
+  ml: t("prescription.unitOptions.ml", { defaultValue: "ml" }),
+  mg: t("prescription.unitOptions.mg", { defaultValue: "mg" }),
+}[unit] || unit || "—");
+
 const PrescriptionCard = ({ prescription, onViewDetail, onIssue, onCancel, onEdit, showActions = false, compact = false }) => {
   const { t, i18n } = useTranslation();
   const lng = i18n.language;
   const p = prescription;
   const status = STATUS_CONFIG[p.status] || STATUS_CONFIG.draft;
   const StatusIcon = status.icon;
+  const statusLabel = getPrescriptionStatusLabel(p.status, t);
 
   if (compact) {
     return (
@@ -36,7 +79,7 @@ const PrescriptionCard = ({ prescription, onViewDetail, onIssue, onCancel, onEdi
         </div>
         <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${status.cls}`}>
           <StatusIcon className="h-3 w-3" />
-          {t(`prescription.status.${p.status}`, { defaultValue: status.label })}
+          {statusLabel}
         </span>
       </div>
     );
@@ -60,7 +103,7 @@ const PrescriptionCard = ({ prescription, onViewDetail, onIssue, onCancel, onEdi
         </div>
         <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${status.cls}`}>
           <StatusIcon className="h-3 w-3" />
-          {t(`prescription.status.${p.status}`, { defaultValue: status.label })}
+          {statusLabel}
         </span>
       </div>
 
@@ -102,13 +145,13 @@ const PrescriptionCard = ({ prescription, onViewDetail, onIssue, onCancel, onEdi
                     )}
                     {/* Mobile-only extra info */}
                     <div className="mt-0.5 text-[10px] text-text-dim sm:hidden">
-                      {[item.dosage, item.frequency, item.quantity && `${item.quantity} ${item.unit || ""}`].filter(Boolean).join(" · ")}
+                      {[item.dosage, item.frequency, item.quantity && `${item.quantity} ${getPrescriptionUnitLabel(item.unit, t)}`].filter(Boolean).join(" · ")}
                     </div>
                   </td>
                   <td className="py-2 pr-2 text-text-main hidden sm:table-cell">{item.dosage || "—"}</td>
                   <td className="py-2 pr-2 text-text-main hidden sm:table-cell">{item.frequency || "—"}</td>
-                  <td className="py-2 pr-2 text-text-main hidden md:table-cell">{item.quantity ? `${item.quantity} ${item.unit || ""}` : "—"}</td>
-                  <td className="py-2 text-text-main hidden md:table-cell">{item.route || "—"}</td>
+                  <td className="py-2 pr-2 text-text-main hidden md:table-cell">{item.quantity ? `${item.quantity} ${getPrescriptionUnitLabel(item.unit, t)}` : "—"}</td>
+                  <td className="py-2 text-text-main hidden md:table-cell">{getPrescriptionRouteLabel(item.route, t)}</td>
                 </tr>
               ))}
             </tbody>

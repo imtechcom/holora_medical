@@ -1,6 +1,52 @@
 const db = require("../config/db");
 const { logAudit } = require("../utils/audit.util");
 
+const MAX_IMAGE_LIMIT = 3; // Giới hạn tối đa số ảnh/ca tư vấn
+const MAX_RESPONSE_ATTACHMENTS = 5;
+
+const parseBoolean = (value) => value === true || value === 1 || value === "1" || value === "true";
+
+const parseJsonArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string" || !value.trim()) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [value];
+  } catch {
+    return [value];
+  }
+};
+
+const normalizeResponseAttachments = (req) => {
+  if (Array.isArray(req.files) && req.files.length > 0) {
+    return req.files.map((file) => ({
+      image_url: `${req.protocol}://${req.get("host")}/public/uploads/${file.filename}`,
+      file_name: file.originalname,
+      mime_type: file.mimetype,
+      file_size: file.size,
+    }));
+  }
+
+  return parseJsonArray(req.body?.attachments)
+    .map((item) => {
+      if (!item) return null;
+      if (typeof item === "string") {
+        return { image_url: item };
+      }
+      if (typeof item === "object" && item.image_url) {
+        return {
+          image_url: item.image_url,
+          file_name: item.file_name || null,
+          mime_type: item.mime_type || null,
+          file_size: item.file_size || null,
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
+};
+
 // Bệnh nhân gửi yêu cầu tư vấn mới (UC04)
 const createConsultation = (req, res) => {
   const userId = req.user.id;
@@ -8,6 +54,14 @@ const createConsultation = (req, res) => {
 
   if (!chief_complaint || !symptoms) {
     return res.status(400).json({ message: "Vui lòng nhập lý do khám và triệu chứng." });
+  }
+
+  // Kiểm tra giới hạn số ảnh
+  if (attachments && Array.isArray(attachments) && attachments.length > MAX_IMAGE_LIMIT) {
+    return res.status(400).json({
+      message: `Chỉ được gửi tối đa ${MAX_IMAGE_LIMIT} ảnh mỗi ca tư vấn.`,
+      code: "IMAGE_LIMIT_EXCEEDED",
+    });
   }
 
   // Lấy patient_id từ user_id
@@ -135,14 +189,32 @@ const getConsultationDetails = (req, res) => {
     const consultation = results[0];
 
     // Lấy hình ảnh liên quan
-    const imgSql = "SELECT image_url, image_type FROM consultation_image WHERE consultation_id = ?";
+    const imgSql = `
+      SELECT id, image_url, image_type, response_id, uploaded_by, caption, file_name, mime_type, file_size, created_at
+      FROM consultation_image
+      WHERE consultation_id = ? AND response_id IS NULL
+      ORDER BY created_at ASC
+    `;
     db.query(imgSql, [id], (imgErr, imgResults) => {
       if (imgErr) console.error(imgErr);
       consultation.images = imgResults || [];
 
       // Lấy phản hồi (lịch sử chat/chẩn đoán)
       const respSql = `
-        SELECT cr.*, u.full_name as responder_name
+        SELECT
+          cr.*,
+          u.full_name as responder_name,
+          COALESCE(
+            (
+              SELECT r.code
+              FROM user_role ur
+              JOIN role r ON ur.role_id = r.id
+              WHERE ur.user_id = cr.responder_user_id
+              ORDER BY ur.id ASC
+              LIMIT 1
+            ),
+            'unknown'
+          ) as responder_role
         FROM consultation_response cr
         JOIN users u ON cr.responder_user_id = u.id
         WHERE cr.consultation_id = ?
@@ -150,11 +222,32 @@ const getConsultationDetails = (req, res) => {
       `;
       db.query(respSql, [id], (respErr, respResults) => {
         if (respErr) console.error(respErr);
-        consultation.responses = respResults || [];
+        const responseImageSql = `
+          SELECT id, consultation_id, response_id, uploaded_by, image_url, image_type, caption, file_name, mime_type, file_size, created_at
+          FROM consultation_image
+          WHERE consultation_id = ? AND response_id IS NOT NULL
+          ORDER BY created_at ASC
+        `;
 
-        return res.json({
-          message: "Lấy chi tiết thành công",
-          data: consultation
+        db.query(responseImageSql, [id], (responseImageErr, responseImageResults) => {
+          if (responseImageErr) console.error(responseImageErr);
+
+          const responseImagesById = (responseImageResults || []).reduce((acc, image) => {
+            const key = String(image.response_id);
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(image);
+            return acc;
+          }, {});
+
+          consultation.responses = (respResults || []).map((response) => ({
+            ...response,
+            attachments: responseImagesById[String(response.id)] || [],
+          }));
+
+          return res.json({
+            message: "Lấy chi tiết thành công",
+            data: consultation,
+          });
         });
       });
     });
@@ -165,15 +258,27 @@ const getConsultationDetails = (req, res) => {
 const addConsultationResponse = (req, res) => {
   const userId = req.user.id;
   const { id } = req.params; // consultation_id
-  const { content, response_type, complete } = req.body;
+  const body = req.body || {};
+  const { content, response_type, complete } = body;
+  const attachments = normalizeResponseAttachments(req);
+  const hasContent = typeof content === "string" && content.trim().length > 0;
+  const completeFlag = parseBoolean(complete);
 
-  if (!content) {
-    return res.status(400).json({ message: "Nội dung phản hồi không được để trống." });
+  if (!hasContent && attachments.length === 0) {
+    return res.status(400).json({ message: "Vui lòng nhập nội dung hoặc đính kèm hình ảnh." });
+  }
+
+  if (attachments.length > MAX_RESPONSE_ATTACHMENTS) {
+    return res.status(400).json({
+      message: `Chỉ được gửi tối đa ${MAX_RESPONSE_ATTACHMENTS} hình ảnh trong một phản hồi.`,
+      code: "RESPONSE_IMAGE_LIMIT_EXCEEDED",
+    });
   }
 
   // Validate response_type - only allow known types, default to 'message'
-  const VALID_RESPONSE_TYPES = ['message', 'diagnosis', 'prescription', 'recommendation', 'prescription_note'];
+  const VALID_RESPONSE_TYPES = ['message', 'diagnosis', 'prescription', 'recommendation', 'prescription_note', 'follow_up'];
   const finalResponseType = (response_type && VALID_RESPONSE_TYPES.includes(response_type)) ? response_type : 'message';
+  const finalContent = hasContent ? content.trim() : "";
 
   // Lấy 1 connection cố định từ pool để đảm bảo transaction toàn vẹn
   db.getConnection((connErr, connection) => {
@@ -189,7 +294,7 @@ const addConsultationResponse = (req, res) => {
       // Lưu ý: User có thể là bệnh nhân rep lại bác sĩ, lúc này doctor_id sẽ ko có
       const isDoctor = dResults.length > 0;
       const doctorId = isDoctor ? dResults[0].id : null;
-      const newStatus = complete ? 'completed' : 'in_progress';
+      const newStatus = completeFlag ? 'completed' : 'in_progress';
 
       connection.beginTransaction((txErr) => {
         if (txErr) {
@@ -203,7 +308,7 @@ const addConsultationResponse = (req, res) => {
 
         if (isDoctor) {
           // Gán ca này cho bác sĩ này nếu trước đây đang pending
-          updateSql = complete
+          updateSql = completeFlag
             ? `UPDATE consultation SET status = ?, doctor_id = COALESCE(doctor_id, ?), completed_at = NOW(), updated_at = NOW() WHERE id = ?`
             : `UPDATE consultation SET status = ?, doctor_id = COALESCE(doctor_id, ?), started_at = COALESCE(started_at, NOW()), updated_at = NOW() WHERE id = ?`;
           updateParams = [newStatus, doctorId, id];
@@ -226,7 +331,7 @@ const addConsultationResponse = (req, res) => {
             INSERT INTO consultation_response (consultation_id, responder_user_id, response_type, content, is_from_ai, created_at, updated_at)
             VALUES (?, ?, ?, ?, 0, NOW(), NOW())
           `;
-          connection.query(insertRespSql, [id, userId, finalResponseType, content], (insErr, result) => {
+          connection.query(insertRespSql, [id, userId, finalResponseType, finalContent], (insErr, result) => {
             if (insErr) {
               return connection.rollback(() => {
                 connection.release();
@@ -234,16 +339,54 @@ const addConsultationResponse = (req, res) => {
               });
             }
 
-            connection.commit((commitErr) => {
-              connection.release();
-              if (commitErr) {
-                return res.status(500).json({ error: commitErr.message });
-              }
-              logAudit(req, "CONSULTATION_RESPONSE", "consultation", Number(id), { response_type: finalResponseType, complete: !!complete });
-              res.status(201).json({
-                message: "Đã thêm phản hồi",
-                response_id: result.insertId,
+            const responseId = result.insertId;
+
+            const commitResponse = () => {
+              connection.commit((commitErr) => {
+                connection.release();
+                if (commitErr) {
+                  return res.status(500).json({ error: commitErr.message });
+                }
+                logAudit(req, "CONSULTATION_RESPONSE", "consultation", Number(id), {
+                  response_type: finalResponseType,
+                  complete: completeFlag,
+                  attachments: attachments.length,
+                });
+                res.status(201).json({
+                  message: "Đã thêm phản hồi",
+                  response_id: responseId,
+                  attachments_count: attachments.length,
+                });
               });
+            };
+
+            if (attachments.length === 0) {
+              commitResponse();
+              return;
+            }
+
+            const insertImageSql = `
+              INSERT INTO consultation_image (consultation_id, uploaded_by, response_id, image_url, image_type, created_at)
+              VALUES ?
+            `;
+            const imageValues = attachments.map((attachment) => [
+              Number(id),
+              userId,
+              responseId,
+              attachment.image_url,
+              'other',
+              new Date(),
+            ]);
+
+            connection.query(insertImageSql, [imageValues], (imgErr) => {
+              if (imgErr) {
+                return connection.rollback(() => {
+                  connection.release();
+                  res.status(500).json({ error: imgErr.message });
+                });
+              }
+
+              commitResponse();
             });
           });
         });
@@ -379,6 +522,55 @@ const getOwnerConsultations = (req, res) => {
   });
 };
 
+// Bệnh nhân xóa ảnh (chỉ khi chưa có AI phân tích)
+const deleteConsultationImage = (req, res) => {
+  const userId = req.user.id;
+  const { id: consultationId, imageId } = req.params;
+
+  // 1. Xác minh consultation thuộc về bệnh nhân này
+  const ownerSql = `
+    SELECT c.id FROM consultation c
+    JOIN patient p ON p.id = c.patient_id
+    WHERE c.id = ? AND p.user_id = ? AND c.status = 'pending'
+    LIMIT 1
+  `;
+  db.query(ownerSql, [consultationId, userId], (err, ownerRows) => {
+    if (err) return res.status(500).json({ message: "Lỗi cơ sở dữ liệu", error: err.message });
+    if (!ownerRows.length) {
+      return res.status(403).json({
+        message: "Không thể xóa ảnh: ca tư vấn không tồn tại, không thuộc về bạn, hoặc đã được xử lý.",
+      });
+    }
+
+    // 2. Kiểm tra ảnh có bị AI phân tích chưa
+    const aiCheckSql = `
+      SELECT id FROM ai_analysis_request
+      WHERE consultation_image_id = ?
+      LIMIT 1
+    `;
+    db.query(aiCheckSql, [imageId], (aiErr, aiRows) => {
+      if (aiErr) return res.status(500).json({ message: "Lỗi kiểm tra AI", error: aiErr.message });
+      if (aiRows.length > 0) {
+        return res.status(409).json({
+          message: "Không thể xóa: ảnh này đã được gửi đi phân tích AI. Hãy nhắn bác sĩ qua chat để thêm ảnh mới.",
+          code: "IMAGE_ALREADY_ANALYZED",
+        });
+      }
+
+      // 3. Xóa ảnh
+      const deleteSql = "DELETE FROM consultation_image WHERE id = ? AND consultation_id = ?";
+      db.query(deleteSql, [imageId, consultationId], (delErr, delResult) => {
+        if (delErr) return res.status(500).json({ message: "Lỗi xóa ảnh", error: delErr.message });
+        if (delResult.affectedRows === 0) {
+          return res.status(404).json({ message: "Không tìm thấy ảnh này trong ca tư vấn." });
+        }
+        logAudit(req, "CONSULTATION_IMAGE_DELETE", "consultation_image", imageId, { consultationId });
+        return res.status(200).json({ message: "Đã xóa ảnh thành công." });
+      });
+    });
+  });
+};
+
 module.exports = {
   createConsultation,
   getDoctorConsultations,
@@ -387,4 +579,6 @@ module.exports = {
   getPatientConsultations,
   reopenConsultation,
   getOwnerConsultations,
+  deleteConsultationImage,
 };
+

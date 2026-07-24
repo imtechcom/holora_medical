@@ -1,6 +1,6 @@
-/**
- * Migration: Add avatar_url column to patient table
- * Run: node migrate-patient-avatar.js
+﻿/**
+ * Migration: Add ip_address and user_agent to refresh_tokens for session tracking
+ * Run: node scripts/db/migrate-session-tracking.js
  */
 const mysql = require("mysql2");
 require("dotenv").config();
@@ -11,9 +11,14 @@ const db = mysql.createConnection({
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "root",
   database: process.env.DB_NAME || "holora_medical",
+  multipleStatements: true,
 });
 
-const sql = `ALTER TABLE patient ADD COLUMN avatar_url VARCHAR(255) NULL AFTER medical_history`;
+const sql = `
+ALTER TABLE refresh_tokens
+  ADD COLUMN ip_address VARCHAR(45) NULL AFTER token_hash,
+  ADD COLUMN user_agent VARCHAR(500) NULL AFTER ip_address;
+`;
 
 db.connect((err) => {
   if (err) {
@@ -26,16 +31,17 @@ db.connect((err) => {
   db.query(sql, (queryErr) => {
     if (queryErr) {
       if (queryErr.code === "ER_DUP_FIELDNAME") {
-        console.log("⚠️ Column avatar_url already exists, skipping.");
-        db.end();
-        process.exit(0);
+        console.log("âœ… Columns already exist â€” skipping");
+      } else {
+        console.error("Migration failed:", queryErr.message);
+        process.exit(1);
       }
-      console.error("Migration failed:", queryErr.message);
-      process.exit(1);
+    } else {
+      console.log("âœ… ip_address and user_agent columns added to refresh_tokens");
     }
 
-    console.log("✅ patient.avatar_url added successfully");
     db.end();
     process.exit(0);
   });
 });
+

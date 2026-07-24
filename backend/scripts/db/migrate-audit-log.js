@@ -1,6 +1,6 @@
-/**
+﻿/**
  * Migration: Create audit_logs table for audit logging
- * Run: node migrate-audit-log.js
+ * Run: node scripts/db/migrate-audit-log.js
  */
 const mysql = require("mysql2");
 require("dotenv").config();
@@ -47,8 +47,9 @@ db.connect((err) => {
       process.exit(1);
     }
 
-    console.log("✅ audit_logs table created successfully");
+    console.log("âœ… audit_logs table created successfully");
     db.end();
     process.exit(0);
   });
 });
+

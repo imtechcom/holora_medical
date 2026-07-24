@@ -1,15 +1,15 @@
 // Script: run-sql-migrations.js
-// Tự động chạy tất cả các file .sql trong backend/migrations theo thứ tự tên file
+// Tự động chạy tất cả các file .sql trong backend/migrations/sql theo thứ tự tên file
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
+const MIGRATIONS_DIR = path.join(__dirname, '..', '..', 'migrations', 'sql');
 
 async function runMigrations() {
   const files = fs.readdirSync(MIGRATIONS_DIR)
-    .filter(f => f.endsWith('.sql'))
+    .filter((f) => f.endsWith('.sql'))
     .sort();
 
   const connection = await mysql.createConnection({
@@ -31,6 +31,7 @@ async function runMigrations() {
       console.error('❌ Error:', err.message);
     }
   }
+
   await connection.end();
   console.log('\nAll migrations completed.');
 }

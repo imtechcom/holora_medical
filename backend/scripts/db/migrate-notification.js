@@ -1,8 +1,8 @@
-/**
- * Migration: Tạo bảng notification
- * Run: node migrate-notification.js
+﻿/**
+ * Migration: Táº¡o báº£ng notification
+ * Run: node scripts/db/migrate-notification.js
  */
-const db = require("./src/config/db");
+const db = require("../../src/config/db");
 
 const sql = `
   CREATE TABLE IF NOT EXISTS notification (
@@ -23,7 +23,8 @@ db.query(sql, (err) => {
   if (err) {
     console.error("Migration FAILED:", err.message);
   } else {
-    console.log("✅ Table 'notification' created (or already exists).");
+    console.log("âœ… Table 'notification' created (or already exists).");
   }
   process.exit(0);
 });
+

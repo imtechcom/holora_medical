@@ -1,6 +1,6 @@
-/**
+﻿/**
  * Migration: Create refresh_tokens table for token rotation
- * Run: node migrate-refresh-token.js
+ * Run: node scripts/db/migrate-refresh-token.js
  */
 const mysql = require("mysql2");
 require("dotenv").config();
@@ -46,8 +46,9 @@ db.connect((err) => {
       process.exit(1);
     }
 
-    console.log("✅ refresh_tokens table created successfully");
+    console.log("âœ… refresh_tokens table created successfully");
     db.end();
     process.exit(0);
   });
 });
+

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# The legacy VPS deployment path is retired. See README.md for local Compose.
+printf '%s\n' 'VPS deployment is retired. Use the local Docker Compose instructions in README.md.' >&2
+exit 1
+
 set -Eeuo pipefail
 
 trap 'echo "[ERROR] Deploy failed at line ${LINENO}." >&2' ERR

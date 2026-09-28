@@ -7,17 +7,16 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in docker/.env}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-holora_medical}
       MYSQL_USER: ${MYSQL_USER:-holora_app}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in docker/.env}
     ports:
       - "127.0.0.1:${MYSQL_PORT:-3308}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init-db.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
       - ../holora_medical.sql:/docker-entrypoint-initdb.d/01-data.sql:ro
-      - ./finalize.sql:/docker-entrypoint-initdb.d/02-finalize.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
       interval: 10s
@@ -31,12 +30,10 @@ services:
     image: phpmyadmin:5-apache
     restart: unless-stopped
     ports:
-      - "${PHPMYADMIN_PORT:-8080}:80"
+      - "127.0.0.1:${PHPMYADMIN_PORT:-8080}:80"
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       UPLOAD_LIMIT: 64M
     depends_on:
       mysql:
@@ -49,18 +46,21 @@ services:
       context: ../image-processing
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "127.0.0.1:${IMAGE_PROCESSING_PORT:-8000}:8000"
     environment:
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USER=${MYSQL_USER:-holora_app}
       - DB_PASSWORD=${MYSQL_PASSWORD}
       - DB_NAME=holora_image_processing_db
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:?Set INTERNAL_API_KEY in docker/.env}
+      - DEBUG=False
     depends_on:
       mysql:
         condition: service_healthy
     volumes:
-      - ../image-processing:/app
+      - image_uploads:/app/uploads
+      - image_results:/app/processed
     networks:
       - holora_network
 
@@ -69,7 +69,7 @@ services:
       context: ../backend
     restart: unless-stopped
     ports:
-      - "${BACKEND_PORT:-5001}:5000"
+      - "127.0.0.1:${BACKEND_PORT:-5001}:5000"
     environment:
       PORT: 5000
       NODE_ENV: production
@@ -78,16 +78,16 @@ services:
       DB_NAME: ${MYSQL_DATABASE:-holora_medical}
       DB_USER: ${MYSQL_USER:-holora_app}
       DB_PASSWORD: ${MYSQL_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in docker/.env}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY in docker/.env}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5175,http://localhost:5173,http://localhost,http://localhost:80}
       IMAGE_PROCESSING_URL: ${IMAGE_PROCESSING_URL:-http://image-processing:8000}
     depends_on:
       mysql:
         condition: service_healthy
     volumes:
-      - ../backend:/app
-      - /app/node_modules
-      - ../backend/public/uploads:/app/public/uploads
+      - backend_uploads:/app/public/uploads
     networks:
       - holora_network
 
@@ -96,9 +96,10 @@ services:
       context: ../frontend
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:5001}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-80}:5173"
+      - "127.0.0.1:${FRONTEND_PORT:-8081}:5173"
     depends_on:
       backend:
         condition: service_started
@@ -111,3 +112,6 @@ networks:
 
 volumes:
   mysql_data:
+  backend_uploads:
+  image_uploads:
+  image_results:

@@ -147,8 +147,6 @@ CREATE TABLE `appointment` (
 
 LOCK TABLES `appointment` WRITE;
 /*!40000 ALTER TABLE `appointment` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `appointment` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -222,8 +220,6 @@ CREATE TABLE `audit_logs` (
 
 LOCK TABLES `audit_logs` WRITE;
 /*!40000 ALTER TABLE `audit_logs` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `audit_logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -263,8 +259,6 @@ CREATE TABLE `branch` (
 
 LOCK TABLES `branch` WRITE;
 /*!40000 ALTER TABLE `branch` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `branch` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -309,8 +303,6 @@ CREATE TABLE `consultation` (
 
 LOCK TABLES `consultation` WRITE;
 /*!40000 ALTER TABLE `consultation` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `consultation` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -349,8 +341,6 @@ CREATE TABLE `consultation_image` (
 
 LOCK TABLES `consultation_image` WRITE;
 /*!40000 ALTER TABLE `consultation_image` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `consultation_image` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -386,8 +376,6 @@ CREATE TABLE `consultation_response` (
 
 LOCK TABLES `consultation_response` WRITE;
 /*!40000 ALTER TABLE `consultation_response` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `consultation_response` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -441,8 +429,6 @@ CREATE TABLE `doctor` (
 
 LOCK TABLES `doctor` WRITE;
 /*!40000 ALTER TABLE `doctor` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `doctor` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -476,8 +462,6 @@ CREATE TABLE `doctor_branch` (
 
 LOCK TABLES `doctor_branch` WRITE;
 /*!40000 ALTER TABLE `doctor_branch` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `doctor_branch` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -551,8 +535,6 @@ CREATE TABLE `doctor_schedule` (
 
 LOCK TABLES `doctor_schedule` WRITE;
 /*!40000 ALTER TABLE `doctor_schedule` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `doctor_schedule` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -566,7 +548,7 @@ DROP TABLE IF EXISTS `holora_mind_chats`;
 CREATE TABLE `holora_mind_chats` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `user_id` bigint unsigned NOT NULL,
-  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'Cuß?Öc tr?? chuyß?çn mß?¢i',
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'Cuï¿½?ï¿½c tr?? chuyï¿½?ï¿½n mï¿½?ï¿½i',
   `model_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'HoloraMind-v1',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -583,8 +565,6 @@ CREATE TABLE `holora_mind_chats` (
 
 LOCK TABLES `holora_mind_chats` WRITE;
 /*!40000 ALTER TABLE `holora_mind_chats` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `holora_mind_chats` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -613,8 +593,6 @@ CREATE TABLE `holora_mind_messages` (
 
 LOCK TABLES `holora_mind_messages` WRITE;
 /*!40000 ALTER TABLE `holora_mind_messages` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `holora_mind_messages` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -701,8 +679,6 @@ CREATE TABLE `patient` (
 
 LOCK TABLES `patient` WRITE;
 /*!40000 ALTER TABLE `patient` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `patient` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -812,8 +788,6 @@ CREATE TABLE `payment_order` (
 
 LOCK TABLES `payment_order` WRITE;
 /*!40000 ALTER TABLE `payment_order` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `payment_order` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -846,7 +820,7 @@ CREATE TABLE `permission` (
 
 LOCK TABLES `permission` WRITE;
 /*!40000 ALTER TABLE `permission` DISABLE KEYS */;
-INSERT INTO `permission` VALUES (1,'Manage Users','user.manage','user','To?án quyß?ün quß?ún l?? ng??ß?¥i d??ng','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(2,'Manage Roles','role.manage','rbac','To?án quyß?ün quß?ún l?? vai tr??','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(3,'Manage Permissions','permission.manage','rbac','To?án quyß?ün quß?ún l?? ph?ón quyß?ün','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(4,'Manage Patients','patient.manage','patient','To?án quyß?ün quß?ún l?? bß?çnh nh?ón','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(5,'Manage Doctors','doctor.manage','doctor','To?án quyß?ün quß?ún l?? b?íc s??','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(6,'Manage Consultations','consultation.manage','consultation','To?án quyß?ün quß?ún l?? ca t?? vß?Ñn','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(7,'Manage AI Analysis','ai.manage','ai','To?án quyß?ün quß?ún l?? ph?ón t?¡ch AI','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(8,'Manage Appointments','appointment.manage','appointment','To?án quyß?ün quß?ún l?? lß?ïch hß??n','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(9,'Manage Video Sessions','video.manage','video','Quß?ún l?? phi?¬n t?? vß?Ñn video','active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(10,'Manage Reviews','review.manage','review','Quß?ún l?? ?æ?ính gi?í','active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(11,'Manage Notifications','notification.manage','notification','Quß?ún l?? th??ng b?ío','active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(12,'View Audit Logs','audit.view','audit','Xem nhß?¡t k?? hß?ç thß?æng','active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(13,'Access Dashboard','dashboard.access','dashboard','Truy cß?¡p bß?úng ?æiß?üu khiß?ân tß?òng quan','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(14,'View Users','user.view','user','Xem danh s?ích v?á th??ng tin ng??ß?¥i d??ng','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(15,'Create User','user.create','user','Tß?ío t?ái khoß?ún ng??ß?¥i d??ng mß?¢i','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(16,'Update User','user.update','user','Cß?¡p nhß?¡t th??ng tin ng??ß?¥i d??ng','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(17,'Delete User','user.delete','user','X??a t?ái khoß?ún ng??ß?¥i d??ng','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(18,'View Patients','patient.view','patient','Xem danh s?ích v?á hß?ô s?í bß?çnh nh?ón','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(19,'Create Patient','patient.create','patient','Th?¬m hß?ô s?í bß?çnh nh?ón mß?¢i','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(20,'Update Patient','patient.update','patient','Cß?¡p nhß?¡t hß?ô s?í bß?çnh nh?ón','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(21,'View Appointments','appointment.view','appointment','Xem lß?ïch hß??n cß?ºa m?¼nh','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(22,'Create Appointment','appointment.create','appointment','?Éß??t lß?ïch hß??n mß?¢i','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(23,'Update Appointment Status','appointment.update','appointment','Cß?¡p nhß?¡t trß?íng th?íi lß?ïch hß??n','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(24,'View Consultations','consultation.view','consultation','Xem ca t?? vß?Ñn cß?ºa m?¼nh','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(25,'Respond to Consultation','consultation.respond','consultation','Phß?ún hß?ôi / chß??n ?æo?ín ca t?? vß?Ñn','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(26,'View Analytics','dashboard.analytics','dashboard','Xem b?ío c?ío thß?æng k?¬ ph?ón t?¡ch','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(27,'Assign Role to User','user.assign_role','user','G?ín hoß??c gß?í vai tr?? khß?Åi ng??ß?¥i d??ng','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(28,'View Roles','role.view','rbac','Xem danh s?ích vai tr??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(29,'Create Role','role.create','rbac','Tß?ío vai tr?? mß?¢i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(30,'Update Role','role.update','rbac','Cß?¡p nhß?¡t vai tr??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(31,'Delete Role','role.delete','rbac','X??a vai tr??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(32,'View Permissions','permission.view','rbac','Xem danh s?ích ph?ón quyß?ün','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(33,'Create Permission','permission.create','rbac','Tß?ío ph?ón quyß?ün mß?¢i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(34,'Update Permission','permission.update','rbac','Cß?¡p nhß?¡t ph?ón quyß?ün','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(35,'Delete Permission','permission.delete','rbac','X??a ph?ón quyß?ün','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(36,'Delete Patient','patient.delete','patient','X??a hß?ô s?í bß?çnh nh?ón','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(37,'View Doctors','doctor.view','doctor','Xem danh s?ích v?á hß?ô s?í b?íc s??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(38,'Create Doctor','doctor.create','doctor','Th?¬m hß?ô s?í b?íc s?? mß?¢i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(39,'Update Doctor','doctor.update','doctor','Cß?¡p nhß?¡t hß?ô s?í b?íc s??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(40,'Delete Doctor','doctor.delete','doctor','X??a hß?ô s?í b?íc s??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(41,'Manage Branches','branch.manage','branch','To?án quyß?ün quß?ún l?? chi nh?ính','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(42,'View Branches','branch.view','branch','Xem danh s?ích v?á th??ng tin chi nh?ính','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(43,'Create Branch','branch.create','branch','Th?¬m chi nh?ính mß?¢i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(44,'Update Branch','branch.update','branch','Cß?¡p nhß?¡t th??ng tin chi nh?ính','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(45,'Delete Branch','branch.delete','branch','X??a chi nh?ính','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(46,'View All Appointments','appointment.admin','appointment','Xem tß?Ñt cß?ú lß?ïch hß??n trong hß?ç thß?æng (admin)','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(47,'Delete Appointment','appointment.delete','appointment','Hß?ºy / x??a lß?ïch hß??n','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(48,'Create Consultation','consultation.create','consultation','Gß?¡i y?¬u cß?ºu t?? vß?Ñn mß?¢i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(49,'Reopen Consultation','consultation.reopen','consultation','Mß?f lß?íi ca t?? vß?Ñn ?æ?ú ho?án th?ánh','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(50,'View Schedules','schedule.view','schedule','Xem lß?ïch l?ám viß?çc cß?ºa b?íc s??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(51,'Create Schedule','schedule.create','schedule','Tß?ío ca l?ám viß?çc mß?¢i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(52,'Update Schedule','schedule.update','schedule','Cß?¡p nhß?¡t ca l?ám viß?çc','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(53,'Delete Schedule','schedule.delete','schedule','X??a ca l?ám viß?çc','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(54,'View Specialties','specialty.view','specialty','Xem danh mß?Ñc chuy?¬n khoa','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(55,'Create Specialty','specialty.create','specialty','Th?¬m chuy?¬n khoa mß?¢i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(56,'Update Specialty','specialty.update','specialty','Cß?¡p nhß?¡t chuy?¬n khoa','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(57,'Delete Specialty','specialty.delete','specialty','X??a chuy?¬n khoa','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(58,'Request AI Analysis','ai.analyze','ai','Gß?¡i y?¬u cß?ºu AI ph?ón t?¡ch ß?únh ca kh?ím','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(59,'View AI Results','ai.view','ai','Xem kß??t quß?ú ph?ón t?¡ch AI','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(60,'Review AI Results','ai.review','ai','B?íc s?? ?æ?ính gi?í v?á kiß?âm so?ít kß??t quß?ú AI','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(61,'View Subscriptions','subscription.view','subscription','Xem g??i dß?ïch vß?Ñ v?á trß?íng th?íi ?æ?âng k??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(62,'Activate Subscription','subscription.activate','subscription','K?¡ch hoß?ít g??i dß?ïch vß?Ñ','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(63,'Manage Subscriptions','subscription.manage','subscription','Quß?ún l?? thanh to?ín v?á x?íc nhß?¡n ?æ?âng k??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(64,'Upload Files','upload.file','upload','Tß?úi ß?únh / tß?çp ?æ?¡nh k?¿m l?¬n hß?ç thß?æng','active','2026-04-03 02:11:42','2026-04-03 02:11:42');
+INSERT INTO `permission` VALUES (1,'Manage Users','user.manage','user','To?ï¿½n quyï¿½?ï¿½n quï¿½?ï¿½n l?? ng??ï¿½?ï¿½i d??ng','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(2,'Manage Roles','role.manage','rbac','To?ï¿½n quyï¿½?ï¿½n quï¿½?ï¿½n l?? vai tr??','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(3,'Manage Permissions','permission.manage','rbac','To?ï¿½n quyï¿½?ï¿½n quï¿½?ï¿½n l?? ph?ï¿½n quyï¿½?ï¿½n','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(4,'Manage Patients','patient.manage','patient','To?ï¿½n quyï¿½?ï¿½n quï¿½?ï¿½n l?? bï¿½?ï¿½nh nh?ï¿½n','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(5,'Manage Doctors','doctor.manage','doctor','To?ï¿½n quyï¿½?ï¿½n quï¿½?ï¿½n l?? b?ï¿½c s??','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(6,'Manage Consultations','consultation.manage','consultation','To?ï¿½n quyï¿½?ï¿½n quï¿½?ï¿½n l?? ca t?? vï¿½?ï¿½n','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(7,'Manage AI Analysis','ai.manage','ai','To?ï¿½n quyï¿½?ï¿½n quï¿½?ï¿½n l?? ph?ï¿½n t?ï¿½ch AI','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(8,'Manage Appointments','appointment.manage','appointment','To?ï¿½n quyï¿½?ï¿½n quï¿½?ï¿½n l?? lï¿½?ï¿½ch hï¿½??n','active','2026-03-28 09:52:25','2026-04-03 02:11:42'),(9,'Manage Video Sessions','video.manage','video','Quï¿½?ï¿½n l?? phi?ï¿½n t?? vï¿½?ï¿½n video','active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(10,'Manage Reviews','review.manage','review','Quï¿½?ï¿½n l?? ?ï¿½?ï¿½nh gi?ï¿½','active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(11,'Manage Notifications','notification.manage','notification','Quï¿½?ï¿½n l?? th??ng b?ï¿½o','active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(12,'View Audit Logs','audit.view','audit','Xem nhï¿½?ï¿½t k?? hï¿½?ï¿½ thï¿½?ï¿½ng','active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(13,'Access Dashboard','dashboard.access','dashboard','Truy cï¿½?ï¿½p bï¿½?ï¿½ng ?ï¿½iï¿½?ï¿½u khiï¿½?ï¿½n tï¿½?ï¿½ng quan','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(14,'View Users','user.view','user','Xem danh s?ï¿½ch v?ï¿½ th??ng tin ng??ï¿½?ï¿½i d??ng','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(15,'Create User','user.create','user','Tï¿½?ï¿½o t?ï¿½i khoï¿½?ï¿½n ng??ï¿½?ï¿½i d??ng mï¿½?ï¿½i','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(16,'Update User','user.update','user','Cï¿½?ï¿½p nhï¿½?ï¿½t th??ng tin ng??ï¿½?ï¿½i d??ng','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(17,'Delete User','user.delete','user','X??a t?ï¿½i khoï¿½?ï¿½n ng??ï¿½?ï¿½i d??ng','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(18,'View Patients','patient.view','patient','Xem danh s?ï¿½ch v?ï¿½ hï¿½?ï¿½ s?ï¿½ bï¿½?ï¿½nh nh?ï¿½n','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(19,'Create Patient','patient.create','patient','Th?ï¿½m hï¿½?ï¿½ s?ï¿½ bï¿½?ï¿½nh nh?ï¿½n mï¿½?ï¿½i','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(20,'Update Patient','patient.update','patient','Cï¿½?ï¿½p nhï¿½?ï¿½t hï¿½?ï¿½ s?ï¿½ bï¿½?ï¿½nh nh?ï¿½n','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(21,'View Appointments','appointment.view','appointment','Xem lï¿½?ï¿½ch hï¿½??n cï¿½?ï¿½a m?ï¿½nh','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(22,'Create Appointment','appointment.create','appointment','?ï¿½ï¿½??t lï¿½?ï¿½ch hï¿½??n mï¿½?ï¿½i','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(23,'Update Appointment Status','appointment.update','appointment','Cï¿½?ï¿½p nhï¿½?ï¿½t trï¿½?ï¿½ng th?ï¿½i lï¿½?ï¿½ch hï¿½??n','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(24,'View Consultations','consultation.view','consultation','Xem ca t?? vï¿½?ï¿½n cï¿½?ï¿½a m?ï¿½nh','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(25,'Respond to Consultation','consultation.respond','consultation','Phï¿½?ï¿½n hï¿½?ï¿½i / chï¿½??n ?ï¿½o?ï¿½n ca t?? vï¿½?ï¿½n','active','2026-03-28 14:55:40','2026-04-03 02:11:42'),(26,'View Analytics','dashboard.analytics','dashboard','Xem b?ï¿½o c?ï¿½o thï¿½?ï¿½ng k?ï¿½ ph?ï¿½n t?ï¿½ch','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(27,'Assign Role to User','user.assign_role','user','G?ï¿½n hoï¿½??c gï¿½?ï¿½ vai tr?? khï¿½?ï¿½i ng??ï¿½?ï¿½i d??ng','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(28,'View Roles','role.view','rbac','Xem danh s?ï¿½ch vai tr??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(29,'Create Role','role.create','rbac','Tï¿½?ï¿½o vai tr?? mï¿½?ï¿½i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(30,'Update Role','role.update','rbac','Cï¿½?ï¿½p nhï¿½?ï¿½t vai tr??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(31,'Delete Role','role.delete','rbac','X??a vai tr??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(32,'View Permissions','permission.view','rbac','Xem danh s?ï¿½ch ph?ï¿½n quyï¿½?ï¿½n','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(33,'Create Permission','permission.create','rbac','Tï¿½?ï¿½o ph?ï¿½n quyï¿½?ï¿½n mï¿½?ï¿½i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(34,'Update Permission','permission.update','rbac','Cï¿½?ï¿½p nhï¿½?ï¿½t ph?ï¿½n quyï¿½?ï¿½n','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(35,'Delete Permission','permission.delete','rbac','X??a ph?ï¿½n quyï¿½?ï¿½n','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(36,'Delete Patient','patient.delete','patient','X??a hï¿½?ï¿½ s?ï¿½ bï¿½?ï¿½nh nh?ï¿½n','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(37,'View Doctors','doctor.view','doctor','Xem danh s?ï¿½ch v?ï¿½ hï¿½?ï¿½ s?ï¿½ b?ï¿½c s??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(38,'Create Doctor','doctor.create','doctor','Th?ï¿½m hï¿½?ï¿½ s?ï¿½ b?ï¿½c s?? mï¿½?ï¿½i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(39,'Update Doctor','doctor.update','doctor','Cï¿½?ï¿½p nhï¿½?ï¿½t hï¿½?ï¿½ s?ï¿½ b?ï¿½c s??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(40,'Delete Doctor','doctor.delete','doctor','X??a hï¿½?ï¿½ s?ï¿½ b?ï¿½c s??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(41,'Manage Branches','branch.manage','branch','To?ï¿½n quyï¿½?ï¿½n quï¿½?ï¿½n l?? chi nh?ï¿½nh','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(42,'View Branches','branch.view','branch','Xem danh s?ï¿½ch v?ï¿½ th??ng tin chi nh?ï¿½nh','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(43,'Create Branch','branch.create','branch','Th?ï¿½m chi nh?ï¿½nh mï¿½?ï¿½i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(44,'Update Branch','branch.update','branch','Cï¿½?ï¿½p nhï¿½?ï¿½t th??ng tin chi nh?ï¿½nh','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(45,'Delete Branch','branch.delete','branch','X??a chi nh?ï¿½nh','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(46,'View All Appointments','appointment.admin','appointment','Xem tï¿½?ï¿½t cï¿½?ï¿½ lï¿½?ï¿½ch hï¿½??n trong hï¿½?ï¿½ thï¿½?ï¿½ng (admin)','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(47,'Delete Appointment','appointment.delete','appointment','Hï¿½?ï¿½y / x??a lï¿½?ï¿½ch hï¿½??n','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(48,'Create Consultation','consultation.create','consultation','Gï¿½?ï¿½i y?ï¿½u cï¿½?ï¿½u t?? vï¿½?ï¿½n mï¿½?ï¿½i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(49,'Reopen Consultation','consultation.reopen','consultation','Mï¿½?f lï¿½?ï¿½i ca t?? vï¿½?ï¿½n ?ï¿½?ï¿½ ho?ï¿½n th?ï¿½nh','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(50,'View Schedules','schedule.view','schedule','Xem lï¿½?ï¿½ch l?ï¿½m viï¿½?ï¿½c cï¿½?ï¿½a b?ï¿½c s??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(51,'Create Schedule','schedule.create','schedule','Tï¿½?ï¿½o ca l?ï¿½m viï¿½?ï¿½c mï¿½?ï¿½i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(52,'Update Schedule','schedule.update','schedule','Cï¿½?ï¿½p nhï¿½?ï¿½t ca l?ï¿½m viï¿½?ï¿½c','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(53,'Delete Schedule','schedule.delete','schedule','X??a ca l?ï¿½m viï¿½?ï¿½c','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(54,'View Specialties','specialty.view','specialty','Xem danh mï¿½?ï¿½c chuy?ï¿½n khoa','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(55,'Create Specialty','specialty.create','specialty','Th?ï¿½m chuy?ï¿½n khoa mï¿½?ï¿½i','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(56,'Update Specialty','specialty.update','specialty','Cï¿½?ï¿½p nhï¿½?ï¿½t chuy?ï¿½n khoa','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(57,'Delete Specialty','specialty.delete','specialty','X??a chuy?ï¿½n khoa','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(58,'Request AI Analysis','ai.analyze','ai','Gï¿½?ï¿½i y?ï¿½u cï¿½?ï¿½u AI ph?ï¿½n t?ï¿½ch ï¿½?ï¿½nh ca kh?ï¿½m','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(59,'View AI Results','ai.view','ai','Xem kï¿½??t quï¿½?ï¿½ ph?ï¿½n t?ï¿½ch AI','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(60,'Review AI Results','ai.review','ai','B?ï¿½c s?? ?ï¿½?ï¿½nh gi?ï¿½ v?ï¿½ kiï¿½?ï¿½m so?ï¿½t kï¿½??t quï¿½?ï¿½ AI','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(61,'View Subscriptions','subscription.view','subscription','Xem g??i dï¿½?ï¿½ch vï¿½?ï¿½ v?ï¿½ trï¿½?ï¿½ng th?ï¿½i ?ï¿½?ï¿½ng k??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(62,'Activate Subscription','subscription.activate','subscription','K?ï¿½ch hoï¿½?ï¿½t g??i dï¿½?ï¿½ch vï¿½?ï¿½','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(63,'Manage Subscriptions','subscription.manage','subscription','Quï¿½?ï¿½n l?? thanh to?ï¿½n v?ï¿½ x?ï¿½c nhï¿½?ï¿½n ?ï¿½?ï¿½ng k??','active','2026-04-03 02:11:42','2026-04-03 02:11:42'),(64,'Upload Files','upload.file','upload','Tï¿½?ï¿½i ï¿½?ï¿½nh / tï¿½?ï¿½p ?ï¿½?ï¿½nh k?ï¿½m l?ï¿½n hï¿½?ï¿½ thï¿½?ï¿½ng','active','2026-04-03 02:11:42','2026-04-03 02:11:42');
 /*!40000 ALTER TABLE `permission` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -965,8 +939,6 @@ CREATE TABLE `provider_subscription` (
 
 LOCK TABLES `provider_subscription` WRITE;
 /*!40000 ALTER TABLE `provider_subscription` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `provider_subscription` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1041,8 +1013,6 @@ CREATE TABLE `refresh_tokens` (
 
 LOCK TABLES `refresh_tokens` WRITE;
 /*!40000 ALTER TABLE `refresh_tokens` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `refresh_tokens` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1115,7 +1085,7 @@ CREATE TABLE `role` (
 
 LOCK TABLES `role` WRITE;
 /*!40000 ALTER TABLE `role` DISABLE KEYS */;
-INSERT INTO `role` VALUES (1,'Super Admin','super_admin','To?án quyß?ün hß?ç thß?æng',1,'active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(2,'Admin','admin','Quß?ún trß?ï hß?ç thß?æng',1,'active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(3,'Doctor','doctor','B?íc s??',1,'active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(4,'Patient','patient','Bß?çnh nh?ón',1,'active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(5,'Clinic Owner','clinic_owner','Owner of clinic/provider account',0,'active','2026-03-30 04:20:47','2026-04-06 03:27:31'),(6,'Branch Manager','branch_manager','Manager of a specific branch',0,'active','2026-03-30 04:20:47','2026-04-06 03:27:31');
+INSERT INTO `role` VALUES (1,'Super Admin','super_admin','To?ï¿½n quyï¿½?ï¿½n hï¿½?ï¿½ thï¿½?ï¿½ng',1,'active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(2,'Admin','admin','Quï¿½?ï¿½n trï¿½?ï¿½ hï¿½?ï¿½ thï¿½?ï¿½ng',1,'active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(3,'Doctor','doctor','B?ï¿½c s??',1,'active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(4,'Patient','patient','Bï¿½?ï¿½nh nh?ï¿½n',1,'active','2026-03-28 09:52:25','2026-03-28 09:52:25'),(5,'Clinic Owner','clinic_owner','Owner of clinic/provider account',0,'active','2026-03-30 04:20:47','2026-04-06 03:27:31'),(6,'Branch Manager','branch_manager','Manager of a specific branch',0,'active','2026-03-30 04:20:47','2026-04-06 03:27:31');
 /*!40000 ALTER TABLE `role` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1188,7 +1158,7 @@ CREATE TABLE `specialty` (
 
 LOCK TABLES `specialty` WRITE;
 /*!40000 ALTER TABLE `specialty` DISABLE KEYS */;
-INSERT INTO `specialty` VALUES (1,'R?âng H?ám Mß??t','S000001',NULL,'R?âng H?ám Mß??t','active','2026-03-29 05:33:04','2026-04-06 03:23:58',NULL,3),(2,'Nß?Öi khoa','INTERNAL_MEDICINE',NULL,'?Éiß?üu trß?ï bß?çnh bß??ng thuß?æc','active','2026-03-30 07:08:37','2026-04-06 03:27:32',NULL,0),(3,'Ngoß?íi khoa','SURGERY',NULL,'?Éiß?üu trß?ï bß?çnh bß??ng phß?½u thuß?¡t','active','2026-03-30 07:08:57','2026-04-06 03:27:32',NULL,0),(4,'Sß?ún phß?Ñ khoa','S000004',NULL,'Sß?ún phß?Ñ khoa','active','2026-03-30 07:09:16','2026-03-30 07:09:16',NULL,0),(5,'Nhi khoa','S000005',NULL,'Nhi khoa','active','2026-03-30 07:09:37','2026-03-30 07:09:37',NULL,0),(6,'Y tß?? c??ng cß?Öng/Y hß?ìc dß?? ph??ng','S000006',NULL,'Y tß?? c??ng cß?Öng/Y hß?ìc dß?? ph??ng','active','2026-03-30 07:10:14','2026-03-30 07:10:14',NULL,0),(7,'D??ß?úc hß?ìc','S000007',NULL,'D??ß?úc hß?ìc','active','2026-03-30 07:10:31','2026-03-30 07:10:31',NULL,0),(8,'?Éiß?üu d??ß?íng/Hß?Ö sinh','S000008',NULL,'?Éiß?üu d??ß?íng/Hß?Ö sinh','active','2026-03-30 07:10:46','2026-03-30 07:10:46',NULL,0),(9,'Chuy?¬n khoa gi?íc quan/da','S000009',NULL,'Chuy?¬n khoa gi?íc quan/da','active','2026-03-30 07:11:10','2026-03-30 07:11:10',NULL,0),(10,'Chuy?¬n khoa chß??c n?âng/hß?ù trß?ú','S000010',NULL,'Chuy?¬n khoa chß??c n?âng/hß?ù trß?ú','active','2026-03-30 07:11:29','2026-04-06 03:23:58',NULL,1),(11,'Chuy?¬n khoa ?æß??c th??','S000011',NULL,'Chuy?¬n khoa ?æß??c th??','active','2026-03-30 07:11:44','2026-03-30 07:11:44',NULL,0),(13,'Tim mß?ích','CARDIOLOGY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(14,'Ti?¬u h??a','GASTROENTEROLOGY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(15,'H?? hß?Ñp','RESPIRATORY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(16,'Nß?Öi tiß??t','ENDOCRINOLOGY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(17,'Thß?¡n - Tiß??t niß?çu','NEPHRO_UROLOGY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(18,'X???íng khß?¢p','RHEUMATOLOGY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(19,'Huyß??t hß?ìc','HEMATOLOGY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(20,'Truyß?ün nhiß?àm/Nhiß?çt ?æß?¢i','INFECTIOUS_DISEASE',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(21,'Ngoß?íi tß?òng qu?ít','GENERAL_SURGERY',3,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(22,'Ngoß?íi thß?ºn kinh','NEUROSURGERY',3,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(23,'Ngoß?íi lß?ông ngß??c','THORACIC_SURGERY',3,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(24,'Chß?Ñn th???íng chß?ënh h?¼nh','ORTHOPEDIC_TRAUMA',3,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,1),(25,'Ngoß?íi nhi','PEDIATRIC_SURGERY',3,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0);
+INSERT INTO `specialty` VALUES (1,'R?ï¿½ng H?ï¿½m Mï¿½??t','S000001',NULL,'R?ï¿½ng H?ï¿½m Mï¿½??t','active','2026-03-29 05:33:04','2026-04-06 03:23:58',NULL,3),(2,'Nï¿½?ï¿½i khoa','INTERNAL_MEDICINE',NULL,'?ï¿½iï¿½?ï¿½u trï¿½?ï¿½ bï¿½?ï¿½nh bï¿½??ng thuï¿½?ï¿½c','active','2026-03-30 07:08:37','2026-04-06 03:27:32',NULL,0),(3,'Ngoï¿½?ï¿½i khoa','SURGERY',NULL,'?ï¿½iï¿½?ï¿½u trï¿½?ï¿½ bï¿½?ï¿½nh bï¿½??ng phï¿½?ï¿½u thuï¿½?ï¿½t','active','2026-03-30 07:08:57','2026-04-06 03:27:32',NULL,0),(4,'Sï¿½?ï¿½n phï¿½?ï¿½ khoa','S000004',NULL,'Sï¿½?ï¿½n phï¿½?ï¿½ khoa','active','2026-03-30 07:09:16','2026-03-30 07:09:16',NULL,0),(5,'Nhi khoa','S000005',NULL,'Nhi khoa','active','2026-03-30 07:09:37','2026-03-30 07:09:37',NULL,0),(6,'Y tï¿½?? c??ng cï¿½?ï¿½ng/Y hï¿½?ï¿½c dï¿½?? ph??ng','S000006',NULL,'Y tï¿½?? c??ng cï¿½?ï¿½ng/Y hï¿½?ï¿½c dï¿½?? ph??ng','active','2026-03-30 07:10:14','2026-03-30 07:10:14',NULL,0),(7,'D??ï¿½?ï¿½c hï¿½?ï¿½c','S000007',NULL,'D??ï¿½?ï¿½c hï¿½?ï¿½c','active','2026-03-30 07:10:31','2026-03-30 07:10:31',NULL,0),(8,'?ï¿½iï¿½?ï¿½u d??ï¿½?ï¿½ng/Hï¿½?ï¿½ sinh','S000008',NULL,'?ï¿½iï¿½?ï¿½u d??ï¿½?ï¿½ng/Hï¿½?ï¿½ sinh','active','2026-03-30 07:10:46','2026-03-30 07:10:46',NULL,0),(9,'Chuy?ï¿½n khoa gi?ï¿½c quan/da','S000009',NULL,'Chuy?ï¿½n khoa gi?ï¿½c quan/da','active','2026-03-30 07:11:10','2026-03-30 07:11:10',NULL,0),(10,'Chuy?ï¿½n khoa chï¿½??c n?ï¿½ng/hï¿½?ï¿½ trï¿½?ï¿½','S000010',NULL,'Chuy?ï¿½n khoa chï¿½??c n?ï¿½ng/hï¿½?ï¿½ trï¿½?ï¿½','active','2026-03-30 07:11:29','2026-04-06 03:23:58',NULL,1),(11,'Chuy?ï¿½n khoa ?ï¿½ï¿½??c th??','S000011',NULL,'Chuy?ï¿½n khoa ?ï¿½ï¿½??c th??','active','2026-03-30 07:11:44','2026-03-30 07:11:44',NULL,0),(13,'Tim mï¿½?ï¿½ch','CARDIOLOGY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(14,'Ti?ï¿½u h??a','GASTROENTEROLOGY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(15,'H?? hï¿½?ï¿½p','RESPIRATORY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(16,'Nï¿½?ï¿½i tiï¿½??t','ENDOCRINOLOGY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(17,'Thï¿½?ï¿½n - Tiï¿½??t niï¿½?ï¿½u','NEPHRO_UROLOGY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(18,'X???ï¿½ng khï¿½?ï¿½p','RHEUMATOLOGY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(19,'Huyï¿½??t hï¿½?ï¿½c','HEMATOLOGY',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(20,'Truyï¿½?ï¿½n nhiï¿½?ï¿½m/Nhiï¿½?ï¿½t ?ï¿½ï¿½?ï¿½i','INFECTIOUS_DISEASE',2,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(21,'Ngoï¿½?ï¿½i tï¿½?ï¿½ng qu?ï¿½t','GENERAL_SURGERY',3,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(22,'Ngoï¿½?ï¿½i thï¿½?ï¿½n kinh','NEUROSURGERY',3,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(23,'Ngoï¿½?ï¿½i lï¿½?ï¿½ng ngï¿½??c','THORACIC_SURGERY',3,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0),(24,'Chï¿½?ï¿½n th???ï¿½ng chï¿½?ï¿½nh h?ï¿½nh','ORTHOPEDIC_TRAUMA',3,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,1),(25,'Ngoï¿½?ï¿½i nhi','PEDIATRIC_SURGERY',3,NULL,'active','2026-03-30 07:16:17','2026-04-06 03:27:32',NULL,0);
 /*!40000 ALTER TABLE `specialty` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1289,8 +1259,6 @@ CREATE TABLE `user_role` (
 
 LOCK TABLES `user_role` WRITE;
 /*!40000 ALTER TABLE `user_role` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `user_role` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1337,8 +1305,6 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
--- Operational rows removed from public history.
-
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 

@@ -15,6 +15,7 @@ const {
 } = require("../controllers/patient.controller");
 const { authenticateToken } = require("../middleware/auth.middleware");
 const { requireProviderRole } = require("../middleware/provider.middleware");
+const { authorizeRole } = require("../middleware/role.middleware");
 
 const router = express.Router();
 
@@ -28,7 +29,8 @@ router.get("/me/branches", authenticateToken, getMyBranches);
 // Get patients in branches owned by the authenticated clinic_owner
 router.get("/my-branches", authenticateToken, requireProviderRole, getPatientsByOwnerBranches);
 
-// Public endpoints (for admin/system use)
+// Administrative CRUD must not expose patient records publicly.
+router.use(authenticateToken, authorizeRole("admin", "super_admin"));
 router.get("/", getAllPatients);
 router.get("/next-code", getNextPatientCode);
 router.get("/:id", getPatientById);

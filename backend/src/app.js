@@ -6,6 +6,10 @@ const rateLimit = require("express-rate-limit");
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  throw new Error("JWT_SECRET must contain at least 32 characters");
+}
+
 // Load routes only after environment variables are available.
 const recurringAppointmentChildRoutes = require("./routes/recurringAppointment.child.routes");
 const recurringAppointmentRoutes = require("./routes/recurringAppointment.routes");
@@ -36,16 +40,14 @@ const paymentRoutes = require("./routes/payment.routes");
 const notificationRoutes = require("./routes/notification.routes");
 
 const { errorHandler } = require("./middleware/error.middleware");
+const { authenticateToken } = require("./middleware/auth.middleware");
+const { authorizeRole } = require("./middleware/role.middleware");
+const adminOnly = authorizeRole("admin", "super_admin");
 
 
 const app = express();
 // Mount earningsHistoryRoutes sau khi app đã được khai báo
 const earningsHistoryRoutes = require("./routes/earnings-history.routes");
-app.use("/api/earnings", earningsHistoryRoutes);
-app.use("/api/emr", emrRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/recurring-appointments", recurringAppointmentChildRoutes);
-app.use("/api/recurring-appointments", recurringAppointmentRoutes);
 
 const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .split(",")
@@ -97,6 +99,12 @@ const strictAuthLimiter = rateLimit({
 
 app.use(globalLimiter);
 
+app.use("/api/earnings", earningsHistoryRoutes);
+app.use("/api/emr", emrRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/recurring-appointments", authenticateToken, adminOnly, recurringAppointmentChildRoutes);
+app.use("/api/recurring-appointments", authenticateToken, adminOnly, recurringAppointmentRoutes);
+
 app.get("/", (req, res) => {
   res.json({ message: "Holora Medical Backend is running" });
 });
@@ -107,9 +115,9 @@ app.use("/auth/google", authLimiter);
 app.use("/auth/forgot-password", strictAuthLimiter);
 app.use("/auth/reset-password", strictAuthLimiter);
 app.use("/auth", authRoutes);
-app.use("/users", userRoutes);
-app.use("/roles", roleRoutes);
-app.use("/permissions", permissionRoutes);
+app.use("/users", authenticateToken, adminOnly, userRoutes);
+app.use("/roles", authenticateToken, adminOnly, roleRoutes);
+app.use("/permissions", authenticateToken, adminOnly, permissionRoutes);
 app.use("/patients", patientRoutes);
 app.use("/doctors", doctorRoutes);
 app.use("/specialties", specialtyRoutes);

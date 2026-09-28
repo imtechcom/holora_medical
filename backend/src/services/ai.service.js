@@ -36,6 +36,7 @@ const analyzeImage = async (imageUrl, consultationId, imageId) => {
     const preprocessResponse = await axios.post(`${aiServiceUrl}/api/v1/preprocess`, form, {
       headers: {
         ...form.getHeaders(),
+        "X-API-Key": process.env.INTERNAL_API_KEY || "",
       },
       timeout: 15000, // Chờ tối đa 15s
     });
@@ -46,7 +47,10 @@ const analyzeImage = async (imageUrl, consultationId, imageId) => {
     }
 
     // 4. Lấy kết quả đường dẫn các ảnh đã xử lý (Edge, Mask, Processed)
-    const resultResponse = await axios.get(`${aiServiceUrl}/api/v1/jobs/${job.id}/result`);
+    const resultResponse = await axios.get(`${aiServiceUrl}/api/v1/jobs/${job.id}/result`, {
+      headers: { "X-API-Key": process.env.INTERNAL_API_KEY || "" },
+      timeout: 15000,
+    });
     const visionResults = resultResponse.data;
 
     // 5. Giả lập phần "Chẩn đoán" dựa trên metadata (Sau này tích hợp thêm LLM/Cloud AI)

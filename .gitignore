@@ -25,5 +25,20 @@ backend/*.log
 docs/
 planing.txt
 
+# Private configuration, runtime output and local caches
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules/
+**/__pycache__/
+**/.venv/
+**/dist/
+*.log
+.cache/
+image-processing/uploads/
+image-processing/processed/
+*.pem
+*.key
+
 # Backup files
 *.bak

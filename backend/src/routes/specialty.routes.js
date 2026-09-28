@@ -1,5 +1,7 @@
 const express = require("express");
 const router = express.Router();
+const { authenticateToken } = require("../middleware/auth.middleware");
+const { authorizeRole } = require("../middleware/role.middleware");
 const {
   getAllSpecialties,
   getSpecialtyById,
@@ -17,6 +19,7 @@ router.get("/", getAllSpecialties);
 router.get("/:id", getSpecialtyById);
 
 // Create specialty
+router.use(authenticateToken, authorizeRole("admin", "super_admin"));
 router.post("/", createSpecialty);
 
 // Update specialty

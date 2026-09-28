@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Header
+from secrets import compare_digest
+from ....config import settings
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
@@ -18,7 +20,12 @@ from ....schemas.job import JobCreate, JobResponse, ResultResponse
 
 from ....services.processor import process_medical_image
 
-router = APIRouter()
+def require_internal_key(x_api_key: str = Header(default="")):
+    if not settings.INTERNAL_API_KEY or not compare_digest(x_api_key, settings.INTERNAL_API_KEY):
+        raise HTTPException(status_code=401, detail="Invalid service credentials")
+
+
+router = APIRouter(dependencies=[Depends(require_internal_key)])
 
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 if not os.path.exists(UPLOAD_DIR):

@@ -7,7 +7,7 @@ DATABASE_URL = f"mysql+aiomysql://{settings.DB_USER}:{settings.DB_PASSWORD}@{set
 
 engine = create_async_engine(
     DATABASE_URL,
-    echo=True,
+    echo=settings.DEBUG,
     pool_pre_ping=True,
     pool_recycle=1800,
 )
